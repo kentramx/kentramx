@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { usePlacesAutocomplete } from '@/hooks/usePlacesAutocomplete';
 import { loadGoogleMaps } from '@/lib/loadGoogleMaps';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
@@ -12,8 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Bed, Bath, Car, Home as HomeIcon, Search, AlertCircle } from 'lucide-react';
+import { MapPin, Bed, Bath, Car, Home as HomeIcon, Search, AlertCircle, Save, Star, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface Property {
   id: string;
@@ -43,12 +46,17 @@ interface Filters {
 }
 
 const Buscar = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [properties, setProperties] = useState<Property[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [savedSearches, setSavedSearches] = useState<any[]>([]);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [searchName, setSearchName] = useState('');
   
   // Inicializar filtros desde URL
   const [filters, setFilters] = useState<Filters>({
@@ -69,6 +77,111 @@ const Buscar = () => {
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const markerClustererRef = useRef<MarkerClusterer | null>(null);
+
+  // Cargar búsquedas guardadas del usuario
+  useEffect(() => {
+    if (user) {
+      fetchSavedSearches();
+    }
+  }, [user]);
+
+  const fetchSavedSearches = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('saved_searches')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setSavedSearches(data || []);
+    } catch (error) {
+      console.error('Error fetching saved searches:', error);
+    }
+  };
+
+  const handleSaveSearch = async () => {
+    if (!user) {
+      toast({
+        title: 'Inicia sesión',
+        description: 'Debes iniciar sesión para guardar búsquedas',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!searchName.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Ingresa un nombre para la búsqueda',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('saved_searches')
+        .insert([{
+          user_id: user.id,
+          name: searchName,
+          filters: filters as any,
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Búsqueda guardada',
+        description: `"${searchName}" se guardó correctamente`,
+      });
+
+      setSearchName('');
+      setSaveDialogOpen(false);
+      fetchSavedSearches();
+    } catch (error: any) {
+      console.error('Error saving search:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo guardar la búsqueda',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleLoadSearch = (savedFilters: any) => {
+    setFilters(savedFilters);
+    toast({
+      title: 'Búsqueda cargada',
+      description: 'Los filtros se aplicaron correctamente',
+    });
+  };
+
+  const handleDeleteSearch = async (id: string, name: string) => {
+    try {
+      const { error } = await supabase
+        .from('saved_searches')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Búsqueda eliminada',
+        description: `"${name}" se eliminó correctamente`,
+      });
+
+      fetchSavedSearches();
+    } catch (error) {
+      console.error('Error deleting search:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo eliminar la búsqueda',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Actualizar URL cuando cambien los filtros
   useEffect(() => {
@@ -500,8 +613,85 @@ const Buscar = () => {
                     Limpiar {activeFiltersCount} {activeFiltersCount === 1 ? 'filtro' : 'filtros'}
                   </Button>
                 )}
+
+                {/* Botón guardar búsqueda */}
+                {user && activeFiltersCount > 0 && (
+                  <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="default" className="w-full animate-fade-in">
+                        <Save className="mr-2 h-4 w-4" />
+                        Guardar búsqueda
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Guardar búsqueda</DialogTitle>
+                        <DialogDescription>
+                          Dale un nombre a esta búsqueda para encontrarla fácilmente después.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="search-name">Nombre de la búsqueda</Label>
+                          <Input
+                            id="search-name"
+                            placeholder="Ej: Casas en Guadalajara"
+                            value={searchName}
+                            onChange={(e) => setSearchName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSaveSearch()}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+                          Cancelar
+                        </Button>
+                        <Button onClick={handleSaveSearch}>
+                          Guardar
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
               </CardContent>
             </Card>
+
+            {/* Búsquedas guardadas */}
+            {user && savedSearches.length > 0 && (
+              <Card>
+                <CardContent className="p-6 space-y-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <Star className="h-5 w-5" />
+                    Búsquedas guardadas
+                  </h2>
+                  <div className="space-y-2">
+                    {savedSearches.map((search) => (
+                      <div
+                        key={search.id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors"
+                      >
+                        <button
+                          onClick={() => handleLoadSearch(search.filters)}
+                          className="flex-1 text-left"
+                        >
+                          <p className="font-medium">{search.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(search.created_at).toLocaleDateString()}
+                          </p>
+                        </button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteSearch(search.id, search.name)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Lista de propiedades */}
             <div className="space-y-4">
