@@ -3,6 +3,7 @@ import { APIProvider, Map, AdvancedMarker, InfoWindow } from '@vis.gl/react-goog
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { GOOGLE_MAPS_API_KEY } from '@/config/maps';
 
 interface Property {
   id: string;
@@ -28,8 +29,6 @@ const PropertyMap = ({ properties, center, zoom = 12 }: PropertyMapProps) => {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [mapCenter, setMapCenter] = useState(center || { lat: 20.6597, lng: -103.3496 }); // Guadalajara default
 
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
   useEffect(() => {
     if (properties.length > 0 && !center) {
       // Calculate center from properties
@@ -51,7 +50,7 @@ const PropertyMap = ({ properties, center, zoom = 12 }: PropertyMapProps) => {
     }).format(price);
   };
 
-  if (!apiKey) {
+  if (!GOOGLE_MAPS_API_KEY) {
     return (
       <Card className="p-4 text-center">
         <p className="text-muted-foreground">
@@ -62,7 +61,7 @@ const PropertyMap = ({ properties, center, zoom = 12 }: PropertyMapProps) => {
   }
 
   return (
-    <APIProvider apiKey={apiKey}>
+    <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
       <div className="w-full h-full min-h-[400px] rounded-lg overflow-hidden">
         <Map
           mapId="kentra-map"

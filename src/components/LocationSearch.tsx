@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { GOOGLE_MAPS_API_KEY } from '@/config/maps';
 
 interface LocationSearchProps {
   onLocationSelect: (location: { address: string; lat: number; lng: number; municipality: string; state: string }) => void;
@@ -11,8 +12,6 @@ const LocationSearch = ({ onLocationSelect, placeholder = 'Buscar ubicación...'
   const pacRef = useRef<any>(null);
 
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
     const ensureScript = () => {
       if (window.google && (google.maps as any).places?.PlaceAutocompleteElement) {
         initPAC();
@@ -24,7 +23,7 @@ const LocationSearch = ({ onLocationSelect, placeholder = 'Buscar ubicación...'
         return;
       }
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=es&region=MX`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&language=es&region=MX`;
       script.async = true;
       script.defer = true;
       script.setAttribute('data-google-maps', 'true');
