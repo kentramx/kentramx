@@ -28,6 +28,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import propertyPlaceholder from "@/assets/property-placeholder.jpg";
+import { AgentReviews } from "@/components/AgentReviews";
+import { ReviewForm } from "@/components/ReviewForm";
 
 const PropertyDetail = () => {
   const { id } = useParams();
@@ -37,7 +39,12 @@ const PropertyDetail = () => {
   const [agent, setAgent] = useState<any>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reviewsKey, setReviewsKey] = useState(0);
   const { toast } = useToast();
+
+  const handleReviewSubmitted = () => {
+    setReviewsKey(prev => prev + 1);
+  };
 
   useEffect(() => {
     if (id) {
@@ -331,13 +338,28 @@ const PropertyDetail = () => {
               </div>
 
               {/* Description */}
-              <div>
+              <div className="mb-6">
                 <h2 className="mb-3 text-2xl font-semibold">Descripción</h2>
                 <p className="whitespace-pre-line text-muted-foreground">
                   {property.description ||
                     "Esta propiedad no tiene descripción disponible."}
                 </p>
               </div>
+
+              {/* Agent Reviews */}
+              {agent && (
+                <div className="mb-6">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h2 className="text-2xl font-semibold">Reseñas del Agente</h2>
+                    <ReviewForm 
+                      agentId={agent.id} 
+                      propertyId={property.id}
+                      onReviewSubmitted={handleReviewSubmitted}
+                    />
+                  </div>
+                  <AgentReviews key={reviewsKey} agentId={agent.id} />
+                </div>
+              )}
             </div>
           </div>
 

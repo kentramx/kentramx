@@ -14,6 +14,61 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_reviews: {
+        Row: {
+          agent_id: string
+          buyer_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          property_id: string | null
+          rating: number
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          buyer_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          property_id?: string | null
+          rating: number
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          buyer_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          property_id?: string | null
+          rating?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_reviews_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_reviews_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_reviews_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_participants: {
         Row: {
           conversation_id: string
