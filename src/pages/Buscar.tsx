@@ -27,7 +27,7 @@ interface Property {
   address: string;
   state: string;
   municipality: string;
-  type: 'casa' | 'departamento' | 'terreno' | 'oficina' | 'local_comercial';
+  type: 'casa' | 'departamento' | 'terreno' | 'oficina' | 'local' | 'bodega' | 'edificio' | 'rancho';
   images: { url: string; position: number }[];
 }
 
@@ -97,11 +97,12 @@ const Buscar = () => {
 
         if (error) throw error;
 
-        // Ordenar imágenes por posición
+        // Ordenar imágenes por posición y convertir tipos antiguos
         const propertiesWithSortedImages = data?.map(property => ({
           ...property,
+          type: property.type === 'local_comercial' ? 'local' : property.type,
           images: (property.images || []).sort((a: any, b: any) => a.position - b.position)
-        })) || [];
+        })) as Property[] || [];
 
         setProperties(propertiesWithSortedImages);
         setFilteredProperties(propertiesWithSortedImages);
@@ -398,7 +399,10 @@ const Buscar = () => {
                         <SelectItem value="departamento">Departamento</SelectItem>
                         <SelectItem value="terreno">Terreno</SelectItem>
                         <SelectItem value="oficina">Oficina</SelectItem>
-                        <SelectItem value="local_comercial">Local Comercial</SelectItem>
+                        <SelectItem value="local">Local</SelectItem>
+                        <SelectItem value="bodega">Bodega</SelectItem>
+                        <SelectItem value="edificio">Edificio</SelectItem>
+                        <SelectItem value="rancho">Rancho</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

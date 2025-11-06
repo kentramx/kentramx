@@ -15,7 +15,7 @@ const propertySchema = z.object({
   title: z.string().min(5, 'El título debe tener al menos 5 caracteres').max(200),
   description: z.string().min(20, 'La descripción debe tener al menos 20 caracteres').max(2000),
   price: z.number().positive('El precio debe ser mayor a 0'),
-  type: z.enum(['casa', 'departamento', 'terreno', 'oficina', 'local_comercial']),
+  type: z.enum(['casa', 'departamento', 'terreno', 'oficina', 'local', 'bodega', 'edificio', 'rancho']),
   address: z.string().min(5, 'La dirección debe tener al menos 5 caracteres').max(300),
   municipality: z.string().min(2, 'El municipio es requerido').max(100),
   state: z.string().min(2, 'El estado es requerido').max(100),
@@ -233,7 +233,10 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
               <SelectItem value="departamento">Departamento</SelectItem>
               <SelectItem value="terreno">Terreno</SelectItem>
               <SelectItem value="oficina">Oficina</SelectItem>
-              <SelectItem value="local_comercial">Local Comercial</SelectItem>
+              <SelectItem value="local">Local</SelectItem>
+              <SelectItem value="bodega">Bodega</SelectItem>
+              <SelectItem value="edificio">Edificio</SelectItem>
+              <SelectItem value="rancho">Rancho</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -351,7 +354,7 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
           </>
         )}
 
-        {(formData.type === 'oficina' || formData.type === 'local_comercial') && (
+        {(['oficina', 'local', 'bodega', 'edificio'].includes(formData.type)) && (
           <div className="space-y-2">
             <Label htmlFor="sqft">Superficie (m²)</Label>
             <Input

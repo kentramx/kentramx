@@ -62,7 +62,13 @@ const Properties = () => {
 
       if (error) throw error;
 
-      setProperties(data || []);
+      // Convertir tipos antiguos para compatibilidad
+      const propertiesData = data?.map(property => ({
+        ...property,
+        type: property.type === 'local_comercial' ? 'local' : property.type
+      })) || [];
+
+      setProperties(propertiesData);
     } catch (error: any) {
       toast({
         title: "Error",
