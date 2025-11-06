@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Home, Check, CheckCheck } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Send, Home, Check, CheckCheck, Search, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -46,10 +47,15 @@ export const ChatWindow = ({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
+  const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     if (!conversationId || !user) return;
@@ -143,10 +149,71 @@ export const ChatWindow = ({
     };
   }, [conversationId, user]);
 
-  // Auto-scroll al final cuando hay nuevos mensajes
+  // Auto-scroll al final cuando hay nuevos mensajes (solo si no hay búsqueda activa)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!searchQuery) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, searchQuery]);
+
+  // Buscar mensajes cuando cambia el query
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const results = messages
+        .filter((msg) =>
+          msg.content.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .map((msg) => msg.id);
+      
+      setSearchResults(results);
+      setCurrentSearchIndex(0);
+      
+      // Scroll al primer resultado
+      if (results.length > 0) {
+        scrollToMessage(results[0]);
+      }
+    } else {
+      setSearchResults([]);
+      setCurrentSearchIndex(0);
+    }
+  }, [searchQuery, messages]);
+
+  const scrollToMessage = (messageId: string) => {
+    const messageElement = messageRefs.current[messageId];
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const handleNextResult = () => {
+    if (searchResults.length === 0) return;
+    const nextIndex = (currentSearchIndex + 1) % searchResults.length;
+    setCurrentSearchIndex(nextIndex);
+    scrollToMessage(searchResults[nextIndex]);
+  };
+
+  const handlePreviousResult = () => {
+    if (searchResults.length === 0) return;
+    const prevIndex = currentSearchIndex === 0 ? searchResults.length - 1 : currentSearchIndex - 1;
+    setCurrentSearchIndex(prevIndex);
+    scrollToMessage(searchResults[prevIndex]);
+  };
+
+  const highlightText = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return parts.map((part, index) => {
+      if (part.toLowerCase() === query.toLowerCase()) {
+        return (
+          <mark key={index} className="bg-yellow-300 dark:bg-yellow-600 rounded px-0.5">
+            {part}
+          </mark>
+        );
+      }
+      return part;
+    });
+  };
 
   const fetchMessages = async () => {
     try {
@@ -271,25 +338,98 @@ export const ChatWindow = ({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="border-b bg-card p-4">
-        <div className="flex items-center justify-between">
-          <div>
+      <div className="border-b bg-card">
+        <div className="p-4 flex items-center justify-between">
+          <div className="flex-1 min-w-0">
             <h2 className="font-semibold text-lg">{otherUserName}</h2>
             {propertyTitle && (
-              <p className="text-sm text-muted-foreground">{propertyTitle}</p>
+              <p className="text-sm text-muted-foreground truncate">{propertyTitle}</p>
             )}
           </div>
-          {propertyId && (
+          <div className="flex items-center gap-2">
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/propiedad/${propertyId}`)}
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSearch(!showSearch)}
+              className={showSearch ? 'bg-accent' : ''}
             >
-              <Home className="w-4 h-4 mr-2" />
-              Ver Propiedad
+              <Search className="w-4 h-4" />
             </Button>
-          )}
+            {propertyId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/propiedad/${propertyId}`)}
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Ver Propiedad
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* Barra de búsqueda */}
+        {showSearch && (
+          <div className="px-4 pb-4 border-t">
+            <div className="flex items-center gap-2 mt-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Buscar en la conversación..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-9"
+                  autoFocus
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                    onClick={() => setSearchQuery('')}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+              
+              {searchResults.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    {currentSearchIndex + 1} de {searchResults.length}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handlePreviousResult}
+                      disabled={searchResults.length === 0}
+                      className="h-8 w-8"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleNextResult}
+                      disabled={searchResults.length === 0}
+                      className="h-8 w-8"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {searchQuery && searchResults.length === 0 && (
+                <span className="text-sm text-muted-foreground">
+                  Sin resultados
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Messages Area */}
@@ -306,20 +446,33 @@ export const ChatWindow = ({
             {messages.map((message) => {
               const isOwn = message.sender_id === user?.id;
               const isRead = message.read_at !== null && message.read_at !== undefined;
+              const isSearchResult = searchResults.includes(message.id);
+              const isCurrentSearchResult = searchResults[currentSearchIndex] === message.id;
               
               return (
                 <div
                   key={message.id}
-                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                  ref={(el) => (messageRefs.current[message.id] = el)}
+                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${
+                    isCurrentSearchResult ? 'animate-pulse' : ''
+                  }`}
                 >
                   <div
-                    className={`max-w-[70%] rounded-lg p-3 ${
+                    className={`max-w-[70%] rounded-lg p-3 transition-all ${
                       isOwn
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-foreground'
+                    } ${
+                      isCurrentSearchResult
+                        ? 'ring-2 ring-yellow-400 ring-offset-2'
+                        : isSearchResult
+                        ? 'ring-1 ring-yellow-300'
+                        : ''
                     }`}
                   >
-                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    <p className="whitespace-pre-wrap break-words">
+                      {searchQuery ? highlightText(message.content, searchQuery) : message.content}
+                    </p>
                     <div className="flex items-center justify-between gap-2 mt-1">
                       <p
                         className={`text-xs ${
