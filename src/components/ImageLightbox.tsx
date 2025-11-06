@@ -25,6 +25,7 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose, title }: 
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
 
   // Resetear zoom, swipe y pan cuando cambia la imagen
   useEffect(() => {
@@ -90,6 +91,55 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose, title }: 
       x: (touch1.clientX + touch2.clientX) / 2,
       y: (touch1.clientY + touch2.clientY) / 2,
     };
+  };
+
+  // Función para calcular el viewport visible en el mini-mapa
+  const getViewportIndicator = () => {
+    if (zoom <= 1) return null;
+
+    // El viewport es inversamente proporcional al zoom
+    const viewportWidth = 100 / zoom;
+    const viewportHeight = 100 / zoom;
+
+    // Calcular la posición del viewport basado en el pan
+    // El pan está en píxeles, necesitamos convertirlo a porcentaje del mini-mapa
+    const maxPan = 200 * zoom;
+    const xPercent = (-panOffset.x / maxPan) * (100 - viewportWidth) / 2 + (100 - viewportWidth) / 2;
+    const yPercent = (-panOffset.y / maxPan) * (100 - viewportHeight) / 2 + (100 - viewportHeight) / 2;
+
+    return {
+      width: viewportWidth,
+      height: viewportHeight,
+      left: Math.max(0, Math.min(100 - viewportWidth, xPercent)),
+      top: Math.max(0, Math.min(100 - viewportHeight, yPercent)),
+    };
+  };
+
+  // Manejar clic en el mini-mapa para navegar
+  const handleMinimapClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    // Convertir el clic a offset de pan
+    const viewportWidth = 100 / zoom;
+    const viewportHeight = 100 / zoom;
+    
+    // Centrar el viewport en el punto clickeado
+    const targetXPercent = x - viewportWidth / 2;
+    const targetYPercent = y - viewportHeight / 2;
+    
+    const maxPan = 200 * zoom;
+    const newPanX = -((targetXPercent - (100 - viewportWidth) / 2) / ((100 - viewportWidth) / 2)) * maxPan;
+    const newPanY = -((targetYPercent - (100 - viewportHeight) / 2) / ((100 - viewportHeight) / 2)) * maxPan;
+    
+    setPanOffset({
+      x: Math.max(-maxPan, Math.min(maxPan, newPanX)),
+      y: Math.max(-maxPan, Math.min(maxPan, newPanY)),
+    });
   };
 
   // Manejo de gestos táctiles
@@ -252,6 +302,50 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose, title }: 
               <ZoomIn className="h-5 w-5" />
             </Button>
           </div>
+
+          {/* Mini-mapa - solo visible cuando hay zoom */}
+          {zoom > 1 && (
+            <div className="absolute bottom-4 left-4 z-50 animate-fade-in">
+              <div className="bg-background/90 backdrop-blur-sm p-2 rounded-lg">
+                <p className="text-xs font-medium mb-2 text-foreground">Vista general</p>
+                <div
+                  className="relative w-32 h-24 bg-black/50 rounded overflow-hidden cursor-pointer border-2 border-primary/50 hover:border-primary transition-colors"
+                  onClick={handleMinimapClick}
+                >
+                  {/* Imagen en miniatura */}
+                  <img
+                    src={images[currentIndex].url}
+                    alt="Mini-mapa"
+                    className="w-full h-full object-contain opacity-60"
+                  />
+                  
+                  {/* Indicador de viewport */}
+                  {(() => {
+                    const viewport = getViewportIndicator();
+                    if (!viewport) return null;
+                    
+                    return (
+                      <div
+                        className="absolute border-2 border-primary bg-primary/20 pointer-events-none"
+                        style={{
+                          left: `${viewport.left}%`,
+                          top: `${viewport.top}%`,
+                          width: `${viewport.width}%`,
+                          height: `${viewport.height}%`,
+                        }}
+                      >
+                        {/* Punto central */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full" />
+                      </div>
+                    );
+                  })()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 text-center">
+                  Toca para navegar
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Imagen principal con soporte de pinch-to-zoom, pan y swipe */}
           <div 
