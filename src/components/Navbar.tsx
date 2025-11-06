@@ -34,10 +34,10 @@ const Navbar = () => {
                   <Heart className="h-5 w-5" />
                 </Button>
               </Link>
-              <Link to="/publicar">
+              <Link to="/panel-agente">
                 <Button variant="secondary">
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  Publicar Propiedad
+                  Mis Propiedades
                 </Button>
               </Link>
               <DropdownMenu>

@@ -1,0 +1,258 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Loader2, Edit, Trash2, Eye } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
+
+interface AgentPropertyListProps {
+  onEdit: (property: any) => void;
+}
+
+const AgentPropertyList = ({ onEdit }: AgentPropertyListProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [properties, setProperties] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    fetchProperties();
+  }, [user]);
+
+  const fetchProperties = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select(`
+          *,
+          images (
+            id,
+            url,
+            position
+          )
+        `)
+        .eq('agent_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setProperties(data || []);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudieron cargar las propiedades',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+
+    setDeleting(true);
+    try {
+      // Get property images to delete from storage
+      const property = properties.find(p => p.id === deleteId);
+      if (property?.images) {
+        for (const image of property.images) {
+          const fileName = image.url.split('/').pop();
+          if (fileName) {
+            await supabase.storage
+              .from('property-images')
+              .remove([`${deleteId}/${fileName}`]);
+          }
+        }
+      }
+
+      // Delete property (images will cascade delete due to FK)
+      const { error } = await supabase
+        .from('properties')
+        .delete()
+        .eq('id', deleteId);
+
+      if (error) throw error;
+
+      setProperties(prev => prev.filter(p => p.id !== deleteId));
+      
+      toast({
+        title: 'Eliminado',
+        description: 'La propiedad ha sido eliminada correctamente',
+      });
+    } catch (error) {
+      console.error('Error deleting property:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo eliminar la propiedad',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (properties.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground mb-4">
+          No tienes propiedades registradas
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Crea tu primera propiedad usando el formulario
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Propiedad</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Precio</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {properties.map((property) => (
+              <TableRow key={property.id}>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    {property.images?.[0] && (
+                      <img
+                        src={property.images[0].url}
+                        alt={property.title}
+                        className="h-12 w-12 rounded object-cover"
+                      />
+                    )}
+                    <div>
+                      <p className="font-medium">{property.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {property.municipality}, {property.state}
+                      </p>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">{property.type}</Badge>
+                </TableCell>
+                <TableCell className="font-medium">
+                  {formatPrice(property.price)}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={property.status === 'activa' ? 'default' : 'secondary'}
+                  >
+                    {property.status}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigate(`/propiedad/${property.id}`)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onEdit(property)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteId(property.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar propiedad?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. La propiedad y todas sus imágenes
+              serán eliminadas permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                'Eliminar'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
+
+export default AgentPropertyList;
