@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Image } from 'lucide-react';
 
 interface Conversation {
   id: string;
@@ -19,6 +19,7 @@ interface Conversation {
   other_user_name?: string;
   last_message?: string;
   last_message_time?: string;
+  last_message_type?: string;
   unread_count: number;
 }
 
@@ -94,7 +95,7 @@ export const ConversationList = ({ selectedId, onSelect }: ConversationListProps
           // Obtener último mensaje
           const { data: lastMsg } = await supabase
             .from('messages')
-            .select('content, created_at')
+            .select('content, created_at, message_type')
             .eq('conversation_id', convo.id)
             .order('created_at', { ascending: false })
             .limit(1)
@@ -123,6 +124,7 @@ export const ConversationList = ({ selectedId, onSelect }: ConversationListProps
             other_user_name: otherUser?.name || 'Usuario',
             last_message: lastMsg?.content,
             last_message_time: lastMsg?.created_at,
+            last_message_type: lastMsg?.message_type,
             unread_count: participant?.unread_count || 0,
           };
         })
@@ -190,9 +192,16 @@ export const ConversationList = ({ selectedId, onSelect }: ConversationListProps
             </div>
             {conversation.last_message && (
               <>
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-1">
-                  {conversation.last_message}
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  {conversation.last_message_type === 'image' && (
+                    <Image className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  )}
+                  <p className="text-sm text-muted-foreground line-clamp-2 flex-1">
+                    {conversation.last_message_type === 'image' 
+                      ? 'Imagen' 
+                      : conversation.last_message}
+                  </p>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {formatDistanceToNow(new Date(conversation.last_message_time!), {
                     addSuffix: true,

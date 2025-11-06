@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Send, Home, Check, CheckCheck, Search, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Send, Home, Check, CheckCheck, Search, X, ChevronUp, ChevronDown, Image as ImageIcon, Paperclip } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { ImageLightbox } from './ImageLightbox';
 
 interface Message {
   id: string;
@@ -19,6 +20,8 @@ interface Message {
   content: string;
   created_at: string;
   read_at?: string | null;
+  message_type: 'text' | 'image';
+  image_url?: string | null;
 }
 
 interface PresenceState {
@@ -51,6 +54,10 @@ export const ChatWindow = ({
   const [showSearch, setShowSearch] = useState(false);
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -76,7 +83,10 @@ export const ChatWindow = ({
         },
         (payload) => {
           const newMsg = payload.new as Message;
-          setMessages((prev) => [...prev, newMsg]);
+          setMessages((prev) => [...prev, {
+            ...newMsg,
+            message_type: newMsg.message_type as 'text' | 'image'
+          }]);
           
           // Marcar como leído si el mensaje es de otro usuario
           if (newMsg.sender_id !== user.id) {
@@ -97,7 +107,10 @@ export const ChatWindow = ({
           // Actualizar el mensaje en la lista cuando se marca como leído
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === updatedMsg.id ? updatedMsg : msg
+              msg.id === updatedMsg.id ? {
+                ...updatedMsg,
+                message_type: updatedMsg.message_type as 'text' | 'image'
+              } : msg
             )
           );
         }
@@ -215,6 +228,116 @@ export const ChatWindow = ({
     });
   };
 
+  // Manejar selección de imagen
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      toast.error('Solo se permiten archivos de imagen');
+      return;
+    }
+
+    // Validar tamaño (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('La imagen no puede ser mayor a 5MB');
+      return;
+    }
+
+    setSelectedImage(file);
+    
+    // Crear preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Limpiar imagen seleccionada
+  const clearSelectedImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      toast.error('Solo se permiten archivos de imagen');
+      return;
+    }
+
+    // Validar tamaño (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('La imagen no puede ser mayor a 5MB');
+      return;
+    }
+
+    setSelectedImage(file);
+    
+    // Crear preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Subir imagen a storage
+  const uploadImage = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('message-images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('message-images')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Error al subir la imagen');
+      return null;
+    }
+  };
+
   const fetchMessages = async () => {
     try {
       const { data, error } = await supabase
@@ -224,7 +347,10 @@ export const ChatWindow = ({
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      setMessages((data || []).map(msg => ({
+        ...msg,
+        message_type: msg.message_type as 'text' | 'image'
+      })));
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast.error('Error al cargar los mensajes');
@@ -293,7 +419,10 @@ export const ChatWindow = ({
   };
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !user) return;
+    if (!user) return;
+    
+    // Validar que haya contenido o imagen
+    if (!newMessage.trim() && !selectedImage) return;
 
     // Limpiar estado de "escribiendo"
     notifyTyping(false);
@@ -303,15 +432,29 @@ export const ChatWindow = ({
 
     setSending(true);
     try {
+      let imageUrl: string | null = null;
+
+      // Si hay imagen, subirla primero
+      if (selectedImage) {
+        imageUrl = await uploadImage(selectedImage);
+        if (!imageUrl) {
+          throw new Error('Failed to upload image');
+        }
+      }
+
+      // Insertar mensaje
       const { error } = await supabase.from('messages').insert({
         conversation_id: conversationId,
         sender_id: user.id,
-        content: newMessage.trim(),
+        content: newMessage.trim() || '',
+        message_type: selectedImage ? 'image' : 'text',
+        image_url: imageUrl,
       });
 
       if (error) throw error;
 
       setNewMessage('');
+      clearSelectedImage();
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Error al enviar el mensaje');
@@ -470,9 +613,26 @@ export const ChatWindow = ({
                         : ''
                     }`}
                   >
-                    <p className="whitespace-pre-wrap break-words">
-                      {searchQuery ? highlightText(message.content, searchQuery) : message.content}
-                    </p>
+                    {/* Mostrar imagen si es un mensaje de imagen */}
+                    {message.message_type === 'image' && message.image_url && (
+                      <div 
+                        className="mb-2 cursor-pointer rounded-lg overflow-hidden"
+                        onClick={() => setLightboxImage(message.image_url!)}
+                      >
+                        <img
+                          src={message.image_url}
+                          alt="Imagen compartida"
+                          className="max-w-full max-h-64 object-cover rounded-lg hover:opacity-90 transition-opacity"
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Mostrar texto si existe */}
+                    {message.content && (
+                      <p className="whitespace-pre-wrap break-words">
+                        {searchQuery ? highlightText(message.content, searchQuery) : message.content}
+                      </p>
+                    )}
                     <div className="flex items-center justify-between gap-2 mt-1">
                       <p
                         className={`text-xs ${
@@ -532,28 +692,99 @@ export const ChatWindow = ({
 
       {/* Input Area */}
       <div className="border-t bg-card p-4">
-        <div className="flex gap-2">
-          <Textarea
-            value={newMessage}
-            onChange={handleTextareaChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Escribe un mensaje..."
-            className="min-h-[60px] max-h-[120px]"
-            disabled={sending}
-          />
-          <Button
-            onClick={handleSend}
-            disabled={!newMessage.trim() || sending}
-            size="icon"
-            className="shrink-0"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
+        {/* Preview de imagen seleccionada */}
+        {imagePreview && (
+          <div className="mb-3 relative inline-block">
+            <img
+              src={imagePreview}
+              alt="Preview"
+              className="max-h-32 rounded-lg border"
+            />
+            <Button
+              variant="destructive"
+              size="icon"
+              className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+              onClick={clearSelectedImage}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
+        {/* Zona de drag & drop */}
+        <div
+          className={`relative ${isDragging ? 'ring-2 ring-primary' : ''}`}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
+          {isDragging && (
+            <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary rounded-lg flex items-center justify-center z-10 pointer-events-none">
+              <div className="text-center">
+                <ImageIcon className="w-12 h-12 text-primary mx-auto mb-2" />
+                <p className="text-sm font-medium">Suelta la imagen aquí</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            {/* Botón de adjuntar imagen */}
+            <input
+              type="file"
+              id="image-upload"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageSelect}
+              disabled={sending}
+            />
+            <label htmlFor="image-upload">
+              <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+                disabled={sending}
+                asChild
+              >
+                <span>
+                  <Paperclip className="w-4 h-4" />
+                </span>
+              </Button>
+            </label>
+
+            <Textarea
+              value={newMessage}
+              onChange={handleTextareaChange}
+              onKeyDown={handleKeyDown}
+              placeholder={selectedImage ? "Agrega un mensaje (opcional)..." : "Escribe un mensaje..."}
+              className="min-h-[60px] max-h-[120px]"
+              disabled={sending}
+            />
+            <Button
+              onClick={handleSend}
+              disabled={(!newMessage.trim() && !selectedImage) || sending}
+              size="icon"
+              className="shrink-0"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
+
         <p className="text-xs text-muted-foreground mt-2">
-          Presiona Enter para enviar, Shift+Enter para nueva línea
+          Presiona Enter para enviar, Shift+Enter para nueva línea • Arrastra imágenes aquí
         </p>
       </div>
+
+      {/* Lightbox para ver imágenes */}
+      {lightboxImage && (
+        <ImageLightbox
+          images={[{ url: lightboxImage }]}
+          initialIndex={0}
+          isOpen={true}
+          onClose={() => setLightboxImage(null)}
+        />
+      )}
     </div>
   );
 };
