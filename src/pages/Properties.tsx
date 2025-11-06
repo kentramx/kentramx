@@ -58,6 +58,11 @@ const Properties = () => {
         query = query.eq("type", tipo as any);
       }
 
+      const tipoListado = searchParams.get("tipo_listado");
+      if (tipoListado) {
+        query = query.eq("listing_type", tipoListado as any);
+      }
+
       const { data, error } = await query;
 
       if (error) throw error;
