@@ -9,6 +9,13 @@ import { usePlacesAutocomplete } from "@/hooks/usePlacesAutocomplete";
 import { supabase } from "@/integrations/supabase/client";
 import PropertyCard from "@/components/PropertyCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Property {
   id: string;
@@ -29,6 +36,7 @@ interface Property {
 const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [listingType, setListingType] = useState<"venta" | "renta">("venta");
+  const [propertyType, setPropertyType] = useState<string>("");
   const [featuredProperties, setFeaturedProperties] = useState<Property[]>([]);
   const [isLoadingProperties, setIsLoadingProperties] = useState(true);
   const navigate = useNavigate();
@@ -53,6 +61,7 @@ const Home = () => {
     const params = new URLSearchParams();
     
     params.set('tipo_listado', listingType);
+    if (propertyType) params.set('tipo', propertyType);
     if (estado) params.set('estado', estado);
     if (municipio) params.set('municipio', municipio);
     
@@ -70,6 +79,7 @@ const Home = () => {
   const handleSearch = () => {
     const params = new URLSearchParams();
     params.set('tipo_listado', listingType);
+    if (propertyType) params.set('tipo', propertyType);
     if (searchQuery) params.set('busqueda', encodeURIComponent(searchQuery));
     navigate(`/propiedades?${params.toString()}`);
   };
@@ -153,6 +163,22 @@ const Home = () => {
                 >
                   Renta
                 </Button>
+              </div>
+
+              {/* Property Type Selector */}
+              <div className="flex justify-center">
+                <Select value={propertyType} onValueChange={setPropertyType}>
+                  <SelectTrigger className="w-full max-w-xs bg-white/95 text-foreground border-white/50">
+                    <SelectValue placeholder="Todos los tipos de propiedad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos los tipos</SelectItem>
+                    <SelectItem value="casa">Casa</SelectItem>
+                    <SelectItem value="departamento">Departamento</SelectItem>
+                    <SelectItem value="terreno">Terreno</SelectItem>
+                    <SelectItem value="local">Local Comercial</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex gap-2 rounded-lg bg-white p-2 shadow-2xl">
@@ -280,7 +306,7 @@ const Home = () => {
           </h2>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             <button
-              onClick={() => navigate("/propiedades?tipo=casa")}
+              onClick={() => navigate(`/propiedades?tipo_listado=${listingType}&tipo=casa`)}
               className="group flex flex-col items-center rounded-xl border border-border p-8 transition-all hover:border-primary hover:shadow-lg"
             >
               <HomeIcon className="mb-4 h-16 w-16 text-primary transition-transform group-hover:scale-110" />
@@ -291,7 +317,7 @@ const Home = () => {
             </button>
 
             <button
-              onClick={() => navigate("/propiedades?tipo=departamento")}
+              onClick={() => navigate(`/propiedades?tipo_listado=${listingType}&tipo=departamento`)}
               className="group flex flex-col items-center rounded-xl border border-border p-8 transition-all hover:border-primary hover:shadow-lg"
             >
               <Building2 className="mb-4 h-16 w-16 text-primary transition-transform group-hover:scale-110" />
@@ -302,7 +328,7 @@ const Home = () => {
             </button>
 
             <button
-              onClick={() => navigate("/propiedades?tipo=terreno")}
+              onClick={() => navigate(`/propiedades?tipo_listado=${listingType}&tipo=terreno`)}
               className="group flex flex-col items-center rounded-xl border border-border p-8 transition-all hover:border-primary hover:shadow-lg"
             >
               <TreePine className="mb-4 h-16 w-16 text-primary transition-transform group-hover:scale-110" />
