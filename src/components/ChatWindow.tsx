@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface Message {
   id: string;
@@ -16,6 +17,12 @@ interface Message {
   sender_id: string;
   content: string;
   created_at: string;
+}
+
+interface PresenceState {
+  user_id: string;
+  typing: boolean;
+  online_at: string;
 }
 
 interface ChatWindowProps {
@@ -37,8 +44,11 @@ export const ChatWindow = ({
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const presenceChannelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     if (!conversationId || !user) return;
@@ -47,7 +57,7 @@ export const ChatWindow = ({
     markAsRead();
 
     // Suscribirse a nuevos mensajes en tiempo real
-    const channel = supabase
+    const messagesChannel = supabase
       .channel(`conversation:${conversationId}`)
       .on(
         'postgres_changes',
@@ -69,8 +79,48 @@ export const ChatWindow = ({
       )
       .subscribe();
 
+    // Canal de presencia para estado de "escribiendo..."
+    const presenceChannel = supabase.channel(`presence:${conversationId}`, {
+      config: {
+        presence: {
+          key: user.id,
+        },
+      },
+    });
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState<PresenceState>();
+        
+        // Buscar si el otro usuario está escribiendo
+        const otherUsers = Object.keys(state).filter((key) => key !== user.id);
+        const isTyping = otherUsers.some((userId) => {
+          const userPresence = state[userId];
+          return userPresence?.[0]?.typing === true;
+        });
+        
+        setIsOtherUserTyping(isTyping);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({
+            user_id: user.id,
+            typing: false,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+
+    presenceChannelRef.current = presenceChannel;
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messagesChannel);
+      if (presenceChannelRef.current) {
+        supabase.removeChannel(presenceChannelRef.current);
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     };
   }, [conversationId, user]);
 
@@ -114,8 +164,47 @@ export const ChatWindow = ({
     }
   };
 
+  // Función para notificar que el usuario está escribiendo
+  const notifyTyping = useCallback(async (isTyping: boolean) => {
+    if (!user || !presenceChannelRef.current) return;
+
+    try {
+      await presenceChannelRef.current.track({
+        user_id: user.id,
+        typing: isTyping,
+        online_at: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Error updating typing status:', error);
+    }
+  }, [user]);
+
+  // Manejar cambios en el textarea
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNewMessage(e.target.value);
+
+    // Notificar que está escribiendo
+    notifyTyping(true);
+
+    // Limpiar timeout anterior
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Establecer nuevo timeout para dejar de notificar
+    typingTimeoutRef.current = setTimeout(() => {
+      notifyTyping(false);
+    }, 2000); // Deja de notificar después de 2 segundos de inactividad
+  };
+
   const handleSend = async () => {
     if (!newMessage.trim() || !user) return;
+
+    // Limpiar estado de "escribiendo"
+    notifyTyping(false);
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
 
     setSending(true);
     try {
@@ -215,6 +304,23 @@ export const ChatWindow = ({
                 </div>
               );
             })}
+            
+            {/* Indicador de "escribiendo..." */}
+            {isOtherUserTyping && (
+              <div className="flex justify-start">
+                <div className="bg-muted text-foreground rounded-lg p-3 max-w-[70%]">
+                  <div className="flex items-center gap-1">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-2 h-2 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-2 h-2 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    <span className="text-sm text-muted-foreground ml-2">escribiendo...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -225,7 +331,7 @@ export const ChatWindow = ({
         <div className="flex gap-2">
           <Textarea
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             placeholder="Escribe un mensaje..."
             className="min-h-[60px] max-h-[120px]"
