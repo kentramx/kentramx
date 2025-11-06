@@ -17,11 +17,20 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose, title }: 
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
+  
+  // Estados para pinch-to-zoom y pan
+  const [isPinching, setIsPinching] = useState(false);
+  const [initialPinchDistance, setInitialPinchDistance] = useState<number | null>(null);
+  const [initialZoom, setInitialZoom] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
-  // Resetear zoom y swipe cuando cambia la imagen
+  // Resetear zoom, swipe y pan cuando cambia la imagen
   useEffect(() => {
     setZoom(1);
     setSwipeOffset(0);
+    setPanOffset({ x: 0, y: 0 });
   }, [currentIndex]);
 
   // Sincronizar el índice cuando cambia desde fuera
@@ -57,35 +66,123 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose, title }: 
 
   const handleZoomIn = () => {
     setZoom((prev) => Math.min(prev + 0.25, 3));
+    setPanOffset({ x: 0, y: 0 }); // Reset pan al cambiar zoom manual
   };
 
   const handleZoomOut = () => {
-    setZoom((prev) => Math.max(prev - 0.25, 0.5));
+    const newZoom = Math.max(zoom - 0.25, 0.5);
+    setZoom(newZoom);
+    if (newZoom === 1) {
+      setPanOffset({ x: 0, y: 0 }); // Reset pan cuando volvemos a zoom 1
+    }
+  };
+
+  // Función para calcular distancia entre dos puntos táctiles
+  const getDistance = (touch1: React.Touch, touch2: React.Touch) => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Función para obtener el punto medio entre dos touches
+  const getMidpoint = (touch1: React.Touch, touch2: React.Touch) => {
+    return {
+      x: (touch1.clientX + touch2.clientX) / 2,
+      y: (touch1.clientY + touch2.clientY) / 2,
+    };
   };
 
   // Manejo de gestos táctiles
   const minSwipeDistance = 50;
 
   const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+    // Dos dedos = pinch-to-zoom
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      setIsPinching(true);
+      const distance = getDistance(e.touches[0], e.touches[1]);
+      setInitialPinchDistance(distance);
+      setInitialZoom(zoom);
+      return;
+    }
+
+    // Un dedo
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      
+      // Si hay zoom, activar pan
+      if (zoom > 1) {
+        setIsPanning(true);
+        setPanStart({ x: touch.clientX, y: touch.clientY });
+      } else {
+        // Si no hay zoom, activar swipe para cambiar imagen
+        setTouchEnd(null);
+        setTouchStart(touch.clientX);
+      }
+    }
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    if (!touchStart) return;
-    
-    const currentTouch = e.targetTouches[0].clientX;
-    setTouchEnd(currentTouch);
-    
-    // Calcular offset para feedback visual
-    const distance = currentTouch - touchStart;
-    // Limitar el offset para evitar swipe excesivo
-    const maxOffset = 100;
-    const limitedOffset = Math.max(-maxOffset, Math.min(maxOffset, distance / 3));
-    setSwipeOffset(limitedOffset);
+    // Manejo de pinch-to-zoom
+    if (isPinching && e.touches.length === 2 && initialPinchDistance) {
+      e.preventDefault();
+      const currentDistance = getDistance(e.touches[0], e.touches[1]);
+      const scale = currentDistance / initialPinchDistance;
+      const newZoom = Math.max(0.5, Math.min(3, initialZoom * scale));
+      setZoom(newZoom);
+      
+      // Si zoom vuelve a 1, resetear pan
+      if (newZoom <= 1.05) {
+        setPanOffset({ x: 0, y: 0 });
+      }
+      return;
+    }
+
+    // Manejo de pan cuando hay zoom
+    if (isPanning && e.touches.length === 1 && zoom > 1) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - panStart.x;
+      const deltaY = touch.clientY - panStart.y;
+      
+      // Limitar el pan basado en el nivel de zoom
+      const maxPan = 200 * zoom;
+      const limitedX = Math.max(-maxPan, Math.min(maxPan, panOffset.x + deltaX));
+      const limitedY = Math.max(-maxPan, Math.min(maxPan, panOffset.y + deltaY));
+      
+      setPanOffset({ x: limitedX, y: limitedY });
+      setPanStart({ x: touch.clientX, y: touch.clientY });
+      return;
+    }
+
+    // Manejo de swipe para cambiar imagen (solo si zoom = 1)
+    if (!isPinching && !isPanning && touchStart && e.touches.length === 1) {
+      const currentTouch = e.touches[0].clientX;
+      setTouchEnd(currentTouch);
+      
+      // Calcular offset para feedback visual
+      const distance = currentTouch - touchStart;
+      const maxOffset = 100;
+      const limitedOffset = Math.max(-maxOffset, Math.min(maxOffset, distance / 3));
+      setSwipeOffset(limitedOffset);
+    }
   };
 
   const onTouchEnd = () => {
+    // Terminar pinch
+    if (isPinching) {
+      setIsPinching(false);
+      setInitialPinchDistance(null);
+      return;
+    }
+
+    // Terminar pan
+    if (isPanning) {
+      setIsPanning(false);
+      return;
+    }
+
+    // Manejo de swipe para cambiar imagen
     if (!touchStart || !touchEnd) {
       setSwipeOffset(0);
       return;
@@ -95,9 +192,9 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose, title }: 
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    if (isLeftSwipe && images.length > 1) {
+    if (isLeftSwipe && images.length > 1 && zoom === 1) {
       handleNext();
-    } else if (isRightSwipe && images.length > 1) {
+    } else if (isRightSwipe && images.length > 1 && zoom === 1) {
       handlePrevious();
     }
 
@@ -156,9 +253,9 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose, title }: 
             </Button>
           </div>
 
-          {/* Imagen principal con soporte de swipe */}
+          {/* Imagen principal con soporte de pinch-to-zoom, pan y swipe */}
           <div 
-            className="w-full h-full flex items-center justify-center overflow-hidden p-16"
+            className="w-full h-full flex items-center justify-center overflow-hidden p-16 touch-none"
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
@@ -168,8 +265,9 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose, title }: 
               alt={`${title || 'Imagen'} ${currentIndex + 1}`}
               className="max-w-full max-h-full object-contain animate-fade-in select-none"
               style={{ 
-                transform: `scale(${zoom}) translateX(${swipeOffset}px)`,
-                transition: swipeOffset === 0 ? 'transform 0.3s ease-out' : 'none'
+                transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px) translateX(${swipeOffset}px)`,
+                transition: (swipeOffset === 0 && !isPanning && !isPinching) ? 'transform 0.3s ease-out' : 'none',
+                cursor: zoom > 1 ? 'grab' : 'default'
               }}
             />
           </div>
