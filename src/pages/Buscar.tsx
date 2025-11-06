@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Bed, Bath, Car, Home as HomeIcon, Search, AlertCircle, Save, Star, Trash2 } from 'lucide-react';
+import { MapPin, Bed, Bath, Car, Home as HomeIcon, Search, AlertCircle, Save, Star, Trash2, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -279,6 +279,91 @@ const Buscar = () => {
       setFilters(prev => ({ ...prev, municipio: '' }));
     }
   }, [filters.estado, properties]);
+
+  // Función para remover filtro individual
+  const removeFilter = (filterKey: keyof Filters) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterKey]: filterKey === 'orden' ? 'desc' : ''
+    }));
+  };
+
+  // Función para generar chips de filtros activos
+  const getActiveFilterChips = () => {
+    const chips: Array<{
+      key: string;
+      label: string;
+      removeFilter: () => void;
+    }> = [];
+
+    if (filters.estado) {
+      chips.push({
+        key: 'estado',
+        label: `Estado: ${filters.estado}`,
+        removeFilter: () => removeFilter('estado')
+      });
+    }
+
+    if (filters.municipio) {
+      chips.push({
+        key: 'municipio',
+        label: `Municipio: ${filters.municipio}`,
+        removeFilter: () => removeFilter('municipio')
+      });
+    }
+
+    if (filters.precioMin) {
+      chips.push({
+        key: 'precioMin',
+        label: `Precio mín: $${Number(filters.precioMin).toLocaleString('es-MX')}`,
+        removeFilter: () => removeFilter('precioMin')
+      });
+    }
+
+    if (filters.precioMax) {
+      chips.push({
+        key: 'precioMax',
+        label: `Precio máx: $${Number(filters.precioMax).toLocaleString('es-MX')}`,
+        removeFilter: () => removeFilter('precioMax')
+      });
+    }
+
+    if (filters.tipo) {
+      const tipoLabels: Record<string, string> = {
+        casa: 'Casa',
+        departamento: 'Departamento',
+        terreno: 'Terreno',
+        oficina: 'Oficina',
+        local: 'Local',
+        bodega: 'Bodega',
+        edificio: 'Edificio',
+        rancho: 'Rancho'
+      };
+      chips.push({
+        key: 'tipo',
+        label: `Tipo: ${tipoLabels[filters.tipo] || filters.tipo}`,
+        removeFilter: () => removeFilter('tipo')
+      });
+    }
+
+    if (filters.recamaras) {
+      chips.push({
+        key: 'recamaras',
+        label: `${filters.recamaras}+ recámaras`,
+        removeFilter: () => removeFilter('recamaras')
+      });
+    }
+
+    if (filters.banos) {
+      chips.push({
+        key: 'banos',
+        label: `${filters.banos}+ baños`,
+        removeFilter: () => removeFilter('banos')
+      });
+    }
+
+    return chips;
+  };
 
   // Contar filtros activos
   const activeFiltersCount = [
@@ -615,8 +700,34 @@ const Buscar = () => {
                   </div>
                 </div>
 
+                {/* Chips de filtros activos */}
                 {activeFiltersCount > 0 && (
-                  <Button 
+                  <div className="flex flex-wrap gap-2 animate-fade-in">
+                    {getActiveFilterChips().map((chip) => (
+                      <Badge
+                        key={chip.key}
+                        variant="secondary"
+                        className="pl-3 pr-2 py-1.5 flex items-center gap-2 animate-scale-in hover:bg-secondary/80 transition-colors"
+                      >
+                        <span className="text-sm">{chip.label}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            chip.removeFilter();
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {activeFiltersCount > 0 && (
+                  <Button
                     variant="outline" 
                     className="w-full animate-fade-in"
                     onClick={() => setFilters({
