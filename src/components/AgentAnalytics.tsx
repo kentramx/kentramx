@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 import {
   LineChart,
   Line,
@@ -24,7 +26,11 @@ import {
   MessageSquare,
   Home,
   Percent,
+  Download,
+  FileText,
 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface AgentStats {
   total_properties: number;
@@ -55,10 +61,123 @@ export const AgentAnalytics = ({ agentId }: { agentId: string }) => {
   const [propertyPerformance, setPropertyPerformance] = useState<PropertyPerformance[]>([]);
   const [viewsOverTime, setViewsOverTime] = useState<ViewsOverTime[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchAnalytics();
   }, [agentId]);
+
+  const handleExportCSV = async () => {
+    setExporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('export-analytics', {
+        body: { format: 'csv' },
+      });
+
+      if (error) throw error;
+
+      // Create blob and download
+      const blob = new Blob([data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analytics-report-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Reporte exportado",
+        description: "El reporte CSV ha sido descargado exitosamente",
+      });
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo exportar el reporte",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('export-analytics', {
+        body: { format: 'json' },
+      });
+
+      if (error) throw error;
+
+      // Generate PDF using jsPDF
+      const doc = new jsPDF();
+      
+      // Title
+      doc.setFontSize(20);
+      doc.text('Reporte de Analíticas del Agente', 14, 20);
+      
+      doc.setFontSize(12);
+      doc.text(`Generado: ${new Date().toLocaleDateString('es-MX')}`, 14, 30);
+
+      // Stats section
+      doc.setFontSize(16);
+      doc.text('Estadísticas Generales', 14, 45);
+      
+      const statsData = [
+        ['Total de Propiedades', data.stats.total_properties],
+        ['Propiedades Activas', data.stats.active_properties],
+        ['Total de Vistas', data.stats.total_views],
+        ['Total de Favoritos', data.stats.total_favorites],
+        ['Total de Conversaciones', data.stats.total_conversations],
+        ['Tasa de Conversión', `${data.stats.conversion_rate}%`],
+      ];
+
+      autoTable(doc, {
+        startY: 50,
+        head: [['Métrica', 'Valor']],
+        body: statsData,
+        theme: 'grid',
+      });
+
+      // Property performance section
+      doc.setFontSize(16);
+      const finalY = (doc as any).lastAutoTable.finalY || 50;
+      doc.text('Rendimiento por Propiedad', 14, finalY + 15);
+
+      const propertyData = data.propertyPerformance.map((p: any) => [
+        p.title.length > 40 ? p.title.substring(0, 40) + '...' : p.title,
+        p.views,
+        p.favorites,
+        p.conversations,
+      ]);
+
+      autoTable(doc, {
+        startY: finalY + 20,
+        head: [['Propiedad', 'Vistas', 'Favoritos', 'Conversaciones']],
+        body: propertyData,
+        theme: 'grid',
+      });
+
+      doc.save(`analytics-report-${new Date().toISOString().split('T')[0]}.pdf`);
+
+      toast({
+        title: "Reporte exportado",
+        description: "El reporte PDF ha sido descargado exitosamente",
+      });
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo exportar el reporte",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const fetchAnalytics = async () => {
     try {
@@ -170,6 +289,30 @@ export const AgentAnalytics = ({ agentId }: { agentId: string }) => {
 
   return (
     <div className="space-y-6">
+      {/* Export Buttons */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex gap-4 justify-end">
+            <Button
+              variant="outline"
+              onClick={handleExportCSV}
+              disabled={exporting}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Exportar CSV
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleExportPDF}
+              disabled={exporting}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Exportar PDF
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {statCards.map((stat) => (
