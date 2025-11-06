@@ -27,6 +27,7 @@ interface Property {
 
 const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [listingType, setListingType] = useState<"venta" | "renta">("venta");
   const [featuredProperties, setFeaturedProperties] = useState<Property[]>([]);
   const [isLoadingProperties, setIsLoadingProperties] = useState(true);
   const navigate = useNavigate();
@@ -50,6 +51,7 @@ const Home = () => {
 
     const params = new URLSearchParams();
     
+    params.set('tipo_listado', listingType);
     if (estado) params.set('estado', estado);
     if (municipio) params.set('municipio', municipio);
     
@@ -65,7 +67,10 @@ const Home = () => {
   });
 
   const handleSearch = () => {
-    navigate(`/propiedades?busqueda=${encodeURIComponent(searchQuery)}`);
+    const params = new URLSearchParams();
+    params.set('tipo_listado', listingType);
+    if (searchQuery) params.set('busqueda', encodeURIComponent(searchQuery));
+    navigate(`/propiedades?${params.toString()}`);
   };
 
   useEffect(() => {
@@ -89,6 +94,7 @@ const Home = () => {
             images (url)
           `)
           .eq('status', 'activa')
+          .eq('listing_type', listingType)
           .order('created_at', { ascending: false })
           .limit(6);
 
@@ -102,7 +108,7 @@ const Home = () => {
     };
 
     fetchFeaturedProperties();
-  }, []);
+  }, [listingType]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -124,7 +130,29 @@ const Home = () => {
 
           {/* Search Bar */}
           <div className="mx-auto max-w-3xl">
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-4">
+              {/* Listing Type Selector */}
+              <div className="flex justify-center gap-2">
+                <Button
+                  type="button"
+                  variant={listingType === "venta" ? "default" : "outline"}
+                  size="lg"
+                  onClick={() => setListingType("venta")}
+                  className={listingType === "venta" ? "" : "bg-white/90 text-foreground hover:bg-white border-white/50"}
+                >
+                  Venta
+                </Button>
+                <Button
+                  type="button"
+                  variant={listingType === "renta" ? "default" : "outline"}
+                  size="lg"
+                  onClick={() => setListingType("renta")}
+                  className={listingType === "renta" ? "" : "bg-white/90 text-foreground hover:bg-white border-white/50"}
+                >
+                  Renta
+                </Button>
+              </div>
+
               <div className="flex gap-2 rounded-lg bg-white p-2 shadow-2xl">
                 <div className="flex flex-1 items-center gap-2 px-4">
                   <MapPin className="h-5 w-5 text-muted-foreground" />

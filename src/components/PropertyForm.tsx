@@ -16,6 +16,7 @@ const propertySchema = z.object({
   description: z.string().min(20, 'La descripción debe tener al menos 20 caracteres').max(2000),
   price: z.number().positive('El precio debe ser mayor a 0'),
   type: z.enum(['casa', 'departamento', 'terreno', 'oficina', 'local', 'bodega', 'edificio', 'rancho']),
+  listing_type: z.enum(['venta', 'renta']),
   address: z.string().min(5, 'La dirección debe tener al menos 5 caracteres').max(300),
   municipality: z.string().min(2, 'El municipio es requerido').max(100),
   state: z.string().min(2, 'El estado es requerido').max(100),
@@ -44,6 +45,7 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
     description: '',
     price: '',
     type: 'casa',
+    listing_type: 'venta',
     address: '',
     municipality: '',
     state: '',
@@ -63,6 +65,7 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
         description: property.description || '',
         price: property.price?.toString() || '',
         type: property.type || 'casa',
+        listing_type: property.listing_type || 'venta',
         address: property.address || '',
         municipality: property.municipality || '',
         state: property.state || '',
@@ -220,6 +223,19 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
             placeholder="Ej: Casa moderna en zona residencial"
             required
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="listing_type">Tipo de Listado*</Label>
+          <Select value={formData.listing_type} onValueChange={(value) => setFormData({ ...formData, listing_type: value })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="venta">Venta</SelectItem>
+              <SelectItem value="renta">Renta</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">

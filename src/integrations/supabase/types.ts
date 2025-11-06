@@ -230,6 +230,7 @@ export type Database = {
           description: string | null
           id: string
           lat: number | null
+          listing_type: string
           lng: number | null
           lot_size: number | null
           municipality: string
@@ -251,6 +252,7 @@ export type Database = {
           description?: string | null
           id?: string
           lat?: number | null
+          listing_type?: string
           lng?: number | null
           lot_size?: number | null
           municipality: string
@@ -272,6 +274,7 @@ export type Database = {
           description?: string | null
           id?: string
           lat?: number | null
+          listing_type?: string
           lng?: number | null
           lot_size?: number | null
           municipality?: string
