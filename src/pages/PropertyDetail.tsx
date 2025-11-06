@@ -26,6 +26,7 @@ import {
   Heart,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 import propertyPlaceholder from "@/assets/property-placeholder.jpg";
 
 const PropertyDetail = () => {
@@ -62,6 +63,50 @@ const PropertyDetail = () => {
       setIsFavorite(!!data);
     } catch (error) {
       console.error('Error checking favorite:', error);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    if (!property) return;
+
+    try {
+      // Verificar si ya existe una conversación
+      const { data: existingConvo } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('property_id', property.id)
+        .eq('buyer_id', user.id)
+        .eq('agent_id', property.agent_id)
+        .single();
+
+      if (existingConvo) {
+        // Ya existe, navegar a ella
+        navigate(`/mensajes?conversation=${existingConvo.id}`);
+      } else {
+        // Crear nueva conversación
+        const { data: newConvo, error } = await supabase
+          .from('conversations')
+          .insert({
+            property_id: property.id,
+            buyer_id: user.id,
+            agent_id: property.agent_id,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Navegar a la nueva conversación
+        navigate(`/mensajes?conversation=${newConvo.id}&new=true`);
+      }
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      sonnerToast.error('Error al iniciar la conversación');
     }
   };
 
@@ -321,7 +366,10 @@ const PropertyDetail = () => {
                       </Button>
                     )}
 
-                    <Button className="w-full bg-secondary hover:bg-secondary/90">
+                    <Button 
+                      className="w-full bg-secondary hover:bg-secondary/90"
+                      onClick={handleSendMessage}
+                    >
                       <Mail className="mr-2 h-4 w-4" />
                       Enviar Mensaje
                     </Button>

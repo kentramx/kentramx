@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Home, Heart, User, PlusCircle, LogOut } from "lucide-react";
+import { MessageBadge } from "./MessageBadge";
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
@@ -32,6 +33,7 @@ const Navbar = () => {
           
           {user ? (
             <>
+              <MessageBadge />
               <Link to="/favoritos">
                 <Button variant="ghost" size="icon">
                   <Heart className="h-5 w-5" />
