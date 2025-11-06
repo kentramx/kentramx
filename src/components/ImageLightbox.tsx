@@ -26,6 +26,10 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose, title }: 
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+  
+  // Estados para doble tap
+  const [lastTapTime, setLastTapTime] = useState(0);
+  const [lastTapPosition, setLastTapPosition] = useState({ x: 0, y: 0 });
 
   // Resetear zoom, swipe y pan cuando cambia la imagen
   useEffect(() => {
@@ -144,8 +148,67 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose, title }: 
 
   // Manejo de gestos táctiles
   const minSwipeDistance = 50;
+  const doubleTapDelay = 300; // ms para detectar doble tap
+
+  const handleDoubleTap = (tapX: number, tapY: number, containerRect: DOMRect) => {
+    if (zoom > 1) {
+      // Si ya hay zoom, resetear a 1x
+      setZoom(1);
+      setPanOffset({ x: 0, y: 0 });
+    } else {
+      // Hacer zoom 2x centrado en la posición del tap
+      const newZoom = 2;
+      
+      // Calcular la posición relativa del tap en el contenedor (0-1)
+      const relativeX = (tapX - containerRect.left) / containerRect.width;
+      const relativeY = (tapY - containerRect.top) / containerRect.height;
+      
+      // Convertir a coordenadas centradas (-0.5 a 0.5)
+      const centeredX = relativeX - 0.5;
+      const centeredY = relativeY - 0.5;
+      
+      // Calcular el offset de pan para centrar el zoom en ese punto
+      // Multiplicamos por un factor para mover la imagen en la dirección opuesta
+      const panFactor = 200;
+      const newPanX = -centeredX * panFactor * newZoom;
+      const newPanY = -centeredY * panFactor * newZoom;
+      
+      setZoom(newZoom);
+      setPanOffset({ x: newPanX, y: newPanY });
+    }
+  };
 
   const onTouchStart = (e: React.TouchEvent) => {
+    // Detectar doble tap
+    if (e.touches.length === 1) {
+      const currentTime = Date.now();
+      const touch = e.touches[0];
+      const tapPosition = { x: touch.clientX, y: touch.clientY };
+      
+      // Calcular distancia entre taps
+      const distance = Math.sqrt(
+        Math.pow(tapPosition.x - lastTapPosition.x, 2) +
+        Math.pow(tapPosition.y - lastTapPosition.y, 2)
+      );
+      
+      // Si el segundo tap es dentro de 300ms y cerca del primero (menos de 50px)
+      if (currentTime - lastTapTime < doubleTapDelay && distance < 50) {
+        e.preventDefault();
+        const container = e.currentTarget as HTMLElement;
+        const rect = container.getBoundingClientRect();
+        handleDoubleTap(touch.clientX, touch.clientY, rect);
+        
+        // Resetear para evitar triple tap
+        setLastTapTime(0);
+        setLastTapPosition({ x: 0, y: 0 });
+        return;
+      }
+      
+      // Guardar el tap actual
+      setLastTapTime(currentTime);
+      setLastTapPosition(tapPosition);
+    }
+    
     // Dos dedos = pinch-to-zoom
     if (e.touches.length === 2) {
       e.preventDefault();
@@ -347,7 +410,16 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose, title }: 
             </div>
           )}
 
-          {/* Imagen principal con soporte de pinch-to-zoom, pan y swipe */}
+          {/* Indicador de doble tap - solo visible cuando zoom = 1 */}
+          {zoom === 1 && (
+            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
+              <div className="bg-background/80 backdrop-blur-sm px-3 py-2 rounded-lg text-xs text-center text-muted-foreground animate-fade-in">
+                Doble tap para zoom
+              </div>
+            </div>
+          )}
+
+          {/* Imagen principal con soporte de doble tap, pinch-to-zoom, pan y swipe */}
           <div 
             className="w-full h-full flex items-center justify-center overflow-hidden p-16 touch-none"
             onTouchStart={onTouchStart}
@@ -357,7 +429,7 @@ export const ImageLightbox = ({ images, initialIndex, isOpen, onClose, title }: 
             <img
               src={images[currentIndex].url}
               alt={`${title || 'Imagen'} ${currentIndex + 1}`}
-              className="max-w-full max-h-full object-contain animate-fade-in select-none"
+              className="max-w-full max-h-full object-contain select-none"
               style={{ 
                 transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px) translateX(${swipeOffset}px)`,
                 transition: (swipeOffset === 0 && !isPanning && !isPinching) ? 'transform 0.3s ease-out' : 'none',
