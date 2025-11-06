@@ -57,6 +57,8 @@ const Buscar = () => {
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [searchName, setSearchName] = useState('');
+  const [savedSearchQuery, setSavedSearchQuery] = useState('');
+  const [savedSearchSort, setSavedSearchSort] = useState<'date' | 'name'>('date');
   
   // Inicializar filtros desde URL
   const [filters, setFilters] = useState<Filters>({
@@ -77,6 +79,18 @@ const Buscar = () => {
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const markerClustererRef = useRef<MarkerClusterer | null>(null);
+
+  // Filtrar y ordenar búsquedas guardadas
+  const filteredSavedSearches = savedSearches
+    .filter(search => 
+      search.name.toLowerCase().includes(savedSearchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (savedSearchSort === 'name') {
+        return a.name.localeCompare(b.name);
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
   // Cargar búsquedas guardadas del usuario
   useEffect(() => {
@@ -660,35 +674,80 @@ const Buscar = () => {
             {user && savedSearches.length > 0 && (
               <Card>
                 <CardContent className="p-6 space-y-4">
-                  <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <Star className="h-5 w-5" />
-                    Búsquedas guardadas
-                  </h2>
-                  <div className="space-y-2">
-                    {savedSearches.map((search) => (
-                      <div
-                        key={search.id}
-                        className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors"
-                      >
-                        <button
-                          onClick={() => handleLoadSearch(search.filters)}
-                          className="flex-1 text-left"
-                        >
-                          <p className="font-medium">{search.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(search.created_at).toLocaleDateString()}
-                          </p>
-                        </button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteSearch(search.id, search.name)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                      <Star className="h-5 w-5" />
+                      Búsquedas guardadas
+                    </h2>
+                    <Badge variant="secondary">
+                      {filteredSavedSearches.length}
+                    </Badge>
                   </div>
+
+                  {/* Búsqueda y ordenamiento */}
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar búsquedas guardadas..."
+                        value={savedSearchQuery}
+                        onChange={(e) => setSavedSearchQuery(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm text-muted-foreground">Ordenar por:</Label>
+                      <Select value={savedSearchSort} onValueChange={(v: 'date' | 'name') => setSavedSearchSort(v)}>
+                        <SelectTrigger className="w-auto">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="date">Fecha</SelectItem>
+                          <SelectItem value="name">Nombre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Lista de búsquedas */}
+                  {filteredSavedSearches.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                      <p className="text-sm">No se encontraron búsquedas</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {filteredSavedSearches.map((search) => (
+                        <div
+                          key={search.id}
+                          className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors animate-fade-in"
+                        >
+                          <button
+                            onClick={() => handleLoadSearch(search.filters)}
+                            className="flex-1 text-left"
+                          >
+                            <p className="font-medium">{search.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(search.created_at).toLocaleDateString('es-MX', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </p>
+                          </button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteSearch(search.id, search.name)}
+                            className="hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
