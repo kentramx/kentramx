@@ -702,11 +702,92 @@ const Buscar = () => {
     });
 
 
-    // Agregar clustering
+
+    // Agregar clustering con renderizado personalizado
     if (newMarkers.length > 0) {
+      // Función para obtener color según densidad de cluster
+      const getClusterColor = (count: number): string => {
+        if (count < 5) return '#10B981'; // Verde - baja densidad
+        if (count < 10) return '#3B82F6'; // Azul - media densidad
+        if (count < 20) return '#F59E0B'; // Naranja - alta densidad
+        return '#EF4444'; // Rojo - muy alta densidad
+      };
+
+      // Crear renderer personalizado para clusters
+      const renderer = {
+        render: ({ count, position }: { count: number; position: google.maps.LatLng }) => {
+          const color = getClusterColor(count);
+          
+          // Crear SVG del cluster con estilo mejorado
+          const svg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60">
+              <defs>
+                <filter id="shadow-${count}" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                  <feOffset dx="0" dy="2" result="offsetblur"/>
+                  <feComponentTransfer>
+                    <feFuncA type="linear" slope="0.3"/>
+                  </feComponentTransfer>
+                  <feMerge>
+                    <feMergeNode/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                <radialGradient id="grad-${count}">
+                  <stop offset="0%" style="stop-color:${color};stop-opacity:0.9" />
+                  <stop offset="100%" style="stop-color:${color};stop-opacity:1" />
+                </radialGradient>
+              </defs>
+              <circle cx="30" cy="30" r="24" fill="url(#grad-${count})" filter="url(#shadow-${count})" stroke="white" stroke-width="3"/>
+              <text x="30" y="30" text-anchor="middle" dominant-baseline="central" 
+                    font-family="system-ui, -apple-system, sans-serif" 
+                    font-size="18" 
+                    font-weight="700" 
+                    fill="white">
+                ${count}
+              </text>
+            </svg>
+          `;
+          
+          // Convertir SVG a data URL
+          const svgBlob = new Blob([svg], { type: 'image/svg+xml' });
+          const svgUrl = URL.createObjectURL(svgBlob);
+          
+          return new google.maps.Marker({
+            position,
+            icon: {
+              url: svgUrl,
+              scaledSize: new google.maps.Size(60, 60),
+              anchor: new google.maps.Point(30, 30),
+            },
+            zIndex: Number(google.maps.Marker.MAX_ZINDEX) + count,
+          });
+        },
+      };
+
       markerClustererRef.current = new MarkerClusterer({
         map: mapInstanceRef.current,
         markers: newMarkers,
+        renderer,
+        // Configuración de clustering mejorada
+        algorithm: new (window as any).markerClusterer.SuperClusterAlgorithm({
+          radius: 80, // Radio de agrupación más pequeño para mejor precisión
+          maxZoom: 16, // Zoom máximo para clusters
+        }),
+        onClusterClick: (event, cluster, map) => {
+          // Animación al hacer clic en cluster
+          map.fitBounds(cluster.bounds as google.maps.LatLngBounds, {
+            bottom: 100,
+            left: 100,
+            right: 100,
+            top: 100,
+          });
+          
+          toast({
+            title: 'Cluster expandido',
+            description: `Mostrando ${cluster.count} propiedades`,
+          });
+        },
       });
 
       // Ajustar bounds para mostrar todos los marcadores
@@ -717,6 +798,7 @@ const Buscar = () => {
       });
       mapInstanceRef.current.fitBounds(bounds);
     }
+
 
     // Actualizar contador de propiedades visibles
     setVisiblePropertiesCount(propertiesWithCoords.length);
