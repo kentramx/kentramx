@@ -82,6 +82,7 @@ const Buscar = () => {
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const markerClustererRef = useRef<MarkerClusterer | null>(null);
+  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
 
   // Filtrar y ordenar búsquedas guardadas
   const filteredSavedSearches = savedSearches
@@ -489,6 +490,11 @@ const Buscar = () => {
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
 
+    // Cerrar info window si existe
+    if (infoWindowRef.current) {
+      infoWindowRef.current.close();
+    }
+
     // Crear nuevos marcadores
     const propertiesWithCoords = filteredProperties.filter(p => p.lat && p.lng);
     console.log('[Marcadores] Propiedades con coordenadas:', propertiesWithCoords.length);
@@ -500,13 +506,72 @@ const Buscar = () => {
         map: mapInstanceRef.current,
       });
 
+      // Crear contenido del info window
+      const createInfoWindowContent = (prop: Property) => {
+        const imageUrl = prop.images && prop.images.length > 0 
+          ? prop.images[0].url 
+          : '/src/assets/property-placeholder.jpg';
+        
+        const features = [];
+        if (prop.bedrooms) features.push(`${prop.bedrooms} rec`);
+        if (prop.bathrooms) features.push(`${prop.bathrooms} baños`);
+        if (prop.parking) features.push(`${prop.parking} est`);
+
+        return `
+          <div style="min-width: 280px; max-width: 320px; font-family: system-ui, -apple-system, sans-serif;">
+            <img 
+              src="${imageUrl}" 
+              alt="${prop.title}"
+              style="width: 100%; height: 160px; object-fit: cover; border-radius: 8px 8px 0 0; margin: -16px -16px 12px -16px;"
+            />
+            <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1a1a1a; line-height: 1.3;">
+              ${prop.title}
+            </h3>
+            <p style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: #0EA5E9;">
+              ${formatPrice(prop.price)}
+            </p>
+            ${features.length > 0 ? `
+              <div style="display: flex; gap: 12px; margin: 0 0 12px 0; font-size: 14px; color: #666;">
+                ${features.join(' · ')}
+              </div>
+            ` : ''}
+            <p style="margin: 0 0 12px 0; font-size: 13px; color: #666; display: flex; align-items: center; gap: 4px;">
+              <span style="color: #0EA5E9;">📍</span>
+              ${prop.municipality}, ${prop.state}
+            </p>
+            <a 
+              href="/propiedad/${prop.id}"
+              style="display: block; width: 100%; padding: 10px 16px; background: #0EA5E9; color: white; text-align: center; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 14px; transition: background 0.2s;"
+              onmouseover="this.style.background='#0284C7'"
+              onmouseout="this.style.background='#0EA5E9'"
+            >
+              Ver detalles
+            </a>
+          </div>
+        `;
+      };
+
       marker.addListener('click', () => {
         setHighlightedId(property.id);
+        
+        // Cerrar info window anterior si existe
+        if (infoWindowRef.current) {
+          infoWindowRef.current.close();
+        }
+
+        // Crear nuevo info window
+        infoWindowRef.current = new google.maps.InfoWindow({
+          content: createInfoWindowContent(property),
+          maxWidth: 320,
+        });
+
+        infoWindowRef.current.open(mapInstanceRef.current, marker);
+
         // Scroll al item en la lista
         document.getElementById(`property-${property.id}`)?.scrollIntoView({ 
           behavior: 'smooth', 
           block: 'nearest' 
-          });
+        });
       });
 
       return marker;
