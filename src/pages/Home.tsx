@@ -168,7 +168,7 @@ const Home = () => {
         className="relative flex min-h-[600px] items-center justify-center bg-cover bg-center"
         style={{ backgroundImage: `url(${heroBackground})` }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/30 pointer-events-none" />
         <div className="container relative z-10 mx-auto px-4 text-center text-white">
           <h1 className="mb-4 text-5xl font-bold md:text-6xl">
             Encuentra Tu Hogar Ideal
@@ -383,7 +383,7 @@ const Home = () => {
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="map" className="mt-4">
+                <TabsContent value="map" className="mt-4 relative z-10">
                   {activeTab === 'map' && (
                     <InteractivePropertyMap
                       properties={featuredProperties}
