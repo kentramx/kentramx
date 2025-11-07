@@ -279,9 +279,24 @@ const UserProfile = () => {
 
                     <div>
                       <Label>Rol</Label>
-                      <div className="mt-2">
+                      <div className="mt-2 flex items-center gap-3">
                         <Badge>{profile?.role === "agent" ? "Agente" : "Comprador"}</Badge>
+                        {profile?.role !== "agent" && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate("/setup-demo")}
+                          >
+                            Convertirse en Agente
+                          </Button>
+                        )}
                       </div>
+                      {profile?.role !== "agent" && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Conviértete en agente inmobiliario y crea 20 propiedades de demostración
+                        </p>
+                      )}
                     </div>
 
                     <Button type="submit">Guardar Cambios</Button>
