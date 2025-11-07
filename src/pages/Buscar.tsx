@@ -75,6 +75,7 @@ interface Property {
   type: 'casa' | 'departamento' | 'terreno' | 'oficina' | 'local' | 'bodega' | 'edificio' | 'rancho';
   listing_type: 'venta' | 'renta';
   images: { url: string; position: number }[];
+  created_at?: string;
 }
 
 interface Filters {
@@ -347,6 +348,7 @@ const Buscar = () => {
             municipality, 
             type,
             listing_type,
+            created_at,
             images (
               url,
               position
@@ -810,6 +812,15 @@ const Buscar = () => {
       infoWindowRef.current.close();
     }
 
+    // Función para verificar si una propiedad es reciente (últimos 7 días)
+    const isRecentProperty = (createdAt?: string): boolean => {
+      if (!createdAt) return false;
+      const propertyDate = new Date(createdAt);
+      const now = new Date();
+      const daysDiff = (now.getTime() - propertyDate.getTime()) / (1000 * 60 * 60 * 24);
+      return daysDiff <= 7;
+    };
+
     // Función para obtener color según tipo de propiedad
     const getPropertyTypeColor = (type: string): string => {
       const colorMap: Record<string, string> = {
@@ -826,7 +837,7 @@ const Buscar = () => {
     };
 
     // Función para crear SVG del icono según tipo de propiedad
-    const getPropertyIcon = (type: string, color: string): string => {
+    const getPropertyIcon = (type: string, color: string, isRecent: boolean = false): string => {
       const icons: Record<string, string> = {
         casa: `<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline>`,
         departamento: `<rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line>`,
@@ -839,6 +850,27 @@ const Buscar = () => {
       };
       
       const iconPath = icons[type] || icons['casa'];
+      
+      // Agregar anillo pulsante si es propiedad reciente
+      const pulseRing = isRecent ? `
+        <radialGradient id="pulse-${type}">
+          <stop offset="0%" style="stop-color:${color};stop-opacity:0" />
+          <stop offset="100%" style="stop-color:${color};stop-opacity:0.4" />
+        </radialGradient>
+        <!-- Anillo pulsante para propiedades recientes -->
+        <circle cx="12" cy="12" r="16" fill="url(#pulse-${type})" opacity="0.7">
+          <animate attributeName="r" 
+                   from="11" 
+                   to="18" 
+                   dur="1.5s" 
+                   repeatCount="indefinite"/>
+          <animate attributeName="opacity" 
+                   from="0.7" 
+                   to="0" 
+                   dur="1.5s" 
+                   repeatCount="indefinite"/>
+        </circle>
+      ` : '';
       
       return `
         <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -859,7 +891,9 @@ const Buscar = () => {
               <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
               <stop offset="100%" style="stop-color:${color};stop-opacity:0.9" />
             </radialGradient>
+            ${pulseRing}
           </defs>
+          ${isRecent ? pulseRing.split('</radialGradient>')[1] : ''}
           <circle cx="12" cy="12" r="11" fill="url(#grad-${type})" filter="url(#shadow-${type})" opacity="0.95"/>
           <!-- Borde blanco -->
           <circle cx="12" cy="12" r="11" fill="none" stroke="white" stroke-width="2.5" opacity="0.9"/>
@@ -906,7 +940,8 @@ const Buscar = () => {
     // Función para crear un marcador individual
     const createMarker = (property: Property) => {
       const typeColor = getPropertyTypeColor(property.type);
-      const iconSvg = getPropertyIcon(property.type, typeColor);
+      const isRecent = isRecentProperty(property.created_at);
+      const iconSvg = getPropertyIcon(property.type, typeColor, isRecent);
       
       // Convertir SVG a data URL
       const svgBlob = new Blob([iconSvg], { type: 'image/svg+xml' });
