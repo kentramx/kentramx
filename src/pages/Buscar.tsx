@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Combobox } from '@/components/ui/combobox';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { MapPin, Bed, Bath, Car, Home as HomeIcon, Search, AlertCircle, Save, Star, Trash2, X, Loader2, Tag, TrendingUp } from 'lucide-react';
@@ -1447,36 +1448,33 @@ const Buscar = () => {
 
                   <div className="space-y-2">
                     <Label>Estado</Label>
-                    <Select value={filters.estado || "all"} onValueChange={(v) => setFilters(prev => ({ ...prev, estado: v === "all" ? "" : v }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        {estados.map(estado => (
-                          <SelectItem key={estado} value={estado}>{estado}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      options={[
+                        { value: "", label: "Todos los estados" },
+                        ...estados.map(estado => ({ value: estado, label: estado }))
+                      ]}
+                      value={filters.estado}
+                      onValueChange={(v) => setFilters(prev => ({ ...prev, estado: v }))}
+                      placeholder="Seleccionar estado"
+                      searchPlaceholder="Buscar estado..."
+                      emptyText="No se encontró el estado"
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label>Municipio</Label>
-                    <Select 
-                      value={filters.municipio || "all"} 
-                      onValueChange={(v) => setFilters(prev => ({ ...prev, municipio: v === "all" ? "" : v }))}
-                      disabled={!filters.estado}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        {municipios.map(municipio => (
-                          <SelectItem key={municipio} value={municipio}>{municipio}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      options={[
+                        { value: "", label: filters.estado ? "Todos los municipios" : "Selecciona un estado primero" },
+                        ...municipios.map(municipio => ({ value: municipio, label: municipio }))
+                      ]}
+                      value={filters.municipio}
+                      onValueChange={(v) => setFilters(prev => ({ ...prev, municipio: v }))}
+                      placeholder={filters.estado ? "Seleccionar municipio" : "Selecciona un estado primero"}
+                      searchPlaceholder="Buscar municipio..."
+                      emptyText="No se encontró el municipio"
+                      className={!filters.estado ? "opacity-50 cursor-not-allowed" : ""}
+                    />
                   </div>
 
                   {/* Filtro de rango de precios con slider dual */}
