@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      agencies: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string | null
+          description: string | null
+          email: string | null
+          id: string
+          is_verified: boolean | null
+          logo_url: string | null
+          name: string
+          owner_id: string
+          phone: string | null
+          state: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_verified?: boolean | null
+          logo_url?: string | null
+          name: string
+          owner_id: string
+          phone?: string | null
+          state?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_verified?: boolean | null
+          logo_url?: string | null
+          name?: string
+          owner_id?: string
+          phone?: string | null
+          state?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      agency_agents: {
+        Row: {
+          agency_id: string
+          agent_id: string
+          id: string
+          joined_at: string | null
+          role: string | null
+          status: string | null
+        }
+        Insert: {
+          agency_id: string
+          agent_id: string
+          id?: string
+          joined_at?: string | null
+          role?: string | null
+          status?: string | null
+        }
+        Update: {
+          agency_id?: string
+          agent_id?: string
+          id?: string
+          joined_at?: string | null
+          role?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_agents_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_reviews: {
         Row: {
           agent_id: string
@@ -311,6 +397,7 @@ export type Database = {
       properties: {
         Row: {
           address: string
+          agency_id: string | null
           agent_id: string
           bathrooms: number | null
           bedrooms: number | null
@@ -333,6 +420,7 @@ export type Database = {
         }
         Insert: {
           address: string
+          agency_id?: string | null
           agent_id: string
           bathrooms?: number | null
           bedrooms?: number | null
@@ -355,6 +443,7 @@ export type Database = {
         }
         Update: {
           address?: string
+          agency_id?: string | null
           agent_id?: string
           bathrooms?: number | null
           bedrooms?: number | null
@@ -376,6 +465,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "properties_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "properties_agent_id_fkey"
             columns: ["agent_id"]
@@ -487,7 +583,7 @@ export type Database = {
         | "bodega"
         | "edificio"
         | "rancho"
-      user_role: "buyer" | "agent" | "admin"
+      user_role: "buyer" | "agent" | "admin" | "agency"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -627,7 +723,7 @@ export const Constants = {
         "edificio",
         "rancho",
       ],
-      user_role: ["buyer", "agent", "admin"],
+      user_role: ["buyer", "agent", "admin", "agency"],
     },
   },
 } as const
