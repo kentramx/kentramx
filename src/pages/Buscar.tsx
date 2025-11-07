@@ -388,7 +388,7 @@ const Buscar = () => {
     }
   }, [filters.estado]);
 
-  // Centrar mapa cuando cambian estado/municipio
+  // Centrar mapa cuando cambian estado/municipio con animación suave
   useEffect(() => {
     if (!mapInstanceRef.current || !mapReady) return;
     
@@ -409,16 +409,29 @@ const Buscar = () => {
         
         if (result.results && result.results[0]) {
           const location = result.results[0].geometry.location;
+          const targetZoom = filters.municipio ? 13 : 10;
           
-          // Centrar mapa en la ubicación
-          mapInstanceRef.current?.setCenter(location);
+          // Animación suave: usar panTo en lugar de setCenter
+          mapInstanceRef.current?.panTo(location);
           
-          // Ajustar zoom según el tipo de búsqueda
-          if (filters.municipio) {
-            mapInstanceRef.current?.setZoom(13); // Zoom más cercano para municipio
-          } else {
-            mapInstanceRef.current?.setZoom(10); // Zoom más lejano para estado
-          }
+          // Animación de zoom suave con transición gradual
+          const currentZoom = mapInstanceRef.current?.getZoom() || 12;
+          const zoomDiff = targetZoom - currentZoom;
+          const steps = Math.abs(zoomDiff);
+          const zoomIncrement = zoomDiff / steps;
+          
+          // Animar zoom gradualmente
+          let currentStep = 0;
+          const zoomInterval = setInterval(() => {
+            if (!mapInstanceRef.current || currentStep >= steps) {
+              clearInterval(zoomInterval);
+              return;
+            }
+            
+            const newZoom = currentZoom + (zoomIncrement * (currentStep + 1));
+            mapInstanceRef.current.setZoom(Math.round(newZoom));
+            currentStep++;
+          }, 50); // 50ms entre cada paso de zoom
           
           toast({
             title: 'Mapa actualizado',
