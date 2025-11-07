@@ -1100,6 +1100,10 @@ const Buscar = () => {
           const delay = index * 20; // 20ms entre cada marcador
           setTimeout(() => {
             if (marker.getMap()) {
+              // Animación de rebote cuando aparece el marcador
+              marker.setAnimation(google.maps.Animation.BOUNCE);
+              
+              // Fade-in progresivo
               let opacity = 0;
               const fadeIn = setInterval(() => {
                 opacity += 0.15;
@@ -1109,6 +1113,11 @@ const Buscar = () => {
                   marker.setOpacity(1);
                 }
               }, 25);
+              
+              // Detener animación de rebote después de 1 segundo
+              setTimeout(() => {
+                marker.setAnimation(null);
+              }, 1000);
             }
           }, delay);
         });
