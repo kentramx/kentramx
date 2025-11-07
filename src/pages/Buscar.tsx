@@ -1984,7 +1984,7 @@ const Buscar = () => {
                         onMouseLeave={() => debouncedSetHoveredProperty(null)}
                       >
                         <CardContent className="p-4">
-                          {/* Galería de imágenes con badge superpuesto */}
+                          {/* Galería de imágenes con badges superpuestos */}
                           <div className="mb-4 relative">
                             <PropertyImageGallery
                               images={property.images || []}
@@ -2017,6 +2017,28 @@ const Buscar = () => {
                                 )}
                               </Badge>
                             </div>
+                            
+                            {/* Badge NUEVO para propiedades recientes */}
+                            {property.created_at && (() => {
+                              const propertyDate = new Date(property.created_at);
+                              const now = new Date();
+                              const daysDiff = (now.getTime() - propertyDate.getTime()) / (1000 * 60 * 60 * 24);
+                              return daysDiff <= 7;
+                            })() && (
+                              <div className="absolute top-3 right-3 z-10">
+                                <Badge 
+                                  className="
+                                    font-bold text-sm px-3 py-1.5 shadow-lg backdrop-blur-sm
+                                    bg-gradient-to-r from-orange-500 to-red-500 
+                                    hover:from-orange-600 hover:to-red-600
+                                    text-white border-2 border-white
+                                    transition-all hover:scale-110 animate-pulse
+                                  "
+                                >
+                                  ⭐ NUEVO
+                                </Badge>
+                              </div>
+                            )}
                           </div>
 
                           {/* Información de la propiedad */}
