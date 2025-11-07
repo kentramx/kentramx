@@ -25,8 +25,14 @@ export const usePlacesAutocomplete = ({ onPlaceSelect }: UsePlacesAutocompletePr
         // Crear el nuevo elemento de autocompletado usando el constructor del web component
         const autocompleteElement = new placesLibrary.PlaceAutocompleteElement();
         
-        // Configurar opciones
-        autocompleteElement.componentRestrictions = { country: 'mx' };
+        // Configurar opciones (protegido por compatibilidad)
+        try {
+          if ('componentRestrictions' in autocompleteElement) {
+            (autocompleteElement as any).componentRestrictions = { country: 'mx' };
+          }
+        } catch (e) {
+          console.warn('[Places] componentRestrictions no soportado en este runtime, se omite');
+        }
         
         // Aplicar estilos para que se vea como un input normal
         autocompleteElement.className = 'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';

@@ -57,8 +57,15 @@ export const PlaceAutocomplete = ({
         // Crear el nuevo elemento de autocompletado
         const autocompleteElement = new placesLibrary.PlaceAutocompleteElement();
         
-        // Configurar opciones
-        autocompleteElement.componentRestrictions = { country: 'mx' };
+        // Configurar opciones (protegido por compatibilidad)
+        try {
+          // Algunas versiones del componente aún no exponen esta propiedad
+          if ('componentRestrictions' in autocompleteElement) {
+            (autocompleteElement as any).componentRestrictions = { country: 'mx' };
+          }
+        } catch (e) {
+          console.warn('[Places] componentRestrictions no soportado, se omite');
+        }
         autocompleteElement.placeholder = placeholder;
         
         // Aplicar estilos para que coincida con el diseño

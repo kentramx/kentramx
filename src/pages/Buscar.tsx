@@ -613,11 +613,10 @@ const Buscar = () => {
         }
         
         if (!mapRef.current) {
-          console.log('[DEBUG Mapa] 5. mapRef.current no existe, cancelando...');
-          return;
+          console.log('[DEBUG Mapa] 5. mapRef.current no existe todavía, esperando contenedor...');
+        } else {
+          console.log('[DEBUG Mapa] 6. mapRef.current existe, continuando...');
         }
-        
-        console.log('[DEBUG Mapa] 6. mapRef.current existe, continuando...');
 
         // Esperar a que el contenedor esté listo con dimensiones válidas
         const waitForContainer = async (maxWaitMs = 3000) => {
