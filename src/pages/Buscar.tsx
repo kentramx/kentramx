@@ -717,12 +717,19 @@ const Buscar = () => {
       infoWindowRef.current.close();
     }
 
-    // Función para obtener color según rango de precio
-    const getPriceColor = (price: number): string => {
-      if (price < 1000000) return '#10B981'; // Verde - económico
-      if (price < 3000000) return '#3B82F6'; // Azul - medio
-      if (price < 5000000) return '#F59E0B'; // Naranja - alto
-      return '#EF4444'; // Rojo - premium
+    // Función para obtener color según tipo de propiedad
+    const getPropertyTypeColor = (type: string): string => {
+      const colorMap: Record<string, string> = {
+        casa: '#3B82F6',           // Azul - Casas
+        departamento: '#10B981',   // Verde - Departamentos
+        terreno: '#92400E',        // Café/Marrón - Terrenos
+        oficina: '#F59E0B',        // Naranja - Oficinas
+        local: '#F59E0B',          // Naranja - Locales comerciales
+        bodega: '#6B7280',         // Gris - Bodegas
+        edificio: '#8B5CF6',       // Púrpura - Edificios
+        rancho: '#84CC16',         // Lima - Ranchos
+      };
+      return colorMap[type] || '#3B82F6'; // Azul por defecto
     };
 
     // Función para crear SVG del icono según tipo de propiedad
@@ -741,9 +748,30 @@ const Buscar = () => {
       const iconPath = icons[type] || icons['casa'];
       
       return `
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="11" fill="${color}" opacity="0.9"/>
-          <g transform="scale(0.7) translate(4.2, 4.2)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Círculo exterior con sombra -->
+          <defs>
+            <filter id="shadow-${type}" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+              <feOffset dx="0" dy="2" result="offsetblur"/>
+              <feComponentTransfer>
+                <feFuncA type="linear" slope="0.5"/>
+              </feComponentTransfer>
+              <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <radialGradient id="grad-${type}">
+              <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
+              <stop offset="100%" style="stop-color:${color};stop-opacity:0.9" />
+            </radialGradient>
+          </defs>
+          <circle cx="12" cy="12" r="11" fill="url(#grad-${type})" filter="url(#shadow-${type})" opacity="0.95"/>
+          <!-- Borde blanco -->
+          <circle cx="12" cy="12" r="11" fill="none" stroke="white" stroke-width="2.5" opacity="0.9"/>
+          <!-- Icono -->
+          <g transform="scale(0.65) translate(6, 6)">
             ${iconPath}
           </g>
         </svg>
@@ -784,8 +812,8 @@ const Buscar = () => {
 
     // Función para crear un marcador individual
     const createMarker = (property: Property) => {
-      const priceColor = getPriceColor(property.price);
-      const iconSvg = getPropertyIcon(property.type, priceColor);
+      const typeColor = getPropertyTypeColor(property.type);
+      const iconSvg = getPropertyIcon(property.type, typeColor);
       
       // Convertir SVG a data URL
       const svgBlob = new Blob([iconSvg], { type: 'image/svg+xml' });
@@ -797,8 +825,8 @@ const Buscar = () => {
         map: null, // No añadir al mapa inmediatamente
         icon: {
           url: svgUrl,
-          scaledSize: new google.maps.Size(40, 40),
-          anchor: new google.maps.Point(20, 40),
+          scaledSize: new google.maps.Size(44, 44),
+          anchor: new google.maps.Point(22, 44),
         },
         label: {
           text: new Intl.NumberFormat('es-MX', {
@@ -809,7 +837,7 @@ const Buscar = () => {
             notation: 'compact',
             compactDisplay: 'short'
           }).format(property.price).replace('MXN', '').trim(),
-          color: priceColor,
+          color: typeColor,
           fontSize: '11px',
           fontWeight: 'bold',
           className: 'marker-price-label'
