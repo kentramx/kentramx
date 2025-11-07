@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '@/hooks/use-toast';
 import { mexicoStates, mexicoMunicipalities } from '@/data/mexicoLocations';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
+import { PropertyStats } from '@/components/PropertyStats';
 
 // Función throttle para optimizar rendimiento
 const throttle = <T extends (...args: any[]) => void>(
@@ -1847,6 +1848,9 @@ const Buscar = () => {
                 value={propertiesToDisplay.length} 
                 label={propertiesToDisplay.length === 1 ? 'propiedad' : 'propiedades'}
               />
+
+              {/* Estadísticas de precios */}
+              <PropertyStats properties={propertiesToDisplay} />
 
               {propertiesToDisplay.length === 0 ? (
                 <Card>
