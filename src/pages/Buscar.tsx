@@ -57,6 +57,7 @@ const Buscar = () => {
   const [isMapLoading, setIsMapLoading] = useState(true);
   const [mapReady, setMapReady] = useState(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [hoveredPropertyId, setHoveredPropertyId] = useState<string | null>(null);
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [searchName, setSearchName] = useState('');
@@ -83,6 +84,7 @@ const Buscar = () => {
   const markersRef = useRef<google.maps.Marker[]>([]);
   const markerClustererRef = useRef<MarkerClusterer | null>(null);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
+  const markerMapRef = useRef<Map<string, google.maps.Marker>>(new Map());
 
   // Filtrar y ordenar búsquedas guardadas
   const filteredSavedSearches = savedSearches
@@ -489,6 +491,7 @@ const Buscar = () => {
     }
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
+    markerMapRef.current.clear();
 
     // Cerrar info window si existe
     if (infoWindowRef.current) {
@@ -554,6 +557,10 @@ const Buscar = () => {
       marker.addListener('click', () => {
         setHighlightedId(property.id);
         
+        // Animar el marcador con bounce
+        marker.setAnimation(google.maps.Animation.BOUNCE);
+        setTimeout(() => marker.setAnimation(null), 2100);
+        
         // Cerrar info window anterior si existe
         if (infoWindowRef.current) {
           infoWindowRef.current.close();
@@ -567,11 +574,20 @@ const Buscar = () => {
 
         infoWindowRef.current.open(mapInstanceRef.current, marker);
 
-        // Scroll al item en la lista
-        document.getElementById(`property-${property.id}`)?.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'nearest' 
-        });
+        // Scroll suave al item en la lista con highlight
+        const element = document.getElementById(`property-${property.id}`);
+        if (element) {
+          element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center'
+          });
+          
+          // Flash effect en la tarjeta
+          setTimeout(() => {
+            setHighlightedId(property.id);
+            setTimeout(() => setHighlightedId(null), 3000);
+          }, 500);
+        }
       });
 
       return marker;
@@ -579,6 +595,11 @@ const Buscar = () => {
 
     console.log('[Marcadores] Marcadores creados:', newMarkers.length);
     markersRef.current = newMarkers;
+
+    // Guardar referencia de cada marcador por property id
+    propertiesWithCoords.forEach((property, index) => {
+      markerMapRef.current.set(property.id, newMarkers[index]);
+    });
 
 
     // Agregar clustering
@@ -597,6 +618,27 @@ const Buscar = () => {
       mapInstanceRef.current.fitBounds(bounds);
     }
   }, [filteredProperties, mapReady]);
+
+  // Efecto para animar marcador cuando se hace hover sobre una tarjeta
+  useEffect(() => {
+    if (!hoveredPropertyId || !mapInstanceRef.current) return;
+
+    const marker = markerMapRef.current.get(hoveredPropertyId);
+    if (!marker) return;
+
+    // Animar el marcador con bounce
+    marker.setAnimation(google.maps.Animation.BOUNCE);
+    
+    // Detener la animación después de 1.5 segundos
+    const timer = setTimeout(() => {
+      marker.setAnimation(null);
+    }, 1500);
+
+    return () => {
+      clearTimeout(timer);
+      marker.setAnimation(null);
+    };
+  }, [hoveredPropertyId]);
 
   // Hook de autocompletado de lugares
   const handlePlaceSelect = useCallback((location: {
@@ -993,10 +1035,12 @@ const Buscar = () => {
                       id={`property-${property.id}`}
                     >
                       <Card
-                        className={`cursor-pointer transition-all hover:shadow-lg animate-fade-in ${
-                          highlightedId === property.id ? 'ring-2 ring-primary' : ''
+                        className={`cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] animate-fade-in ${
+                          highlightedId === property.id ? 'ring-2 ring-primary shadow-xl' : ''
                         }`}
                         onClick={() => handlePropertyClick(property)}
+                        onMouseEnter={() => setHoveredPropertyId(property.id)}
+                        onMouseLeave={() => setHoveredPropertyId(null)}
                       >
                         <CardContent className="p-4">
                           {/* Galería de imágenes */}
