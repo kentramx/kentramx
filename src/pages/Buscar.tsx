@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { MapPin, Bed, Bath, Car, Home as HomeIcon, Search, AlertCircle, Save, Star, Trash2, X, Loader2 } from 'lucide-react';
+import { MapPin, Bed, Bath, Car, Home as HomeIcon, Search, AlertCircle, Save, Star, Trash2, X, Loader2, Tag, TrendingUp } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -1555,21 +1555,62 @@ const Buscar = () => {
                         onMouseLeave={() => setHoveredPropertyId(null)}
                       >
                         <CardContent className="p-4">
-                          {/* Galería de imágenes */}
-                          <div className="mb-4">
+                          {/* Galería de imágenes con badge superpuesto */}
+                          <div className="mb-4 relative">
                             <PropertyImageGallery
                               images={property.images || []}
                               title={property.title}
                               type={property.type}
                             />
+                            {/* Badge de Venta/Renta sobre la imagen */}
+                            <div className="absolute top-3 left-3 z-10">
+                              <Badge 
+                                variant={property.listing_type === 'venta' ? 'default' : 'secondary'}
+                                className={`
+                                  font-semibold text-sm px-3 py-1.5 shadow-lg backdrop-blur-sm
+                                  ${property.listing_type === 'venta' 
+                                    ? 'bg-emerald-500/90 hover:bg-emerald-600/90 text-white border-emerald-400' 
+                                    : 'bg-blue-500/90 hover:bg-blue-600/90 text-white border-blue-400'
+                                  }
+                                  transition-all hover:scale-105 animate-fade-in
+                                `}
+                              >
+                                {property.listing_type === 'venta' ? (
+                                  <>
+                                    <Tag className="h-3.5 w-3.5 mr-1" />
+                                    En Venta
+                                  </>
+                                ) : (
+                                  <>
+                                    <TrendingUp className="h-3.5 w-3.5 mr-1" />
+                                    En Renta
+                                  </>
+                                )}
+                              </Badge>
+                            </div>
                           </div>
 
                           {/* Información de la propiedad */}
                           <div className="space-y-3">
                             <div>
-                              <h3 className="font-semibold text-lg hover:text-primary transition-colors line-clamp-1">
-                                {property.title}
-                              </h3>
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <h3 className="font-semibold text-lg hover:text-primary transition-colors line-clamp-1 flex-1">
+                                  {property.title}
+                                </h3>
+                                {/* Badge pequeño adicional en el título */}
+                                <Badge 
+                                  variant="outline"
+                                  className={`
+                                    text-xs px-2 py-0.5 flex-shrink-0
+                                    ${property.listing_type === 'venta' 
+                                      ? 'border-emerald-500 text-emerald-600 bg-emerald-50' 
+                                      : 'border-blue-500 text-blue-600 bg-blue-50'
+                                    }
+                                  `}
+                                >
+                                  {property.listing_type === 'venta' ? 'Venta' : 'Renta'}
+                                </Badge>
+                              </div>
                               <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                                 <MapPin className="h-3 w-3 flex-shrink-0" />
                                 <span className="line-clamp-1">
