@@ -521,6 +521,7 @@ const Buscar = () => {
   // Inicializar mapa
   useEffect(() => {
     let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
     
     const initMap = async () => {
       try {
@@ -545,11 +546,25 @@ const Buscar = () => {
           mapTypeId: mapType,
         });
 
-        // Esperar a que el mapa esté listo para pintar marcadores
+        let mapReadySet = false;
+        
+        const setMapReadyOnce = () => {
+          if (!mapReadySet && isMounted) {
+            mapReadySet = true;
+            console.log('[Mapa] Listo para renderizar marcadores');
+            setMapReady(true);
+            setIsMapLoading(false);
+            if (timeoutId) clearTimeout(timeoutId);
+          }
+        };
+
+        // Múltiples listeners para asegurar que el mapa se marca como listo
+        mapInstanceRef.current.addListener('tilesloaded', setMapReadyOnce);
+        mapInstanceRef.current.addListener('idle', setMapReadyOnce);
+        
+        // Listener para viewport changes
         mapInstanceRef.current.addListener('idle', () => {
-          if (!isMounted) return;
-          console.log('[Mapa] idle - listo para renderizar marcadores');
-          setMapReady(true);
+          if (!isMounted || !mapReadySet) return;
           
           // Activar filtro de viewport cuando el mapa se detiene
           if (mapFilterActive) {
@@ -557,8 +572,15 @@ const Buscar = () => {
           }
         });
 
+        // Timeout de seguridad: marcar como listo después de 3 segundos
+        timeoutId = setTimeout(() => {
+          if (isMounted && !mapReadySet) {
+            console.log('[Mapa] Timeout alcanzado - forzando estado listo');
+            setMapReadyOnce();
+          }
+        }, 3000);
 
-        if (isMounted) {
+        if (isMounted && !mapReadySet) {
           setIsMapLoading(false);
         }
       } catch (err: any) {
@@ -574,8 +596,9 @@ const Buscar = () => {
 
     return () => {
       isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, []);
+  }, [mapType, mapFilterActive]);
 
   // Actualizar marcadores cuando cambian las propiedades filtradas
   useEffect(() => {
