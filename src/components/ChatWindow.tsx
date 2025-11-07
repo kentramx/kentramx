@@ -14,6 +14,14 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { ImageLightbox } from './ImageLightbox';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useBackgroundSync } from '@/hooks/useBackgroundSync';
+import { z } from 'zod';
+
+// Message content validation schema (max 5000 characters)
+const messageSchema = z.object({
+  content: z.string()
+    .max(5000, 'El mensaje no puede exceder 5000 caracteres')
+    .refine((val) => val.trim().length > 0, 'El mensaje no puede estar vacío')
+});
 
 interface Message {
   id: string;
@@ -421,7 +429,15 @@ export const ChatWindow = ({
 
   // Manejar cambios en el textarea
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNewMessage(e.target.value);
+    const value = e.target.value;
+    
+    // Enforce character limit client-side
+    if (value.length > 5000) {
+      toast.error('El mensaje no puede exceder 5000 caracteres');
+      return;
+    }
+    
+    setNewMessage(value);
 
     // Notificar que está escribiendo
     notifyTyping(true);
@@ -442,6 +458,18 @@ export const ChatWindow = ({
     
     // Validar que haya contenido o imagen
     if (!newMessage.trim() && !selectedImage) return;
+
+    // Validate message content before sending
+    try {
+      if (newMessage.trim()) {
+        messageSchema.parse({ content: newMessage.trim() });
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+        return;
+      }
+    }
 
     // Limpiar estado de "escribiendo"
     notifyTyping(false);
@@ -493,6 +521,7 @@ export const ChatWindow = ({
       }
 
       // Insertar mensaje normalmente si hay conexión
+      // Server-side validation trigger enforces 5000 char limit and strips control characters
       const { error } = await supabase.from('messages').insert({
         conversation_id: conversationId,
         sender_id: user.id,
