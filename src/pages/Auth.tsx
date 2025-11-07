@@ -21,7 +21,7 @@ const signupSchema = z.object({
   email: z.string().trim().email({ message: 'Correo electrónico inválido' }),
   password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres' }),
   confirmPassword: z.string(),
-  role: z.enum(['buyer', 'agent'], { 
+  role: z.enum(['buyer', 'agent', 'agency'], { 
     required_error: 'Debes seleccionar un tipo de cuenta',
   }),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -118,7 +118,7 @@ const Auth = () => {
         return;
       }
 
-      const { error } = await signUp(email, password, name, role as 'buyer' | 'agent');
+      const { error } = await signUp(email, password, name, role as 'buyer' | 'agent' | 'agency');
 
       if (error) {
         let errorMessage = 'Error al crear la cuenta';
@@ -132,7 +132,7 @@ const Auth = () => {
           variant: 'destructive',
         });
       } else {
-        const roleText = role === 'agent' ? 'agente inmobiliario' : 'comprador';
+        const roleText = role === 'agent' ? 'agente inmobiliario' : role === 'agency' ? 'agencia inmobiliaria' : 'comprador';
         toast({
           title: '¡Cuenta creada!',
           description: `Tu cuenta como ${roleText} ha sido creada exitosamente`,
@@ -249,6 +249,15 @@ const Auth = () => {
                           <div className="font-medium">Agente Inmobiliario</div>
                           <div className="text-sm text-muted-foreground">
                             Quiero publicar y vender propiedades
+                          </div>
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-accent cursor-pointer">
+                        <RadioGroupItem value="agency" id="role-agency" />
+                        <Label htmlFor="role-agency" className="flex-1 cursor-pointer">
+                          <div className="font-medium">Agencia Inmobiliaria</div>
+                          <div className="text-sm text-muted-foreground">
+                            Gestiono una agencia con múltiples agentes
                           </div>
                         </Label>
                       </div>
