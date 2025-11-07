@@ -1,10 +1,10 @@
-/// <reference types="google.maps" />
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { loadGoogleMaps } from '@/lib/loadGoogleMaps';
-import { Loader2, AlertCircle, MapPin, Map as MapIcon, Satellite } from 'lucide-react';
+import { Loader2, AlertCircle, MapPin, Map as MapIcon, Satellite, Plus, Minus, Home as HomeIcon } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
+import { useToast } from '@/hooks/use-toast';
 
 interface Property {
   id: string;
@@ -58,10 +58,18 @@ export const InteractivePropertyMap = ({
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   const locationMarkerRef = useRef<google.maps.Marker | null>(null);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
+  const markerMapRef = useRef<Map<string, google.maps.Marker>>(new Map());
+  const renderingRef = useRef<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
+  const [mapLoadingProgress, setMapLoadingProgress] = useState(0);
+  const [markersLoadingProgress, setMarkersLoadingProgress] = useState(0);
+  const [isLoadingMarkers, setIsLoadingMarkers] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const [visiblePropertiesCount, setVisiblePropertiesCount] = useState(0);
+  const { toast } = useToast();
 
   // Helper para verificar si una propiedad es reciente
   const isRecentProperty = (createdAt?: string): boolean => {
@@ -297,10 +305,25 @@ export const InteractivePropertyMap = ({
   // Inicializar mapa
   useEffect(() => {
     let isMounted = true;
+    let timeoutId: NodeJS.Timeout | null = null;
+    let progressInterval: NodeJS.Timeout | null = null;
 
     const initMap = async () => {
       try {
+        // Progreso simulado de carga
+        setMapLoadingProgress(10);
+        progressInterval = setInterval(() => {
+          setMapLoadingProgress(prev => {
+            if (prev >= 60) {
+              if (progressInterval) clearInterval(progressInterval);
+              return prev;
+            }
+            return prev + 10;
+          });
+        }, 300);
+
         await loadGoogleMaps();
+        setMapLoadingProgress(70);
 
         if (!isMounted || !mapRef.current) return;
 
@@ -328,6 +351,35 @@ export const InteractivePropertyMap = ({
 
         mapInstanceRef.current = map;
         geocoderRef.current = new google.maps.Geocoder();
+        setMapLoadingProgress(85);
+
+        let mapReadySet = false;
+        
+        const setMapReadyOnce = () => {
+          if (!mapReadySet && isMounted) {
+            mapReadySet = true;
+            setMapLoadingProgress(100);
+            
+            setTimeout(() => {
+              if (isMounted) {
+                setMapReady(true);
+                setIsLoading(false);
+              }
+            }, 300);
+            
+            if (timeoutId) clearTimeout(timeoutId);
+            if (progressInterval) clearInterval(progressInterval);
+          }
+        };
+
+        map.addListener('tilesloaded', setMapReadyOnce);
+        map.addListener('idle', setMapReadyOnce);
+
+        timeoutId = setTimeout(() => {
+          if (isMounted && !mapReadySet) {
+            setMapReadyOnce();
+          }
+        }, 3000);
 
         // Si showLocationPicker está habilitado, agregar listener de clic
         if (showLocationPicker && onLocationSelect) {
@@ -337,7 +389,6 @@ export const InteractivePropertyMap = ({
             const lat = event.latLng.lat();
             const lng = event.latLng.lng();
 
-            // Actualizar marcador de ubicación
             if (locationMarkerRef.current) {
               locationMarkerRef.current.setPosition({ lat, lng });
             } else {
@@ -356,7 +407,6 @@ export const InteractivePropertyMap = ({
               });
             }
 
-            // Geocodificar
             setIsGeocodingAddress(true);
             
             try {
@@ -393,11 +443,11 @@ export const InteractivePropertyMap = ({
           });
         }
 
-        setIsLoading(false);
       } catch (err) {
         console.error('Error loading map:', err);
         setError('No se pudo cargar el mapa');
         setIsLoading(false);
+        if (progressInterval) clearInterval(progressInterval);
       }
     };
 
@@ -405,6 +455,8 @@ export const InteractivePropertyMap = ({
 
     return () => {
       isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+      if (progressInterval) clearInterval(progressInterval);
       if (clustererRef.current) {
         clustererRef.current.clearMarkers();
       }
@@ -419,57 +471,171 @@ export const InteractivePropertyMap = ({
     };
   }, [defaultCenter, defaultZoom, showLocationPicker, onLocationSelect, mapType]);
 
-  // Actualizar marcadores cuando cambian las propiedades
+  // Actualizar marcadores cuando cambian las propiedades con renderizado incremental
   useEffect(() => {
-    if (!mapInstanceRef.current || isLoading) return;
+    if (!mapInstanceRef.current || !mapReady || renderingRef.current) return;
 
-    // Limpiar marcadores existentes
+    renderingRef.current = true;
+    setIsLoadingMarkers(true);
+    setMarkersLoadingProgress(0);
+
+    // Limpiar marcadores anteriores
     if (clustererRef.current) {
       clustererRef.current.clearMarkers();
+      clustererRef.current = null;
     }
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current.clear();
+    markerMapRef.current.clear();
 
-    // Crear nuevos marcadores
+    if (infoWindowRef.current) {
+      infoWindowRef.current.close();
+    }
+
+    const propertiesWithCoords = properties.filter(p => p.lat && p.lng);
+    
+    // Renderizado incremental por lotes
+    const BATCH_SIZE = 15;
+    let currentBatch = 0;
     const newMarkers: google.maps.Marker[] = [];
     
-    properties.forEach((property) => {
-      const marker = createMarker(property, mapInstanceRef.current!);
-      if (marker) {
-        markersRef.current.set(property.id, marker);
-        newMarkers.push(marker);
-      }
-    });
-
-    // Aplicar clustering
-    if (newMarkers.length > 0) {
-      clustererRef.current = new MarkerClusterer({
-        map: mapInstanceRef.current,
-        markers: newMarkers,
-      });
-
-      // Ajustar vista para mostrar todos los marcadores
-      const bounds = new google.maps.LatLngBounds();
-      newMarkers.forEach((marker) => {
-        const position = marker.getPosition();
-        if (position) bounds.extend(position);
-      });
+    const renderBatch = () => {
+      const start = currentBatch * BATCH_SIZE;
+      const end = Math.min(start + BATCH_SIZE, propertiesWithCoords.length);
       
-      if (newMarkers.length > 0) {
-        mapInstanceRef.current.fitBounds(bounds);
-        const currentZoom = mapInstanceRef.current.getZoom();
-        if (currentZoom && currentZoom > 15) {
-          mapInstanceRef.current.setZoom(15);
+      for (let i = start; i < end; i++) {
+        const property = propertiesWithCoords[i];
+        const marker = createMarker(property, mapInstanceRef.current!);
+        if (marker) {
+          marker.setMap(mapInstanceRef.current);
+          marker.setOpacity(0);
+          newMarkers.push(marker);
+          markersRef.current.set(property.id, marker);
+          markerMapRef.current.set(property.id, marker);
         }
       }
-    }
-  }, [properties, isLoading, mapType]);
+      
+      const progress = Math.round((end / propertiesWithCoords.length) * 100);
+      setMarkersLoadingProgress(progress);
+      
+      currentBatch++;
+      
+      if (end < propertiesWithCoords.length) {
+        requestAnimationFrame(renderBatch);
+      } else {
+        finishRendering();
+      }
+    };
+    
+    const finishRendering = () => {
+      // Fade-in animado
+      newMarkers.forEach((marker, index) => {
+        const delay = index * 15;
+        setTimeout(() => {
+          let opacity = 0;
+          const fadeIn = setInterval(() => {
+            opacity += 0.1;
+            marker.setOpacity(Math.min(opacity, 1));
+            if (opacity >= 1) {
+              clearInterval(fadeIn);
+              marker.setAnimation(google.maps.Animation.BOUNCE);
+              setTimeout(() => marker.setAnimation(null), 500);
+            }
+          }, 25);
+        }, delay);
+      });
+
+      setIsLoadingMarkers(false);
+      setMarkersLoadingProgress(100);
+
+      // Clustering personalizado
+      if (newMarkers.length > 0) {
+        const getClusterStyle = (count: number) => {
+          if (count < 5) return { color: '#10B981', size: 50 };
+          if (count < 10) return { color: '#3B82F6', size: 55 };
+          if (count < 20) return { color: '#F59E0B', size: 60 };
+          if (count < 50) return { color: '#EF4444', size: 65 };
+          return { color: '#DC2626', size: 70 };
+        };
+
+        const renderer = {
+          render: (cluster: any) => {
+            const count = cluster.count;
+            const position = cluster.position;
+            const style = getClusterStyle(count);
+            
+            const svg = `
+              <svg xmlns="http://www.w3.org/2000/svg" width="${style.size + 20}" height="${style.size + 20}" viewBox="0 0 ${style.size + 20} ${style.size + 20}">
+                <defs>
+                  <radialGradient id="grad-${count}">
+                    <stop offset="0%" style="stop-color:${style.color};stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:${style.color};stop-opacity:0.85" />
+                  </radialGradient>
+                </defs>
+                <circle cx="${(style.size + 20) / 2}" cy="${(style.size + 20) / 2}" r="${style.size / 2 - 2}" 
+                        fill="url(#grad-${count})" 
+                        stroke="white" 
+                        stroke-width="4"/>
+                <text x="${(style.size + 20) / 2}" y="${(style.size + 20) / 2}" 
+                      text-anchor="middle" 
+                      dominant-baseline="central" 
+                      font-family="system-ui" 
+                      font-size="20" 
+                      font-weight="800" 
+                      fill="white">
+                  ${count}
+                </text>
+              </svg>
+            `;
+            
+            const svgBlob = new Blob([svg], { type: 'image/svg+xml' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+            
+            return new google.maps.Marker({
+              position,
+              icon: {
+                url: svgUrl,
+                scaledSize: new google.maps.Size(style.size + 20, style.size + 20),
+                anchor: new google.maps.Point((style.size + 20) / 2, (style.size + 20) / 2),
+              },
+              zIndex: Number(google.maps.Marker.MAX_ZINDEX) + count,
+            });
+          },
+        };
+
+        clustererRef.current = new MarkerClusterer({
+          map: mapInstanceRef.current,
+          markers: newMarkers,
+          renderer,
+        });
+
+        const bounds = new google.maps.LatLngBounds();
+        newMarkers.forEach((marker) => {
+          const position = marker.getPosition();
+          if (position) bounds.extend(position);
+        });
+        
+        if (newMarkers.length > 0) {
+          mapInstanceRef.current.fitBounds(bounds);
+          const currentZoom = mapInstanceRef.current.getZoom();
+          if (currentZoom && currentZoom > 15) {
+            mapInstanceRef.current.setZoom(15);
+          }
+        }
+      }
+
+      setVisiblePropertiesCount(propertiesWithCoords.length);
+      renderingRef.current = false;
+    };
+
+    renderBatch();
+  }, [properties, mapReady, mapType]);
 
   // Efecto hover desde lista de propiedades
   useEffect(() => {
-    if (!hoveredPropertyId || !markersRef.current.has(hoveredPropertyId)) return;
+    if (!hoveredPropertyId || !markerMapRef.current.has(hoveredPropertyId)) return;
 
-    const marker = markersRef.current.get(hoveredPropertyId);
+    const marker = markerMapRef.current.get(hoveredPropertyId);
     if (marker) {
       marker.setAnimation(google.maps.Animation.BOUNCE);
       return () => {
@@ -477,6 +643,28 @@ export const InteractivePropertyMap = ({
       };
     }
   }, [hoveredPropertyId]);
+
+  // Actualizar tipo de mapa
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setMapTypeId(mapType);
+    }
+  }, [mapType]);
+
+  // Controles de zoom
+  const handleZoomIn = () => {
+    if (mapInstanceRef.current) {
+      const currentZoom = mapInstanceRef.current.getZoom() || 12;
+      mapInstanceRef.current.setZoom(currentZoom + 1);
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (mapInstanceRef.current) {
+      const currentZoom = mapInstanceRef.current.getZoom() || 12;
+      mapInstanceRef.current.setZoom(currentZoom - 1);
+    }
+  };
 
   // Botón de mi ubicación
   const handleMyLocation = () => {
@@ -514,10 +702,54 @@ export const InteractivePropertyMap = ({
       />
       
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg">
-          <div className="text-center space-y-2">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-            <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+        <div className="absolute inset-0 flex items-center justify-center bg-background/95 backdrop-blur-sm rounded-lg z-10">
+          <div className="text-center space-y-4 w-full max-w-xs px-6">
+            <div className="relative">
+              <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs font-bold text-primary">
+                  {Math.round(mapLoadingProgress)}%
+                </span>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Cargando mapa interactivo</p>
+              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${mapLoadingProgress}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {mapLoadingProgress < 30 && 'Inicializando...'}
+                {mapLoadingProgress >= 30 && mapLoadingProgress < 70 && 'Preparando mapa...'}
+                {mapLoadingProgress >= 70 && mapLoadingProgress < 100 && 'Finalizando...'}
+                {mapLoadingProgress === 100 && 'Completado'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isLoadingMarkers && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 animate-fade-in">
+          <div className="bg-background border-2 border-border rounded-lg shadow-lg px-6 py-3">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Cargando marcadores</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary transition-all duration-300"
+                      style={{ width: `${markersLoadingProgress}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-semibold text-primary">{markersLoadingProgress}%</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -529,9 +761,44 @@ export const InteractivePropertyMap = ({
         </div>
       )}
 
-      {!isLoading && (
+      {!isLoading && mapReady && (
         <>
-          <div className="absolute top-4 right-4 space-y-2">
+          <div className="absolute top-4 right-4 space-y-2 z-10">
+            {/* Contador de propiedades */}
+            {!showLocationPicker && properties.length > 0 && (
+              <div className="bg-background border-2 border-border rounded-lg shadow-lg px-4 py-2 transition-all hover:shadow-xl hover:scale-105">
+                <div className="flex items-center gap-2">
+                  <HomeIcon className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold">
+                    {visiblePropertiesCount} {visiblePropertiesCount === 1 ? 'propiedad' : 'propiedades'}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Controles de zoom */}
+            <div className="bg-background border-2 border-border rounded-lg shadow-lg overflow-hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleZoomIn}
+                className="w-full rounded-none border-b border-border hover:bg-accent transition-all hover:scale-105"
+                title="Acercar"
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleZoomOut}
+                className="w-full rounded-none hover:bg-accent transition-all hover:scale-105"
+                title="Alejar"
+              >
+                <Minus className="h-5 w-5" />
+              </Button>
+            </div>
+
             <Button
               onClick={() => setMapType(mapType === 'roadmap' ? 'satellite' : 'roadmap')}
               size="icon"
@@ -561,14 +828,6 @@ export const InteractivePropertyMap = ({
               <p className="text-xs text-muted-foreground flex items-center gap-2">
                 <MapPin className="h-3 w-3" />
                 Haz clic en el mapa para seleccionar ubicación
-              </p>
-            </div>
-          )}
-
-          {!showLocationPicker && properties.length > 0 && (
-            <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg border border-border">
-              <p className="text-xs text-muted-foreground">
-                {properties.length} propiedades en el mapa
               </p>
             </div>
           )}
