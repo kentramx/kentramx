@@ -327,7 +327,12 @@ export const InteractivePropertyMap = ({
 
     const initMap = async () => {
       try {
+        console.log('[InteractivePropertyMap] ========== INICIO CARGA MAPA ==========');
+        console.log('[InteractivePropertyMap] Contenedor mapRef.current existe?', !!mapRef.current);
+        console.log('[InteractivePropertyMap] Dimensiones contenedor:', mapRef.current?.offsetWidth, 'x', mapRef.current?.offsetHeight);
+        console.log('[InteractivePropertyMap] Propiedades a mostrar:', properties.length);
         console.log('[InteractivePropertyMap] Cargando Google Maps API...');
+        
         // Progreso simulado de carga
         setMapLoadingProgress(10);
         progressInterval = setInterval(() => {
@@ -347,17 +352,25 @@ export const InteractivePropertyMap = ({
         // Esperar a que el contenedor del mapa esté listo en el DOM
         const waitForRef = async () => {
           let attempts = 0;
+          console.log('[InteractivePropertyMap] Esperando contenedor del mapa...');
           return new Promise<void>((resolve, reject) => {
             const check = () => {
               if (!isMounted) {
+                console.error('[InteractivePropertyMap] Componente desmontado durante init');
                 reject(new Error('Componente desmontado durante init'));
                 return;
               }
               if (mapRef.current) {
+                console.log('[InteractivePropertyMap] ✅ Contenedor encontrado después de', attempts, 'intentos');
+                console.log('[InteractivePropertyMap] Dimensiones finales:', mapRef.current.offsetWidth, 'x', mapRef.current.offsetHeight);
                 resolve();
               } else if (attempts++ < 300) { // ~5s a 60fps
+                if (attempts % 60 === 0) {
+                  console.log('[InteractivePropertyMap] Esperando... intento', attempts, '/300');
+                }
                 requestAnimationFrame(check);
               } else {
+                console.error('[InteractivePropertyMap] ❌ Timeout: Contenedor no disponible después de', attempts, 'intentos');
                 reject(new Error('Contenedor del mapa no disponible'));
               }
             };
@@ -368,9 +381,12 @@ export const InteractivePropertyMap = ({
         try {
           await waitForRef();
         } catch (e) {
-          console.log('[InteractivePropertyMap] Contenedor no listo, cancelando init');
+          console.error('[InteractivePropertyMap] ❌ ERROR esperando contenedor:', e);
+          console.error('[InteractivePropertyMap] Contenedor no listo, cancelando init');
           if (progressInterval) clearInterval(progressInterval);
-          setError('No se pudo inicializar el contenedor del mapa');
+          const errorMsg = 'No se pudo inicializar el contenedor del mapa. El contenedor ref no está disponible en el DOM.';
+          console.error('[InteractivePropertyMap]', errorMsg);
+          setError(errorMsg);
           setIsLoading(false);
           return;
         }
@@ -497,10 +513,15 @@ export const InteractivePropertyMap = ({
         }
 
       } catch (err) {
-        console.error('Error loading map:', err);
-        setError('No se pudo cargar el mapa');
-        setIsLoading(false);
-        if (progressInterval) clearInterval(progressInterval);
+        console.error('[InteractivePropertyMap] ❌ ERROR FATAL inicializando mapa:', err);
+        console.error('[InteractivePropertyMap] Stack trace:', (err as Error).stack);
+        if (isMounted) {
+          const errorMsg = (err as Error).message || 'No se pudo cargar el mapa';
+          console.error('[InteractivePropertyMap] Mostrando error al usuario:', errorMsg);
+          setError(errorMsg);
+          setIsLoading(false);
+          if (progressInterval) clearInterval(progressInterval);
+        }
       }
     };
 
