@@ -52,9 +52,9 @@ const Home = () => {
   // Advanced filters
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
-  const [bedrooms, setBedrooms] = useState("");
-  const [bathrooms, setBathrooms] = useState("");
-  const [parking, setParking] = useState("");
+  const [bedrooms, setBedrooms] = useState("all");
+  const [bathrooms, setBathrooms] = useState("all");
+  const [parking, setParking] = useState("all");
   
   const navigate = useNavigate();
 
@@ -83,9 +83,9 @@ const Home = () => {
     if (municipio) params.set('municipio', municipio);
     if (priceMin) params.set('precioMin', priceMin);
     if (priceMax) params.set('precioMax', priceMax);
-    if (bedrooms) params.set('recamaras', bedrooms);
-    if (bathrooms) params.set('banos', bathrooms);
-    if (parking) params.set('estacionamiento', parking);
+    if (bedrooms && bedrooms !== 'all') params.set('recamaras', bedrooms);
+    if (bathrooms && bathrooms !== 'all') params.set('banos', bathrooms);
+    if (parking && parking !== 'all') params.set('estacionamiento', parking);
     
     if (!estado && !municipio && place.formatted_address) {
       params.set('busqueda', place.formatted_address);
@@ -267,7 +267,7 @@ const Home = () => {
                             <SelectValue placeholder="Cualquiera" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Cualquiera</SelectItem>
+                            <SelectItem value="all">Cualquiera</SelectItem>
                             <SelectItem value="1">1+</SelectItem>
                             <SelectItem value="2">2+</SelectItem>
                             <SelectItem value="3">3+</SelectItem>
@@ -286,7 +286,7 @@ const Home = () => {
                             <SelectValue placeholder="Cualquiera" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Cualquiera</SelectItem>
+                            <SelectItem value="all">Cualquiera</SelectItem>
                             <SelectItem value="1">1+</SelectItem>
                             <SelectItem value="2">2+</SelectItem>
                             <SelectItem value="3">3+</SelectItem>
@@ -304,7 +304,7 @@ const Home = () => {
                             <SelectValue placeholder="Cualquiera" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Cualquiera</SelectItem>
+                            <SelectItem value="all">Cualquiera</SelectItem>
                             <SelectItem value="1">1+</SelectItem>
                             <SelectItem value="2">2+</SelectItem>
                             <SelectItem value="3">3+</SelectItem>
@@ -315,16 +315,16 @@ const Home = () => {
                     </div>
 
                     {/* Clear Filters Button */}
-                    {(priceMin || priceMax || bedrooms || bathrooms || parking) && (
+                    {(priceMin || priceMax || (bedrooms && bedrooms !== 'all') || (bathrooms && bathrooms !== 'all') || (parking && parking !== 'all')) && (
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => {
                           setPriceMin("");
                           setPriceMax("");
-                          setBedrooms("");
-                          setBathrooms("");
-                          setParking("");
+                          setBedrooms("all");
+                          setBathrooms("all");
+                          setParking("all");
                         }}
                         className="w-full"
                       >
