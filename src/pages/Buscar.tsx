@@ -86,6 +86,8 @@ const Buscar = () => {
   const [visiblePropertiesCount, setVisiblePropertiesCount] = useState(0);
   const [mapFilterActive, setMapFilterActive] = useState(false);
   const [propertiesInViewport, setPropertiesInViewport] = useState<Property[]>([]);
+  const [markersLoadingProgress, setMarkersLoadingProgress] = useState(0);
+  const [isLoadingMarkers, setIsLoadingMarkers] = useState(false);
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [searchName, setSearchName] = useState('');
@@ -522,6 +524,8 @@ const Buscar = () => {
     }
 
     renderingRef.current = true;
+    setIsLoadingMarkers(true);
+    setMarkersLoadingProgress(0);
     console.log('[Marcadores] Actualizando marcadores. Propiedades filtradas:', filteredProperties.length);
 
     // Limpiar marcadores anteriores
@@ -738,7 +742,26 @@ const Buscar = () => {
         marker.setMap(mapInstanceRef.current);
         newMarkers.push(marker);
         markerMapRef.current.set(property.id, marker);
+        
+        // Animación de entrada escalonada para marcadores
+        const delay = i * 15; // 15ms entre cada marcador
+        setTimeout(() => {
+          if (marker.getMap()) {
+            // Simular fade-in con opacidad
+            marker.setOpacity(0);
+            let opacity = 0;
+            const fadeIn = setInterval(() => {
+              opacity += 0.1;
+              marker.setOpacity(Math.min(opacity, 1));
+              if (opacity >= 1) clearInterval(fadeIn);
+            }, 30);
+          }
+        }, delay);
       }
+      
+      // Actualizar progreso
+      const progress = Math.round((end / propertiesWithCoords.length) * 100);
+      setMarkersLoadingProgress(progress);
       
       console.log(`[Marcadores] Renderizado lote ${currentBatch + 1}: ${start}-${end} de ${propertiesWithCoords.length}`);
       
@@ -751,6 +774,9 @@ const Buscar = () => {
         // Finalización del renderizado
         markersRef.current = newMarkers;
         console.log('[Marcadores] Todos los marcadores creados:', newMarkers.length);
+
+        setIsLoadingMarkers(false);
+        setMarkersLoadingProgress(100);
 
         // Agregar clustering con renderizado personalizado
         if (newMarkers.length > 0) {
@@ -1501,6 +1527,29 @@ const Buscar = () => {
                     <div className="text-center space-y-2">
                       <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                       <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Indicador de progreso de marcadores */}
+                {isLoadingMarkers && (
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 animate-fade-in">
+                    <div className="bg-background border-2 border-border rounded-lg shadow-lg px-6 py-3">
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Cargando marcadores</p>
+                          <div className="flex items-center gap-2">
+                            <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-primary transition-all duration-300"
+                                style={{ width: `${markersLoadingProgress}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-semibold text-primary">{markersLoadingProgress}%</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
