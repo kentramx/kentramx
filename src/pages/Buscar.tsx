@@ -521,12 +521,24 @@ const Buscar = () => {
 
   // Animación de bounce en marcador cuando se hace hover sobre la tarjeta
   useEffect(() => {
-    if (!hoveredPropertyId || !mapReady) return;
+    if (!hoveredPropertyId || !mapReady || !mapInstanceRef.current) return;
 
     const marker = markerMapRef.current.get(hoveredPropertyId);
     if (marker) {
       // Aplicar animación de bounce
       marker.setAnimation(google.maps.Animation.BOUNCE);
+      
+      // Centrar mapa suavemente en el marcador
+      const position = marker.getPosition();
+      if (position) {
+        mapInstanceRef.current.panTo(position);
+        
+        // Zoom suave si está muy alejado
+        const currentZoom = mapInstanceRef.current.getZoom() || 12;
+        if (currentZoom < 14) {
+          mapInstanceRef.current.setZoom(15);
+        }
+      }
       
       // Detener la animación cuando se deje de hacer hover
       return () => {
