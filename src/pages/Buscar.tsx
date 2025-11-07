@@ -58,6 +58,8 @@ const Buscar = () => {
   const [mapReady, setMapReady] = useState(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [hoveredPropertyId, setHoveredPropertyId] = useState<string | null>(null);
+  const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
+  const [visiblePropertiesCount, setVisiblePropertiesCount] = useState(0);
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [searchName, setSearchName] = useState('');
@@ -442,10 +444,11 @@ const Buscar = () => {
         mapInstanceRef.current = new google.maps.Map(mapRef.current, {
           center: { lat: 19.4326, lng: -99.1332 },
           zoom: 12,
-          zoomControl: true,
-          mapTypeControl: true,
-          streetViewControl: true,
-          fullscreenControl: true,
+          zoomControl: false,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          mapTypeId: mapType,
         });
 
         // Esperar a que el mapa esté listo para pintar marcadores
@@ -714,6 +717,9 @@ const Buscar = () => {
       });
       mapInstanceRef.current.fitBounds(bounds);
     }
+
+    // Actualizar contador de propiedades visibles
+    setVisiblePropertiesCount(propertiesWithCoords.length);
   }, [filteredProperties, mapReady]);
 
   // Efecto para animar marcador cuando se hace hover sobre una tarjeta
@@ -736,6 +742,88 @@ const Buscar = () => {
       marker.setAnimation(null);
     };
   }, [hoveredPropertyId]);
+
+  // Actualizar tipo de mapa cuando cambia el estado
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setMapTypeId(mapType);
+    }
+  }, [mapType]);
+
+  // Función para centrar mapa en resultados
+  const centerOnResults = () => {
+    if (!mapInstanceRef.current || !markersRef.current.length) return;
+
+    const bounds = new google.maps.LatLngBounds();
+    markersRef.current.forEach(marker => {
+      const position = marker.getPosition();
+      if (position) bounds.extend(position);
+    });
+    
+    mapInstanceRef.current.fitBounds(bounds);
+    
+    toast({
+      title: 'Mapa centrado',
+      description: `Mostrando ${visiblePropertiesCount} propiedades`,
+    });
+  };
+
+  // Función para obtener ubicación actual
+  const centerOnMyLocation = () => {
+    if (!mapInstanceRef.current) return;
+
+    if (navigator.geolocation) {
+      toast({
+        title: 'Obteniendo ubicación...',
+        description: 'Buscando tu ubicación actual',
+      });
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const pos = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          
+          mapInstanceRef.current?.setCenter(pos);
+          mapInstanceRef.current?.setZoom(14);
+
+          // Añadir marcador temporal
+          new google.maps.Marker({
+            position: pos,
+            map: mapInstanceRef.current,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: '#4285F4',
+              fillOpacity: 1,
+              strokeColor: '#fff',
+              strokeWeight: 2,
+            },
+            title: 'Tu ubicación',
+          });
+
+          toast({
+            title: 'Ubicación encontrada',
+            description: 'Mapa centrado en tu ubicación',
+          });
+        },
+        () => {
+          toast({
+            title: 'Error',
+            description: 'No se pudo obtener tu ubicación',
+            variant: 'destructive',
+          });
+        }
+      );
+    } else {
+      toast({
+        title: 'No disponible',
+        description: 'Tu navegador no soporta geolocalización',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Hook de autocompletado de lugares
   const handlePlaceSelect = useCallback((location: {
@@ -1218,6 +1306,71 @@ const Buscar = () => {
                     <div className="text-center space-y-2">
                       <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                       <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Controles personalizados del mapa */}
+                {!isMapLoading && mapReady && (
+                  <div className="absolute top-4 right-4 z-10 space-y-2">
+                    {/* Contador de propiedades */}
+                    <div className="bg-background border-2 border-border rounded-lg shadow-lg px-4 py-2 animate-fade-in">
+                      <div className="flex items-center gap-2">
+                        <HomeIcon className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-semibold">
+                          {visiblePropertiesCount} {visiblePropertiesCount === 1 ? 'propiedad' : 'propiedades'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Grupo de botones de control */}
+                    <div className="bg-background border-2 border-border rounded-lg shadow-lg overflow-hidden animate-fade-in">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={centerOnResults}
+                        disabled={visiblePropertiesCount === 0}
+                        className="w-full rounded-none border-b border-border hover:bg-accent"
+                        title="Centrar en resultados"
+                      >
+                        <MapPin className="h-5 w-5" />
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setMapType(prev => prev === 'roadmap' ? 'satellite' : 'roadmap')}
+                        className="w-full rounded-none border-b border-border hover:bg-accent"
+                        title={mapType === 'roadmap' ? 'Vista satélite' : 'Vista mapa'}
+                      >
+                        {mapType === 'roadmap' ? (
+                          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                          </svg>
+                        ) : (
+                          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>
+                          </svg>
+                        )}
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={centerOnMyLocation}
+                        className="w-full rounded-none hover:bg-accent"
+                        title="Mi ubicación"
+                      >
+                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="3"/>
+                          <circle cx="12" cy="12" r="10"/>
+                          <line x1="12" y1="2" x2="12" y2="4"/>
+                          <line x1="12" y1="20" x2="12" y2="22"/>
+                          <line x1="2" y1="12" x2="4" y2="12"/>
+                          <line x1="20" y1="12" x2="22" y2="12"/>
+                        </svg>
+                      </Button>
                     </div>
                   </div>
                 )}
