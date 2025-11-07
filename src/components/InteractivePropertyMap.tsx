@@ -308,8 +308,11 @@ export const InteractivePropertyMap = ({
     let timeoutId: NodeJS.Timeout | null = null;
     let progressInterval: NodeJS.Timeout | null = null;
 
+    console.log('[InteractivePropertyMap] Iniciando mapa con', properties.length, 'propiedades');
+
     const initMap = async () => {
       try {
+        console.log('[InteractivePropertyMap] Cargando Google Maps API...');
         // Progreso simulado de carga
         setMapLoadingProgress(10);
         progressInterval = setInterval(() => {
@@ -323,10 +326,15 @@ export const InteractivePropertyMap = ({
         }, 300);
 
         await loadGoogleMaps();
+        console.log('[InteractivePropertyMap] Google Maps API cargado');
         setMapLoadingProgress(70);
 
-        if (!isMounted || !mapRef.current) return;
+        if (!isMounted || !mapRef.current) {
+          console.log('[InteractivePropertyMap] Componente desmontado o ref no disponible');
+          return;
+        }
 
+        console.log('[InteractivePropertyMap] Creando instancia de mapa...');
         const map = new google.maps.Map(mapRef.current, {
           center: defaultCenter,
           zoom: defaultZoom,
@@ -349,6 +357,7 @@ export const InteractivePropertyMap = ({
           ],
         });
 
+        console.log('[InteractivePropertyMap] Instancia de mapa creada');
         mapInstanceRef.current = map;
         geocoderRef.current = new google.maps.Geocoder();
         setMapLoadingProgress(85);
@@ -358,12 +367,14 @@ export const InteractivePropertyMap = ({
         const setMapReadyOnce = () => {
           if (!mapReadySet && isMounted) {
             mapReadySet = true;
+            console.log('[InteractivePropertyMap] Mapa listo');
             setMapLoadingProgress(100);
             
             setTimeout(() => {
               if (isMounted) {
                 setMapReady(true);
                 setIsLoading(false);
+                console.log('[InteractivePropertyMap] Estado actualizado: mapa disponible');
               }
             }, 300);
             
@@ -377,6 +388,7 @@ export const InteractivePropertyMap = ({
 
         timeoutId = setTimeout(() => {
           if (isMounted && !mapReadySet) {
+            console.log('[InteractivePropertyMap] Timeout alcanzado - forzando estado listo');
             setMapReadyOnce();
           }
         }, 3000);
@@ -473,8 +485,16 @@ export const InteractivePropertyMap = ({
 
   // Actualizar marcadores cuando cambian las propiedades con renderizado incremental
   useEffect(() => {
-    if (!mapInstanceRef.current || !mapReady || renderingRef.current) return;
+    if (!mapInstanceRef.current || !mapReady || renderingRef.current) {
+      console.log('[InteractivePropertyMap] Esperando mapa:', { 
+        hasMap: !!mapInstanceRef.current, 
+        mapReady, 
+        rendering: renderingRef.current 
+      });
+      return;
+    }
 
+    console.log('[InteractivePropertyMap] Iniciando renderizado de', properties.length, 'propiedades');
     renderingRef.current = true;
     setIsLoadingMarkers(true);
     setMarkersLoadingProgress(0);
