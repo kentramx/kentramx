@@ -535,6 +535,31 @@ const Buscar = () => {
     setFilteredProperties(filtered);
   }, [filters, properties]);
 
+  // Centrar mapa cuando cambien los filtros de ubicación
+  useEffect(() => {
+    if (!mapInstanceRef.current || !mapReady || filteredProperties.length === 0) return;
+
+    // Calcular el centro y los bounds de las propiedades filtradas
+    const propertiesWithCoords = filteredProperties.filter(p => p.lat && p.lng);
+    
+    if (propertiesWithCoords.length === 0) return;
+
+    const bounds = new google.maps.LatLngBounds();
+    propertiesWithCoords.forEach(property => {
+      bounds.extend(new google.maps.LatLng(Number(property.lat), Number(property.lng)));
+    });
+
+    // Ajustar el mapa a los bounds
+    mapInstanceRef.current.fitBounds(bounds, 50);
+
+    // Si solo hay una propiedad, ajustar el zoom
+    if (propertiesWithCoords.length === 1) {
+      setTimeout(() => {
+        mapInstanceRef.current?.setZoom(14);
+      }, 500);
+    }
+  }, [filters.estado, filters.municipio, filteredProperties, mapReady]);
+
   // Animación de bounce en marcador cuando se hace hover sobre la tarjeta
   // y scroll a tarjeta cuando se hace hover sobre el marcador (bidireccional)
   useEffect(() => {
