@@ -520,6 +520,7 @@ const Buscar = () => {
   }, [filters, properties]);
 
   // Animación de bounce en marcador cuando se hace hover sobre la tarjeta
+  // y scroll a tarjeta cuando se hace hover sobre el marcador (bidireccional)
   useEffect(() => {
     if (!hoveredPropertyId || !mapReady || !mapInstanceRef.current) return;
 
@@ -538,6 +539,15 @@ const Buscar = () => {
         if (currentZoom < 14) {
           mapInstanceRef.current.setZoom(15);
         }
+      }
+      
+      // Scroll suave a la tarjeta correspondiente (hover bidireccional)
+      const element = document.getElementById(`property-${hoveredPropertyId}`);
+      if (element) {
+        element.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'nearest'
+        });
       }
       
       // Detener la animación cuando se deje de hacer hover
@@ -892,6 +902,15 @@ const Buscar = () => {
             setTimeout(() => setHighlightedId(null), 3000);
           }, 500);
         }
+      });
+
+      // Event listeners para hover bidireccional (marcador → tarjeta)
+      marker.addListener('mouseover', () => {
+        setHoveredPropertyId(property.id);
+      });
+
+      marker.addListener('mouseout', () => {
+        setHoveredPropertyId(null);
       });
 
       return marker;
@@ -1662,6 +1681,8 @@ const Buscar = () => {
                       <Card
                         className={`cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02] animate-fade-in ${
                           highlightedId === property.id ? 'ring-2 ring-primary shadow-xl scale-[1.01]' : ''
+                        } ${
+                          hoveredPropertyId === property.id ? 'ring-2 ring-primary/70 shadow-lg scale-[1.01] bg-accent/30' : ''
                         }`}
                         style={{ animationDelay: `${index * 50}ms` }}
                         onClick={() => handlePropertyClick(property)}
