@@ -54,8 +54,78 @@ export const PlaceAutocomplete = ({
   useEffect(() => {
     if (!isLoaded || !containerRef.current) return;
 
+    // Helper: inicializar fallback legacy Autocomplete (Places clásico)
+    const initLegacyAutocomplete = () => {
+      try {
+        if (!containerRef.current) return;
+        containerRef.current.innerHTML = '';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = placeholder;
+        input.defaultValue = defaultValue;
+        input.className = 'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-9';
+
+        containerRef.current.appendChild(input);
+
+        const autocomplete = new google.maps.places.Autocomplete(input, {
+          componentRestrictions: { country: 'mx' },
+          fields: ['address_components', 'formatted_address', 'geometry'],
+          types: ['address'],
+        });
+
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+
+          if (!place || !place.address_components) {
+            toast({
+              title: '⚠️ Lugar incompleto',
+              description: 'Por favor selecciona una dirección de la lista de sugerencias',
+              variant: 'destructive',
+            });
+            return;
+          }
+
+          let municipality = '';
+          let state = '';
+
+          place.address_components.forEach((component) => {
+            if (component.types.includes('locality')) {
+              municipality = component.long_name;
+            }
+            if (component.types.includes('administrative_area_level_1')) {
+              state = component.long_name;
+            }
+          });
+
+          const location = {
+            address: place.formatted_address || '',
+            municipality,
+            state,
+            lat: place.geometry?.location?.lat(),
+            lng: place.geometry?.location?.lng(),
+          };
+
+          if (!municipality || !state) {
+            toast({
+              title: 'ℹ️ Información incompleta',
+              description: 'No se pudo extraer municipio/estado. Verifica la dirección.',
+            });
+          }
+
+          onPlaceSelect(location);
+          toast({ title: '📍 Ubicación seleccionada', description: `${location.municipality}, ${location.state}` });
+        });
+
+        autocompleteRef.current = autocomplete;
+      } catch (e) {
+        console.error('Error inicializando Autocomplete legacy:', e);
+        setLoadError('No se pudo inicializar el autocompletado');
+      }
+    };
+
     try {
-      // Create the new PlaceAutocompleteElement
+      // Intentar el nuevo PlaceAutocompleteElement (requiere Places API (New))
       const autocompleteElement = document.createElement('gmp-place-autocomplete') as any;
       
       // Set attributes
@@ -71,37 +141,28 @@ export const PlaceAutocomplete = ({
       autocompleteElement.style.width = '100%';
       autocompleteElement.style.minHeight = '40px';
 
+      // Si el elemento emite un error (p. ej. Places API (New) deshabilitada), caer al fallback
+      autocompleteElement.addEventListener('error', () => {
+        console.warn('gmp-place-autocomplete error: usando fallback legacy Autocomplete');
+        initLegacyAutocomplete();
+      });
+
       // Listen for place selection
       autocompleteElement.addEventListener('gmp-placeselect', async (event: any) => {
         const place = event.place;
-        
         if (!place) {
-          toast({
-            title: "⚠️ Lugar incompleto",
-            description: "Por favor selecciona una dirección de la lista de sugerencias",
-            variant: "destructive",
-          });
+          toast({ title: '⚠️ Lugar incompleto', description: 'Selecciona una dirección de las sugerencias', variant: 'destructive' });
           return;
         }
-
         try {
-          // Fetch place details
-          await place.fetchFields({
-            fields: ['addressComponents', 'formattedAddress', 'location']
-          });
+          await place.fetchFields({ fields: ['addressComponents', 'formattedAddress', 'location'] });
 
           let municipality = '';
           let state = '';
-
-          // Extract address components
           const addressComponents = place.addressComponents || [];
           addressComponents.forEach((component: any) => {
-            if (component.types.includes('locality')) {
-              municipality = component.longText;
-            }
-            if (component.types.includes('administrative_area_level_1')) {
-              state = component.longText;
-            }
+            if (component.types.includes('locality')) municipality = component.longText;
+            if (component.types.includes('administrative_area_level_1')) state = component.longText;
           });
 
           const location = {
@@ -113,42 +174,34 @@ export const PlaceAutocomplete = ({
           };
 
           if (!municipality || !state) {
-            toast({
-              title: "ℹ️ Información incompleta",
-              description: "No se pudo extraer municipio/estado. Verifica la dirección.",
-            });
+            toast({ title: 'ℹ️ Información incompleta', description: 'No se pudo extraer municipio/estado.' });
           }
-
           onPlaceSelect(location);
-          
-          toast({
-            title: "📍 Ubicación seleccionada",
-            description: `${location.municipality}, ${location.state}`,
-          });
-        } catch (error) {
-          console.error('Error fetching place details:', error);
-          toast({
-            title: "❌ Error",
-            description: "No se pudo obtener los detalles del lugar",
-            variant: "destructive",
-          });
+          toast({ title: '📍 Ubicación seleccionada', description: `${location.municipality}, ${location.state}` });
+        } catch (err: any) {
+          console.error('Error fetching place details (gmp):', err);
+          // Si el error sugiere que Places API (New) no está habilitada, caer al legacy
+          initLegacyAutocomplete();
         }
       });
 
-      // Clear any existing autocomplete and append new one
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '';
-        containerRef.current.appendChild(autocompleteElement);
-        autocompleteRef.current = autocompleteElement;
-      }
+      // Montar elemento nuevo
+      containerRef.current.innerHTML = '';
+      containerRef.current.appendChild(autocompleteElement);
+      autocompleteRef.current = autocompleteElement;
     } catch (error) {
       console.error('Error initializing PlaceAutocompleteElement:', error);
-      setLoadError('No se pudo inicializar el autocompletado');
+      // Fallback inmediato
+      initLegacyAutocomplete();
     }
 
     return () => {
       if (autocompleteRef.current) {
-        autocompleteRef.current.remove();
+        // Remover elemento o listeners según el tipo
+        if (typeof (autocompleteRef.current as any).remove === 'function') {
+          (autocompleteRef.current as any).remove();
+        }
+        autocompleteRef.current = null;
       }
     };
   }, [isLoaded, placeholder, defaultValue, onPlaceSelect]);

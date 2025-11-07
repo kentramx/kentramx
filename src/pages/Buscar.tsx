@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePlacesAutocomplete } from '@/hooks/usePlacesAutocomplete';
+import { PlaceAutocomplete } from '@/components/PlaceAutocomplete';
 import { loadGoogleMaps } from '@/lib/loadGoogleMaps';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import Navbar from '@/components/Navbar';
@@ -491,16 +491,19 @@ const Buscar = () => {
   }, [filteredProperties]);
 
   // Hook de autocompletado de lugares
-  const handlePlaceSelect = useCallback((place: google.maps.places.PlaceResult) => {
-    if (place.geometry?.location && mapInstanceRef.current) {
-      mapInstanceRef.current.setCenter(place.geometry.location);
+  const handlePlaceSelect = useCallback((location: {
+    address: string;
+    municipality: string;
+    state: string;
+    lat?: number;
+    lng?: number;
+  }) => {
+    if (location.lat && location.lng && mapInstanceRef.current) {
+      mapInstanceRef.current.setCenter({ lat: Number(location.lat), lng: Number(location.lng) });
       mapInstanceRef.current.setZoom(14);
     }
   }, []);
 
-  const { inputRef, isLoaded: autocompleteLoaded, error: autocompleteError } = usePlacesAutocomplete({
-    onPlaceSelect: handlePlaceSelect,
-  });
 
   const handlePropertyClick = (property: Property) => {
     setHighlightedId(property.id);
@@ -544,21 +547,13 @@ const Buscar = () => {
       <div className="container mx-auto px-4 py-6">
         {/* Buscador de lugares */}
         <div className="mb-6">
-          <div className="relative max-w-2xl mx-auto">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              ref={inputRef}
-              type="text"
+          <div className="max-w-2xl mx-auto">
+            <PlaceAutocomplete
+              onPlaceSelect={handlePlaceSelect}
               placeholder="Buscar por ciudad, colonia o dirección"
-              className="pl-10"
-              disabled={!autocompleteLoaded}
+              label=""
+              id="buscar-place-autocomplete"
             />
-            {autocompleteError && (
-              <Alert variant="destructive" className="mt-2">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{autocompleteError}</AlertDescription>
-              </Alert>
-            )}
           </div>
         </div>
 
