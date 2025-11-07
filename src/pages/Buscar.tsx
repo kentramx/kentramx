@@ -44,6 +44,21 @@ const throttle = <T extends (...args: any[]) => void>(
   };
 };
 
+// Función debounce para optimizar hover
+const debounce = <T extends (...args: any[]) => void>(
+  func: T,
+  delay: number
+): ((...args: Parameters<T>) => void) => {
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  return (...args: Parameters<T>) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      func(...args);
+    }, delay);
+  };
+};
+
 interface Property {
   id: string;
   title: string;
@@ -92,6 +107,14 @@ const Buscar = () => {
   const [propertiesInViewport, setPropertiesInViewport] = useState<Property[]>([]);
   const [markersLoadingProgress, setMarkersLoadingProgress] = useState(0);
   const [isLoadingMarkers, setIsLoadingMarkers] = useState(false);
+  
+  // Crear función debounced para hover (150ms de delay)
+  const debouncedSetHoveredProperty = useCallback(
+    debounce((propertyId: string | null) => {
+      setHoveredPropertyId(propertyId);
+    }, 150),
+    []
+  );
   
   // Estado para el slider de precios (en millones)
   const MIN_PRICE = 0;
@@ -906,11 +929,11 @@ const Buscar = () => {
 
       // Event listeners para hover bidireccional (marcador → tarjeta)
       marker.addListener('mouseover', () => {
-        setHoveredPropertyId(property.id);
+        debouncedSetHoveredProperty(property.id);
       });
 
       marker.addListener('mouseout', () => {
-        setHoveredPropertyId(null);
+        debouncedSetHoveredProperty(null);
       });
 
       return marker;
@@ -1686,8 +1709,8 @@ const Buscar = () => {
                         }`}
                         style={{ animationDelay: `${index * 50}ms` }}
                         onClick={() => handlePropertyClick(property)}
-                        onMouseEnter={() => setHoveredPropertyId(property.id)}
-                        onMouseLeave={() => setHoveredPropertyId(null)}
+                        onMouseEnter={() => debouncedSetHoveredProperty(property.id)}
+                        onMouseLeave={() => debouncedSetHoveredProperty(null)}
                       >
                         <CardContent className="p-4">
                           {/* Galería de imágenes con badge superpuesto */}
