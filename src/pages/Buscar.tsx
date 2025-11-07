@@ -619,11 +619,24 @@ const Buscar = () => {
         
         console.log('[DEBUG Mapa] 6. mapRef.current existe, continuando...');
 
-        // Pequeño delay para asegurar que el DOM está listo
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        if (!mapRef.current) {
-          console.log('[DEBUG Mapa] 7. mapRef.current desapareció después del delay');
+        // Esperar a que el contenedor esté listo con dimensiones válidas
+        const waitForContainer = async (maxWaitMs = 3000) => {
+          const start = Date.now();
+          while (Date.now() - start < maxWaitMs) {
+            if (mapRef.current && mapRef.current.offsetWidth > 0 && mapRef.current.offsetHeight > 0) {
+              return true;
+            }
+            await new Promise((r) => setTimeout(r, 100));
+          }
+          return false;
+        };
+
+        const containerReady = await waitForContainer();
+        if (!containerReady || !mapRef.current) {
+          console.log('[DEBUG Mapa] 7. Contenedor no listo tras espera. width/height=', mapRef.current?.offsetWidth, mapRef.current?.offsetHeight);
+          // Forzar salida segura pero ocultar loader para no bloquear UI
+          setIsMapLoading(false);
+          setMapError('No se pudo inicializar el contenedor del mapa. Intenta recargar.');
           return;
         }
 
