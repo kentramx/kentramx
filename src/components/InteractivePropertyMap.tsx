@@ -340,7 +340,7 @@ export const InteractivePropertyMap = ({
               }
               if (mapRef.current) {
                 resolve();
-              } else if (attempts++ < 30) {
+              } else if (attempts++ < 120) { // ~2s a 60fps
                 requestAnimationFrame(check);
               } else {
                 reject(new Error('Contenedor del mapa no disponible'));
@@ -355,6 +355,8 @@ export const InteractivePropertyMap = ({
         } catch (e) {
           console.log('[InteractivePropertyMap] Contenedor no listo, cancelando init');
           if (progressInterval) clearInterval(progressInterval);
+          setError('No se pudo inicializar el contenedor del mapa');
+          setIsLoading(false);
           return;
         }
 
