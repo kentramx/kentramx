@@ -19,6 +19,7 @@ import { MapPin, Bed, Bath, Car, Home as HomeIcon, Search, AlertCircle, Save, St
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { MEXICO_STATES, MUNICIPALITIES_BY_STATE } from '@/data/mexicoLocations';
 
 // Función throttle para optimizar rendimiento
 const throttle = <T extends (...args: any[]) => void>(
@@ -140,7 +141,8 @@ const Buscar = () => {
     orden: (searchParams.get('orden') as 'asc' | 'desc') || 'desc',
   });
 
-  const [estados, setEstados] = useState<string[]>([]);
+  // Usar lista completa de estados de México
+  const estados = MEXICO_STATES;
   const [municipios, setMunicipios] = useState<string[]>([]);
 
   const mapRef = useRef<HTMLDivElement>(null);
@@ -364,10 +366,6 @@ const Buscar = () => {
 
         setProperties(propertiesWithSortedImages);
         setFilteredProperties(propertiesWithSortedImages);
-
-        // Extraer estados únicos
-        const uniqueEstados = [...new Set(data?.map(p => p.state) || [])].filter(Boolean);
-        setEstados(uniqueEstados.sort());
       } catch (error) {
         console.error('Error fetching properties:', error);
       } finally {
@@ -381,17 +379,14 @@ const Buscar = () => {
   // Actualizar municipios cuando cambia el estado
   useEffect(() => {
     if (filters.estado) {
-      const municipiosDelEstado = [...new Set(
-        properties
-          .filter(p => p.state === filters.estado)
-          .map(p => p.municipality)
-      )].filter(Boolean).sort();
+      // Usar lista completa de municipios del estado seleccionado
+      const municipiosDelEstado = MUNICIPALITIES_BY_STATE[filters.estado] || [];
       setMunicipios(municipiosDelEstado);
     } else {
       setMunicipios([]);
       setFilters(prev => ({ ...prev, municipio: '' }));
     }
-  }, [filters.estado, properties]);
+  }, [filters.estado]);
 
   // Función para remover filtro individual
   const removeFilter = (filterKey: keyof Filters) => {
