@@ -883,23 +883,9 @@ const Buscar = () => {
         const property = propertiesWithCoords[i];
         const marker = createMarker(property);
         marker.setMap(mapInstanceRef.current);
+        marker.setOpacity(0); // Iniciar invisible
         newMarkers.push(marker);
         markerMapRef.current.set(property.id, marker);
-        
-        // Animación de entrada escalonada para marcadores
-        const delay = i * 15; // 15ms entre cada marcador
-        setTimeout(() => {
-          if (marker.getMap()) {
-            // Simular fade-in con opacidad
-            marker.setOpacity(0);
-            let opacity = 0;
-            const fadeIn = setInterval(() => {
-              opacity += 0.1;
-              marker.setOpacity(Math.min(opacity, 1));
-              if (opacity >= 1) clearInterval(fadeIn);
-            }, 30);
-          }
-        }, delay);
       }
       
       // Actualizar progreso
@@ -917,6 +903,24 @@ const Buscar = () => {
         // Finalización del renderizado
         markersRef.current = newMarkers;
         console.log('[Marcadores] Todos los marcadores creados:', newMarkers.length);
+
+        // Animación de entrada suave y escalonada para todos los marcadores
+        newMarkers.forEach((marker, index) => {
+          const delay = index * 20; // 20ms entre cada marcador
+          setTimeout(() => {
+            if (marker.getMap()) {
+              let opacity = 0;
+              const fadeIn = setInterval(() => {
+                opacity += 0.15;
+                marker.setOpacity(Math.min(opacity, 1));
+                if (opacity >= 1) {
+                  clearInterval(fadeIn);
+                  marker.setOpacity(1);
+                }
+              }, 25);
+            }
+          }, delay);
+        });
 
         setIsLoadingMarkers(false);
         setMarkersLoadingProgress(100);
