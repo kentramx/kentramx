@@ -168,8 +168,8 @@ const Home = () => {
         className="relative flex min-h-[600px] items-center justify-center bg-cover bg-center"
         style={{ backgroundImage: `url(${heroBackground})` }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/30 pointer-events-none" />
-        <div className="container relative z-10 mx-auto px-4 text-center text-white">
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/30 pointer-events-none" style={{ zIndex: 1 }} />
+        <div className="container relative mx-auto px-4 text-center text-white" style={{ zIndex: 20 }}>
           <h1 className="mb-4 text-5xl font-bold md:text-6xl">
             Encuentra Tu Hogar Ideal
           </h1>
@@ -346,13 +346,29 @@ const Home = () => {
               </Collapsible>
 
               {/* Tabs para búsqueda por texto o mapa */}
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'search' | 'map')} className="w-full">
-                <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white/95 relative z-50 pointer-events-auto">
-                  <TabsTrigger value="search" onClick={() => setActiveTab('search')} className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'search' | 'map')} className="w-full" style={{ position: 'relative', zIndex: 100 }}>
+                <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white/95 pointer-events-auto">
+                  <TabsTrigger 
+                    value="search" 
+                    onClick={(e) => {
+                      console.log('Click en tab Buscar');
+                      e.stopPropagation();
+                      setActiveTab('search');
+                    }} 
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+                  >
                     <Search className="mr-2 h-4 w-4" />
                     Buscar
                   </TabsTrigger>
-                  <TabsTrigger value="map" onClick={() => setActiveTab('map')} className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <TabsTrigger 
+                    value="map" 
+                    onClick={(e) => {
+                      console.log('Click en tab Mapa Interactivo');
+                      e.stopPropagation();
+                      setActiveTab('map');
+                    }} 
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
+                  >
                     <MapIcon className="mr-2 h-4 w-4" />
                     Mapa Interactivo
                   </TabsTrigger>
@@ -381,10 +397,14 @@ const Home = () => {
                         Buscar
                       </Button>
                       <Button
-                        onClick={() => setActiveTab('map')}
+                        onClick={(e) => {
+                          console.log('Click en botón Mapa Interactivo');
+                          e.stopPropagation();
+                          setActiveTab('map');
+                        }}
                         size="lg"
                         variant="outline"
-                        className="border-white/50 bg-white/90 text-foreground hover:bg-white"
+                        className="border-white/50 bg-white/90 text-foreground hover:bg-white cursor-pointer"
                         title="Abrir mapa interactivo"
                       >
                         <MapIcon className="mr-2 h-5 w-5" />
