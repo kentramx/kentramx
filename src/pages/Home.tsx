@@ -347,7 +347,7 @@ const Home = () => {
 
               {/* Tabs para búsqueda por texto o mapa */}
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'search' | 'map')} className="w-full">
-                <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white/95">
+                <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white/95 relative z-20 pointer-events-auto">
                   <TabsTrigger value="search" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                     <Search className="mr-2 h-4 w-4" />
                     Buscar
@@ -358,7 +358,7 @@ const Home = () => {
                   </TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="search" className="mt-4">
+                <TabsContent value="search" className="mt-4 relative z-10">
                   <div className="flex gap-2 rounded-lg bg-white p-2 shadow-2xl">
                     <div className="flex flex-1 items-center gap-2 px-4">
                       <MapPin className="h-5 w-5 text-muted-foreground" />
