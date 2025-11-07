@@ -714,13 +714,42 @@ const Buscar = () => {
         if (prop.bathrooms) features.push(`${prop.bathrooms} baños`);
         if (prop.parking) features.push(`${prop.parking} est`);
 
+        // Configuración del badge según tipo de operación
+        const isVenta = prop.listing_type === 'venta';
+        const badgeColor = isVenta ? '#10b981' : '#3b82f6'; // emerald-500 : blue-500
+        const badgeBgColor = isVenta ? 'rgba(16, 185, 129, 0.9)' : 'rgba(59, 130, 246, 0.9)';
+        const badgeIcon = isVenta ? '🏷️' : '📈';
+        const badgeText = isVenta ? 'En Venta' : 'En Renta';
+
         return `
           <div style="min-width: 280px; max-width: 320px; font-family: system-ui, -apple-system, sans-serif;">
-            <img 
-              src="${imageUrl}" 
-              alt="${prop.title}"
-              style="width: 100%; height: 160px; object-fit: cover; border-radius: 8px 8px 0 0; margin: -16px -16px 12px -16px;"
-            />
+            <div style="position: relative;">
+              <img 
+                src="${imageUrl}" 
+                alt="${prop.title}"
+                style="width: 100%; height: 160px; object-fit: cover; border-radius: 8px 8px 0 0; margin: -16px -16px 12px -16px;"
+              />
+              <div style="
+                position: absolute;
+                top: -4px;
+                left: -4px;
+                background: ${badgeBgColor};
+                color: white;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 600;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                backdrop-filter: blur(4px);
+                border: 2px solid rgba(255,255,255,0.3);
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+              ">
+                <span>${badgeIcon}</span>
+                <span>${badgeText}</span>
+              </div>
+            </div>
             <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1a1a1a; line-height: 1.3;">
               ${prop.title}
             </h3>
