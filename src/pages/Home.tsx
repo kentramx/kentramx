@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { InteractiveMapSearch } from "@/components/InteractiveMapSearch";
+import { InteractivePropertyMap } from "@/components/InteractivePropertyMap";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -40,6 +41,9 @@ interface Property {
   bathrooms?: number;
   parking?: number;
   sqft?: number;
+  lat?: number;
+  lng?: number;
+  created_at?: string;
   images?: { url: string }[];
 }
 
@@ -132,12 +136,15 @@ const Home = () => {
             bathrooms,
             parking,
             sqft,
+            lat,
+            lng,
+            created_at,
             images (url)
           `)
           .eq('status', 'activa')
           .eq('listing_type', listingType)
           .order('created_at', { ascending: false })
-          .limit(6);
+          .limit(20);
 
         if (error) throw error;
         setFeaturedProperties(data || []);
@@ -346,7 +353,7 @@ const Home = () => {
                   </TabsTrigger>
                   <TabsTrigger value="map" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                     <Map className="mr-2 h-4 w-4" />
-                    Mapa
+                    Mapa Interactivo
                   </TabsTrigger>
                 </TabsList>
                 
@@ -377,10 +384,11 @@ const Home = () => {
                 </TabsContent>
                 
                 <TabsContent value="map" className="mt-4">
-                  <InteractiveMapSearch
-                    onLocationSelect={handleMapLocationSelect}
-                    height="450px"
-                    defaultZoom={6}
+                  <InteractivePropertyMap
+                    properties={featuredProperties}
+                    onPropertySelect={(property) => navigate(`/propiedad/${property.id}`)}
+                    height="500px"
+                    defaultZoom={5}
                   />
                 </TabsContent>
               </Tabs>
