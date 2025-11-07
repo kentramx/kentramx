@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { Home } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: 'Correo electrónico inválido' }),
@@ -20,6 +21,9 @@ const signupSchema = z.object({
   email: z.string().trim().email({ message: 'Correo electrónico inválido' }),
   password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres' }),
   confirmPassword: z.string(),
+  role: z.enum(['buyer', 'agent'], { 
+    required_error: 'Debes seleccionar un tipo de cuenta',
+  }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Las contraseñas no coinciden',
   path: ['confirmPassword'],
@@ -99,9 +103,10 @@ const Auth = () => {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const confirmPassword = formData.get('confirmPassword') as string;
+    const role = formData.get('role') as string;
 
     try {
-      const result = signupSchema.safeParse({ name, email, password, confirmPassword });
+      const result = signupSchema.safeParse({ name, email, password, confirmPassword, role });
       
       if (!result.success) {
         toast({
@@ -113,7 +118,7 @@ const Auth = () => {
         return;
       }
 
-      const { error } = await signUp(email, password, name);
+      const { error } = await signUp(email, password, name, role as 'buyer' | 'agent');
 
       if (error) {
         let errorMessage = 'Error al crear la cuenta';
@@ -127,9 +132,10 @@ const Auth = () => {
           variant: 'destructive',
         });
       } else {
+        const roleText = role === 'agent' ? 'agente inmobiliario' : 'comprador';
         toast({
           title: '¡Cuenta creada!',
-          description: 'Tu cuenta ha sido creada exitosamente',
+          description: `Tu cuenta como ${roleText} ha sido creada exitosamente`,
         });
       }
     } catch (error) {
@@ -224,6 +230,29 @@ const Auth = () => {
                       required
                       disabled={loading}
                     />
+                  </div>
+                  <div className="space-y-3">
+                    <Label>Tipo de cuenta</Label>
+                    <RadioGroup defaultValue="buyer" name="role" required disabled={loading}>
+                      <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-accent cursor-pointer">
+                        <RadioGroupItem value="buyer" id="role-buyer" />
+                        <Label htmlFor="role-buyer" className="flex-1 cursor-pointer">
+                          <div className="font-medium">Comprador</div>
+                          <div className="text-sm text-muted-foreground">
+                            Busco propiedades para comprar o rentar
+                          </div>
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-accent cursor-pointer">
+                        <RadioGroupItem value="agent" id="role-agent" />
+                        <Label htmlFor="role-agent" className="flex-1 cursor-pointer">
+                          <div className="font-medium">Agente Inmobiliario</div>
+                          <div className="text-sm text-muted-foreground">
+                            Quiero publicar y vender propiedades
+                          </div>
+                        </Label>
+                      </div>
+                    </RadioGroup>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Contraseña</Label>
