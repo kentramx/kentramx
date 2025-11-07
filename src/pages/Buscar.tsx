@@ -465,7 +465,12 @@ const Buscar = () => {
 
   // Actualizar marcadores cuando cambian las propiedades filtradas
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    if (!mapInstanceRef.current) {
+      console.log('[Marcadores] Mapa no inicializado aún');
+      return;
+    }
+
+    console.log('[Marcadores] Actualizando marcadores. Propiedades filtradas:', filteredProperties.length);
 
     // Limpiar marcadores anteriores
     if (markerClustererRef.current) {
@@ -475,27 +480,29 @@ const Buscar = () => {
     markersRef.current = [];
 
     // Crear nuevos marcadores
-    const newMarkers = filteredProperties
-      .filter(p => p.lat && p.lng)
-      .map(property => {
-        const marker = new google.maps.Marker({
-          position: { lat: Number(property.lat), lng: Number(property.lng) },
-          title: property.title,
-          map: mapInstanceRef.current,
-        });
+    const propertiesWithCoords = filteredProperties.filter(p => p.lat && p.lng);
+    console.log('[Marcadores] Propiedades con coordenadas:', propertiesWithCoords.length);
 
-        marker.addListener('click', () => {
-          setHighlightedId(property.id);
-          // Scroll al item en la lista
-          document.getElementById(`property-${property.id}`)?.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'nearest' 
-          });
-        });
-
-        return marker;
+    const newMarkers = propertiesWithCoords.map(property => {
+      const marker = new google.maps.Marker({
+        position: { lat: Number(property.lat), lng: Number(property.lng) },
+        title: property.title,
+        map: mapInstanceRef.current,
       });
 
+      marker.addListener('click', () => {
+        setHighlightedId(property.id);
+        // Scroll al item en la lista
+        document.getElementById(`property-${property.id}`)?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'nearest' 
+          });
+      });
+
+      return marker;
+    });
+
+    console.log('[Marcadores] Marcadores creados:', newMarkers.length);
     markersRef.current = newMarkers;
 
     // Agregar clustering
