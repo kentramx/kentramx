@@ -53,14 +53,59 @@ const Properties = () => {
         .eq("status", "activa")
         .order("created_at", { ascending: false });
 
+      // Filtros desde URL
       const tipo = searchParams.get("tipo");
-      if (tipo) {
+      if (tipo && tipo !== 'all') {
         query = query.eq("type", tipo as any);
       }
 
       const tipoListado = searchParams.get("tipo_listado");
       if (tipoListado) {
         query = query.eq("listing_type", tipoListado as any);
+      }
+
+      const estado = searchParams.get('estado');
+      if (estado) {
+        query = query.ilike('state', `%${estado}%`);
+      }
+
+      const municipio = searchParams.get('municipio');
+      if (municipio) {
+        query = query.ilike('municipality', `%${municipio}%`);
+      }
+
+      const precioMin = searchParams.get('precioMin');
+      if (precioMin) {
+        query = query.gte('price', Number(precioMin));
+      }
+
+      const precioMax = searchParams.get('precioMax');
+      if (precioMax) {
+        query = query.lte('price', Number(precioMax));
+      }
+
+      const recamaras = searchParams.get('recamaras');
+      if (recamaras && recamaras !== 'all') {
+        query = query.gte('bedrooms', Number(recamaras));
+      }
+
+      const banos = searchParams.get('banos');
+      if (banos && banos !== 'all') {
+        query = query.gte('bathrooms', Number(banos));
+      }
+
+      const estacionamiento = searchParams.get('estacionamiento');
+      if (estacionamiento && estacionamiento !== 'all') {
+        query = query.gte('parking', Number(estacionamiento));
+      }
+
+      const rawBusqueda = searchParams.get('busqueda');
+      if (rawBusqueda) {
+        let q = rawBusqueda;
+        try { q = decodeURIComponent(rawBusqueda); } catch {}
+        query = query.or(
+          `state.ilike.%${q}%,municipality.ilike.%${q}%,address.ilike.%${q}%`
+        );
       }
 
       const { data, error } = await query;
