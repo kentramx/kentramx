@@ -20,6 +20,14 @@ interface PlaceAutocompleteProps {
   id?: string;
 }
 
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'gmp-place-autocomplete': any;
+    }
+  }
+}
+
 export const PlaceAutocomplete = ({ 
   onPlaceSelect, 
   defaultValue = '', 
@@ -46,100 +54,77 @@ export const PlaceAutocomplete = ({
   useEffect(() => {
     if (!isLoaded || !containerRef.current) return;
 
-    const initAutocomplete = async () => {
-      try {
-        // Limpiar contenedor
-        containerRef.current!.innerHTML = '';
+    try {
+      // Inicializar SIEMPRE Autocomplete (legacy) para máxima compatibilidad
+      containerRef.current.innerHTML = '';
 
-        // Cargar la nueva librería de Places
-        const placesLibrary = await google.maps.importLibrary("places") as any;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = placeholder;
+      input.defaultValue = defaultValue;
+      input.className = 'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-9';
 
-        // Crear el nuevo elemento de autocompletado
-        const autocompleteElement = new placesLibrary.PlaceAutocompleteElement();
-        
-        // Configurar opciones (protegido por compatibilidad)
-        try {
-          // Algunas versiones del componente aún no exponen esta propiedad
-          if ('componentRestrictions' in autocompleteElement) {
-            (autocompleteElement as any).componentRestrictions = { country: 'mx' };
-          }
-        } catch (e) {
-          console.warn('[Places] componentRestrictions no soportado, se omite');
+      containerRef.current.appendChild(input);
+
+      const autocomplete = new google.maps.places.Autocomplete(input, {
+        componentRestrictions: { country: 'mx' },
+        fields: ['address_components', 'formatted_address', 'geometry'],
+        types: ['address'],
+      });
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+
+        if (!place || !place.address_components) {
+          toast({
+            title: '⚠️ Lugar incompleto',
+            description: 'Por favor selecciona una dirección de la lista de sugerencias',
+            variant: 'destructive',
+          });
+          return;
         }
-        autocompleteElement.placeholder = placeholder;
-        
-        // Aplicar estilos para que coincida con el diseño
-        autocompleteElement.className = 'w-full';
-        
-        containerRef.current!.appendChild(autocompleteElement);
 
-        // Escuchar el evento de selección
-        autocompleteElement.addEventListener('gmp-placeselect', async (event: any) => {
-          const place = event.place;
+        let municipality = '';
+        let state = '';
 
-          if (!place) {
-            toast({
-              title: '⚠️ Lugar incompleto',
-              description: 'Por favor selecciona una dirección de la lista de sugerencias',
-              variant: 'destructive',
-            });
-            return;
+        place.address_components.forEach((component) => {
+          if (component.types.includes('locality')) {
+            municipality = component.long_name;
           }
-
-          // Obtener los campos necesarios
-          await place.fetchFields({
-            fields: ['addressComponents', 'formattedAddress', 'location']
-          });
-
-          let municipality = '';
-          let state = '';
-
-          // Extraer municipio y estado de los componentes de dirección
-          if (place.addressComponents) {
-            place.addressComponents.forEach((component: any) => {
-              if (component.types.includes('locality')) {
-                municipality = component.longText;
-              }
-              if (component.types.includes('administrative_area_level_1')) {
-                state = component.longText;
-              }
-            });
+          if (component.types.includes('administrative_area_level_1')) {
+            state = component.long_name;
           }
-
-          const location = {
-            address: place.formattedAddress || '',
-            municipality,
-            state,
-            lat: place.location?.lat(),
-            lng: place.location?.lng(),
-          };
-
-          if (!municipality || !state) {
-            toast({
-              title: 'ℹ️ Información incompleta',
-              description: 'No se pudo extraer municipio/estado. Verifica la dirección.',
-            });
-          }
-
-          onPlaceSelect(location);
-          toast({ 
-            title: '📍 Ubicación seleccionada', 
-            description: `${location.municipality}, ${location.state}` 
-          });
         });
 
-        autocompleteRef.current = autocompleteElement;
-      } catch (error) {
-        console.error('Error inicializando PlaceAutocomplete:', error);
-        setLoadError('No se pudo inicializar el autocompletado');
-      }
-    };
+        const location = {
+          address: place.formatted_address || '',
+          municipality,
+          state,
+          lat: place.geometry?.location?.lat(),
+          lng: place.geometry?.location?.lng(),
+        };
 
-    initAutocomplete();
+        if (!municipality || !state) {
+          toast({
+            title: 'ℹ️ Información incompleta',
+            description: 'No se pudo extraer municipio/estado. Verifica la dirección.',
+          });
+        }
+
+        onPlaceSelect(location);
+        toast({ title: '📍 Ubicación seleccionada', description: `${location.municipality}, ${location.state}` });
+      });
+
+      autocompleteRef.current = autocomplete;
+    } catch (error) {
+      console.error('Error inicializando Autocomplete legacy:', error);
+      setLoadError('No se pudo inicializar el autocompletado');
+    }
 
     return () => {
-      if (autocompleteRef.current && autocompleteRef.current.remove) {
-        autocompleteRef.current.remove();
+      if (autocompleteRef.current) {
+        // @ts-ignore - puede ser instancia de Autocomplete
+        google.maps.event.clearInstanceListeners(autocompleteRef.current);
         autocompleteRef.current = null;
       }
     };
@@ -175,7 +160,7 @@ export const PlaceAutocomplete = ({
         <div 
           ref={containerRef} 
           id={id}
-          className="pl-9 [&_gmp-place-autocomplete]:w-full [&_gmp-place-autocomplete_input]:w-full [&_gmp-place-autocomplete_input]:h-10 [&_gmp-place-autocomplete_input]:rounded-md [&_gmp-place-autocomplete_input]:border [&_gmp-place-autocomplete_input]:border-input [&_gmp-place-autocomplete_input]:bg-background [&_gmp-place-autocomplete_input]:px-3 [&_gmp-place-autocomplete_input]:py-2 [&_gmp-place-autocomplete_input]:text-sm [&_gmp-place-autocomplete_input]:placeholder:text-muted-foreground [&_gmp-place-autocomplete_input]:focus-visible:outline-none [&_gmp-place-autocomplete_input]:focus-visible:ring-2 [&_gmp-place-autocomplete_input]:focus-visible:ring-ring"
+          className="pl-9 [&_gmp-place-autocomplete]:w-full [&_gmp-place-autocomplete]:min-h-[40px] [&_gmp-place-autocomplete_input]:w-full [&_gmp-place-autocomplete_input]:h-10 [&_gmp-place-autocomplete_input]:rounded-md [&_gmp-place-autocomplete_input]:border [&_gmp-place-autocomplete_input]:border-input [&_gmp-place-autocomplete_input]:bg-background [&_gmp-place-autocomplete_input]:px-3 [&_gmp-place-autocomplete_input]:py-2 [&_gmp-place-autocomplete_input]:text-sm [&_gmp-place-autocomplete_input]:ring-offset-background [&_gmp-place-autocomplete_input]:placeholder:text-muted-foreground [&_gmp-place-autocomplete_input]:focus-visible:outline-none [&_gmp-place-autocomplete_input]:focus-visible:ring-2 [&_gmp-place-autocomplete_input]:focus-visible:ring-ring [&_gmp-place-autocomplete_input]:focus-visible:ring-offset-2 [&_gmp-place-autocomplete_input]:disabled:cursor-not-allowed [&_gmp-place-autocomplete_input]:disabled:opacity-50"
         />
       </div>
     </div>

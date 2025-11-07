@@ -588,7 +588,6 @@ const Buscar = () => {
     
     const initMap = async () => {
       try {
-        console.log('[DEBUG Mapa] 1. Iniciando carga del mapa...');
         setIsMapLoading(true);
         setMapLoadingProgress(0);
         
@@ -600,48 +599,20 @@ const Buscar = () => {
           });
         }, 100);
         
-        console.log('[DEBUG Mapa] 2. Cargando Google Maps API...');
         await loadGoogleMaps();
-        console.log('[DEBUG Mapa] 3. Google Maps API cargada exitosamente');
         
         // Progreso después de cargar API (30-50%)
         setMapLoadingProgress(50);
         
-        if (!isMounted) {
-          console.log('[DEBUG Mapa] 4. Componente desmontado, cancelando...');
-          return;
-        }
+        if (!isMounted || !mapRef.current) return;
+
+        // Pequeño delay para asegurar que el DOM está listo
+        await new Promise(resolve => setTimeout(resolve, 100));
         
-        if (!mapRef.current) {
-          console.log('[DEBUG Mapa] 5. mapRef.current no existe todavía, esperando contenedor...');
-        } else {
-          console.log('[DEBUG Mapa] 6. mapRef.current existe, continuando...');
-        }
-
-        // Esperar a que el contenedor esté listo con dimensiones válidas
-        const waitForContainer = async (maxWaitMs = 3000) => {
-          const start = Date.now();
-          while (Date.now() - start < maxWaitMs) {
-            if (mapRef.current && mapRef.current.offsetWidth > 0 && mapRef.current.offsetHeight > 0) {
-              return true;
-            }
-            await new Promise((r) => setTimeout(r, 100));
-          }
-          return false;
-        };
-
-        const containerReady = await waitForContainer();
-        if (!containerReady || !mapRef.current) {
-          console.log('[DEBUG Mapa] 7. Contenedor no listo tras espera. width/height=', mapRef.current?.offsetWidth, mapRef.current?.offsetHeight);
-          // Forzar salida segura pero ocultar loader para no bloquear UI
-          setIsMapLoading(false);
-          setMapError('No se pudo inicializar el contenedor del mapa. Intenta recargar.');
-          return;
-        }
+        if (!mapRef.current) return;
 
         // Progreso después de verificar DOM (50-70%)
         setMapLoadingProgress(70);
-        console.log('[DEBUG Mapa] 8. Creando instancia de Google Maps...');
 
         // Crear mapa centrado en CDMX
         mapInstanceRef.current = new google.maps.Map(mapRef.current, {
@@ -654,8 +625,6 @@ const Buscar = () => {
           mapTypeId: mapType,
         });
 
-        console.log('[DEBUG Mapa] 9. Instancia del mapa creada:', !!mapInstanceRef.current);
-
         // Progreso después de crear instancia (70-85%)
         setMapLoadingProgress(85);
 
@@ -664,13 +633,12 @@ const Buscar = () => {
         const setMapReadyOnce = () => {
           if (!mapReadySet && isMounted) {
             mapReadySet = true;
-            console.log('[DEBUG Mapa] 10. Mapa listo para renderizar marcadores');
+            console.log('[Mapa] Listo para renderizar marcadores');
             setMapLoadingProgress(100);
             
             // Esperar un momento antes de ocultar el loader
             setTimeout(() => {
               if (isMounted) {
-                console.log('[DEBUG Mapa] 11. Actualizando estados finales');
                 setMapReady(true);
                 setIsMapLoading(false);
               }
@@ -681,7 +649,6 @@ const Buscar = () => {
           }
         };
 
-        console.log('[DEBUG Mapa] 12. Agregando listeners de eventos...');
         // Múltiples listeners para asegurar que el mapa se marca como listo
         mapInstanceRef.current.addListener('tilesloaded', setMapReadyOnce);
         mapInstanceRef.current.addListener('idle', setMapReadyOnce);
@@ -696,18 +663,16 @@ const Buscar = () => {
           }
         });
 
-        console.log('[DEBUG Mapa] 13. Configurando timeout de seguridad...');
         // Timeout de seguridad: marcar como listo después de 3 segundos
         timeoutId = setTimeout(() => {
           if (isMounted && !mapReadySet) {
-            console.log('[DEBUG Mapa] 14. Timeout alcanzado - forzando estado listo');
+            console.log('[Mapa] Timeout alcanzado - forzando estado listo');
             setMapReadyOnce();
           }
         }, 3000);
 
       } catch (err: any) {
-        console.error('[DEBUG Mapa] ERROR en inicialización:', err);
-        console.error('[DEBUG Mapa] Stack trace:', err.stack);
+        console.error('Error loading map:', err);
         if (isMounted) {
           setMapError(err.message || 'Error al cargar el mapa');
           setIsMapLoading(false);
@@ -752,19 +717,12 @@ const Buscar = () => {
       infoWindowRef.current.close();
     }
 
-    // Función para obtener color según tipo de propiedad
-    const getPropertyTypeColor = (type: string): string => {
-      const colorMap: Record<string, string> = {
-        casa: '#3B82F6',           // Azul - Casas
-        departamento: '#10B981',   // Verde - Departamentos
-        terreno: '#92400E',        // Café/Marrón - Terrenos
-        oficina: '#F59E0B',        // Naranja - Oficinas
-        local: '#F59E0B',          // Naranja - Locales comerciales
-        bodega: '#6B7280',         // Gris - Bodegas
-        edificio: '#8B5CF6',       // Púrpura - Edificios
-        rancho: '#84CC16',         // Lima - Ranchos
-      };
-      return colorMap[type] || '#3B82F6'; // Azul por defecto
+    // Función para obtener color según rango de precio
+    const getPriceColor = (price: number): string => {
+      if (price < 1000000) return '#10B981'; // Verde - económico
+      if (price < 3000000) return '#3B82F6'; // Azul - medio
+      if (price < 5000000) return '#F59E0B'; // Naranja - alto
+      return '#EF4444'; // Rojo - premium
     };
 
     // Función para crear SVG del icono según tipo de propiedad
@@ -783,30 +741,9 @@ const Buscar = () => {
       const iconPath = icons[type] || icons['casa'];
       
       return `
-        <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <!-- Círculo exterior con sombra -->
-          <defs>
-            <filter id="shadow-${type}" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-              <feOffset dx="0" dy="2" result="offsetblur"/>
-              <feComponentTransfer>
-                <feFuncA type="linear" slope="0.5"/>
-              </feComponentTransfer>
-              <feMerge>
-                <feMergeNode/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-            <radialGradient id="grad-${type}">
-              <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
-              <stop offset="100%" style="stop-color:${color};stop-opacity:0.9" />
-            </radialGradient>
-          </defs>
-          <circle cx="12" cy="12" r="11" fill="url(#grad-${type})" filter="url(#shadow-${type})" opacity="0.95"/>
-          <!-- Borde blanco -->
-          <circle cx="12" cy="12" r="11" fill="none" stroke="white" stroke-width="2.5" opacity="0.9"/>
-          <!-- Icono -->
-          <g transform="scale(0.65) translate(6, 6)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="11" fill="${color}" opacity="0.9"/>
+          <g transform="scale(0.7) translate(4.2, 4.2)">
             ${iconPath}
           </g>
         </svg>
@@ -847,8 +784,8 @@ const Buscar = () => {
 
     // Función para crear un marcador individual
     const createMarker = (property: Property) => {
-      const typeColor = getPropertyTypeColor(property.type);
-      const iconSvg = getPropertyIcon(property.type, typeColor);
+      const priceColor = getPriceColor(property.price);
+      const iconSvg = getPropertyIcon(property.type, priceColor);
       
       // Convertir SVG a data URL
       const svgBlob = new Blob([iconSvg], { type: 'image/svg+xml' });
@@ -860,8 +797,8 @@ const Buscar = () => {
         map: null, // No añadir al mapa inmediatamente
         icon: {
           url: svgUrl,
-          scaledSize: new google.maps.Size(44, 44),
-          anchor: new google.maps.Point(22, 44),
+          scaledSize: new google.maps.Size(40, 40),
+          anchor: new google.maps.Point(20, 40),
         },
         label: {
           text: new Intl.NumberFormat('es-MX', {
@@ -872,7 +809,7 @@ const Buscar = () => {
             notation: 'compact',
             compactDisplay: 'short'
           }).format(property.price).replace('MXN', '').trim(),
-          color: typeColor,
+          color: priceColor,
           fontSize: '11px',
           fontWeight: 'bold',
           className: 'marker-price-label'
