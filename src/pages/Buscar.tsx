@@ -15,11 +15,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { MapPin, Bed, Bath, Car, Home as HomeIcon, Search, AlertCircle, Save, Star, Trash2, X, Loader2, Tag, TrendingUp, Plus, Minus } from 'lucide-react';
+import { MapPin, Bed, Bath, Car, Home as HomeIcon, Search, AlertCircle, Save, Star, Trash2, X, Loader2, Tag, TrendingUp } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { MEXICO_STATES, MUNICIPALITIES_BY_STATE } from '@/data/mexicoLocations';
 
 // Función throttle para optimizar rendimiento
 const throttle = <T extends (...args: any[]) => void>(
@@ -75,7 +74,6 @@ interface Property {
   type: 'casa' | 'departamento' | 'terreno' | 'oficina' | 'local' | 'bodega' | 'edificio' | 'rancho';
   listing_type: 'venta' | 'renta';
   images: { url: string; position: number }[];
-  created_at?: string;
 }
 
 interface Filters {
@@ -142,8 +140,7 @@ const Buscar = () => {
     orden: (searchParams.get('orden') as 'asc' | 'desc') || 'desc',
   });
 
-  // Usar lista completa de estados de México
-  const estados = MEXICO_STATES;
+  const [estados, setEstados] = useState<string[]>([]);
   const [municipios, setMunicipios] = useState<string[]>([]);
 
   const mapRef = useRef<HTMLDivElement>(null);
@@ -348,7 +345,6 @@ const Buscar = () => {
             municipality, 
             type,
             listing_type,
-            created_at,
             images (
               url,
               position
@@ -368,6 +364,10 @@ const Buscar = () => {
 
         setProperties(propertiesWithSortedImages);
         setFilteredProperties(propertiesWithSortedImages);
+
+        // Extraer estados únicos
+        const uniqueEstados = [...new Set(data?.map(p => p.state) || [])].filter(Boolean);
+        setEstados(uniqueEstados.sort());
       } catch (error) {
         console.error('Error fetching properties:', error);
       } finally {
@@ -381,72 +381,17 @@ const Buscar = () => {
   // Actualizar municipios cuando cambia el estado
   useEffect(() => {
     if (filters.estado) {
-      // Usar lista completa de municipios del estado seleccionado
-      const municipiosDelEstado = MUNICIPALITIES_BY_STATE[filters.estado] || [];
+      const municipiosDelEstado = [...new Set(
+        properties
+          .filter(p => p.state === filters.estado)
+          .map(p => p.municipality)
+      )].filter(Boolean).sort();
       setMunicipios(municipiosDelEstado);
     } else {
       setMunicipios([]);
       setFilters(prev => ({ ...prev, municipio: '' }));
     }
-  }, [filters.estado]);
-
-  // Centrar mapa cuando cambian estado/municipio con animación suave
-  useEffect(() => {
-    if (!mapInstanceRef.current || !mapReady) return;
-    
-    const geocodeLocation = async () => {
-      // Construir dirección para geocodificación
-      let address = '';
-      if (filters.municipio && filters.estado) {
-        address = `${filters.municipio}, ${filters.estado}, México`;
-      } else if (filters.estado) {
-        address = `${filters.estado}, México`;
-      }
-      
-      if (!address) return;
-
-      try {
-        const geocoder = new google.maps.Geocoder();
-        const result = await geocoder.geocode({ address });
-        
-        if (result.results && result.results[0]) {
-          const location = result.results[0].geometry.location;
-          const targetZoom = filters.municipio ? 13 : 10;
-          
-          // Animación suave: usar panTo en lugar de setCenter
-          mapInstanceRef.current?.panTo(location);
-          
-          // Animación de zoom suave con transición gradual
-          const currentZoom = mapInstanceRef.current?.getZoom() || 12;
-          const zoomDiff = targetZoom - currentZoom;
-          const steps = Math.abs(zoomDiff);
-          const zoomIncrement = zoomDiff / steps;
-          
-          // Animar zoom gradualmente
-          let currentStep = 0;
-          const zoomInterval = setInterval(() => {
-            if (!mapInstanceRef.current || currentStep >= steps) {
-              clearInterval(zoomInterval);
-              return;
-            }
-            
-            const newZoom = currentZoom + (zoomIncrement * (currentStep + 1));
-            mapInstanceRef.current.setZoom(Math.round(newZoom));
-            currentStep++;
-          }, 50); // 50ms entre cada paso de zoom
-          
-          toast({
-            title: 'Mapa actualizado',
-            description: `Mostrando ${filters.municipio || filters.estado}`,
-          });
-        }
-      } catch (error) {
-        console.error('Error geocoding location:', error);
-      }
-    };
-
-    geocodeLocation();
-  }, [filters.estado, filters.municipio, mapReady]);
+  }, [filters.estado, properties]);
 
   // Función para remover filtro individual
   const removeFilter = (filterKey: keyof Filters) => {
@@ -703,14 +648,10 @@ const Buscar = () => {
         mapInstanceRef.current = new google.maps.Map(mapRef.current, {
           center: { lat: 19.4326, lng: -99.1332 },
           zoom: 12,
-          zoomControl: false,
+          zoomControl: true,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
-          rotateControl: false,
-          scaleControl: false,
-          panControl: false,
-          gestureHandling: 'greedy',
           mapTypeId: mapType,
         });
 
@@ -812,15 +753,6 @@ const Buscar = () => {
       infoWindowRef.current.close();
     }
 
-    // Función para verificar si una propiedad es reciente (últimos 7 días)
-    const isRecentProperty = (createdAt?: string): boolean => {
-      if (!createdAt) return false;
-      const propertyDate = new Date(createdAt);
-      const now = new Date();
-      const daysDiff = (now.getTime() - propertyDate.getTime()) / (1000 * 60 * 60 * 24);
-      return daysDiff <= 7;
-    };
-
     // Función para obtener color según tipo de propiedad
     const getPropertyTypeColor = (type: string): string => {
       const colorMap: Record<string, string> = {
@@ -837,7 +769,7 @@ const Buscar = () => {
     };
 
     // Función para crear SVG del icono según tipo de propiedad
-    const getPropertyIcon = (type: string, color: string, isRecent: boolean = false): string => {
+    const getPropertyIcon = (type: string, color: string): string => {
       const icons: Record<string, string> = {
         casa: `<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline>`,
         departamento: `<rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line>`,
@@ -850,27 +782,6 @@ const Buscar = () => {
       };
       
       const iconPath = icons[type] || icons['casa'];
-      
-      // Agregar anillo pulsante si es propiedad reciente
-      const pulseRing = isRecent ? `
-        <radialGradient id="pulse-${type}">
-          <stop offset="0%" style="stop-color:${color};stop-opacity:0" />
-          <stop offset="100%" style="stop-color:${color};stop-opacity:0.4" />
-        </radialGradient>
-        <!-- Anillo pulsante para propiedades recientes -->
-        <circle cx="12" cy="12" r="16" fill="url(#pulse-${type})" opacity="0.7">
-          <animate attributeName="r" 
-                   from="11" 
-                   to="18" 
-                   dur="1.5s" 
-                   repeatCount="indefinite"/>
-          <animate attributeName="opacity" 
-                   from="0.7" 
-                   to="0" 
-                   dur="1.5s" 
-                   repeatCount="indefinite"/>
-        </circle>
-      ` : '';
       
       return `
         <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -891,9 +802,7 @@ const Buscar = () => {
               <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
               <stop offset="100%" style="stop-color:${color};stop-opacity:0.9" />
             </radialGradient>
-            ${pulseRing}
           </defs>
-          ${isRecent ? pulseRing.split('</radialGradient>')[1] : ''}
           <circle cx="12" cy="12" r="11" fill="url(#grad-${type})" filter="url(#shadow-${type})" opacity="0.95"/>
           <!-- Borde blanco -->
           <circle cx="12" cy="12" r="11" fill="none" stroke="white" stroke-width="2.5" opacity="0.9"/>
@@ -940,8 +849,7 @@ const Buscar = () => {
     // Función para crear un marcador individual
     const createMarker = (property: Property) => {
       const typeColor = getPropertyTypeColor(property.type);
-      const isRecent = isRecentProperty(property.created_at);
-      const iconSvg = getPropertyIcon(property.type, typeColor, isRecent);
+      const iconSvg = getPropertyIcon(property.type, typeColor);
       
       // Convertir SVG a data URL
       const svgBlob = new Blob([iconSvg], { type: 'image/svg+xml' });
@@ -1135,10 +1043,6 @@ const Buscar = () => {
           const delay = index * 20; // 20ms entre cada marcador
           setTimeout(() => {
             if (marker.getMap()) {
-              // Animación de rebote cuando aparece el marcador
-              marker.setAnimation(google.maps.Animation.BOUNCE);
-              
-              // Fade-in progresivo
               let opacity = 0;
               const fadeIn = setInterval(() => {
                 opacity += 0.15;
@@ -1148,11 +1052,6 @@ const Buscar = () => {
                   marker.setOpacity(1);
                 }
               }, 25);
-              
-              // Detener animación de rebote después de 1 segundo
-              setTimeout(() => {
-                marker.setAnimation(null);
-              }, 1000);
             }
           }, delay);
         });
@@ -1404,23 +1303,6 @@ const Buscar = () => {
       title: 'Mapa centrado',
       description: `Mostrando ${visiblePropertiesCount} propiedades`,
     });
-  };
-
-  // Funciones de zoom
-  const handleZoomIn = () => {
-    if (!mapInstanceRef.current) return;
-    const currentZoom = mapInstanceRef.current.getZoom();
-    if (currentZoom !== undefined) {
-      mapInstanceRef.current.setZoom(currentZoom + 1);
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (!mapInstanceRef.current) return;
-    const currentZoom = mapInstanceRef.current.getZoom();
-    if (currentZoom !== undefined) {
-      mapInstanceRef.current.setZoom(currentZoom - 1);
-    }
   };
 
   // Función para obtener ubicación actual
@@ -1984,7 +1866,7 @@ const Buscar = () => {
                         onMouseLeave={() => debouncedSetHoveredProperty(null)}
                       >
                         <CardContent className="p-4">
-                          {/* Galería de imágenes con badges superpuestos */}
+                          {/* Galería de imágenes con badge superpuesto */}
                           <div className="mb-4 relative">
                             <PropertyImageGallery
                               images={property.images || []}
@@ -2017,28 +1899,6 @@ const Buscar = () => {
                                 )}
                               </Badge>
                             </div>
-                            
-                            {/* Badge NUEVO para propiedades recientes */}
-                            {property.created_at && (() => {
-                              const propertyDate = new Date(property.created_at);
-                              const now = new Date();
-                              const daysDiff = (now.getTime() - propertyDate.getTime()) / (1000 * 60 * 60 * 24);
-                              return daysDiff <= 7;
-                            })() && (
-                              <div className="absolute top-3 right-3 z-10">
-                                <Badge 
-                                  className="
-                                    font-bold text-sm px-3 py-1.5 shadow-lg backdrop-blur-sm
-                                    bg-gradient-to-r from-orange-500 to-red-500 
-                                    hover:from-orange-600 hover:to-red-600
-                                    text-white border-2 border-white
-                                    transition-all hover:scale-110 animate-pulse
-                                  "
-                                >
-                                  ⭐ NUEVO
-                                </Badge>
-                              </div>
-                            )}
                           </div>
 
                           {/* Información de la propiedad */}
@@ -2190,28 +2050,75 @@ const Buscar = () => {
                       </div>
                     </div>
 
-                    {/* Controles de zoom */}
+                    {/* Grupo de botones de control */}
                     <div className="bg-background border-2 border-border rounded-lg shadow-lg overflow-hidden animate-fade-in">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={handleZoomIn}
+                        onClick={centerOnResults}
+                        disabled={visiblePropertiesCount === 0}
                         className="w-full rounded-none border-b border-border hover:bg-accent transition-all hover:scale-105"
-                        title="Acercar"
+                        title="Centrar en resultados"
                       >
-                        <Plus className="h-5 w-5" />
+                        <MapPin className="h-5 w-5" />
                       </Button>
                       
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={handleZoomOut}
-                        className="w-full rounded-none hover:bg-accent transition-all hover:scale-105"
-                        title="Alejar"
+                        onClick={() => setMapType(prev => prev === 'roadmap' ? 'satellite' : 'roadmap')}
+                        className="w-full rounded-none border-b border-border hover:bg-accent transition-all hover:scale-105"
+                        title={mapType === 'roadmap' ? 'Vista satélite' : 'Vista mapa'}
                       >
-                        <Minus className="h-5 w-5" />
+                        {mapType === 'roadmap' ? (
+                          <svg className="h-5 w-5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                          </svg>
+                        ) : (
+                          <svg className="h-5 w-5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>
+                          </svg>
+                        )}
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={centerOnMyLocation}
+                        className="w-full rounded-none hover:bg-accent transition-all hover:scale-105"
+                        title="Mi ubicación"
+                      >
+                        <svg className="h-5 w-5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="3"/>
+                          <circle cx="12" cy="12" r="10"/>
+                          <line x1="12" y1="2" x2="12" y2="4"/>
+                          <line x1="12" y1="20" x2="12" y2="22"/>
+                          <line x1="2" y1="12" x2="4" y2="12"/>
+                          <line x1="20" y1="12" x2="22" y2="12"/>
+                        </svg>
                       </Button>
                     </div>
+
+                    {/* Botón de filtro por viewport */}
+                    <Button
+                      variant={mapFilterActive ? "default" : "outline"}
+                      size="icon"
+                      onClick={() => setMapFilterActive(!mapFilterActive)}
+                      className="w-full transition-all hover:scale-105 animate-fade-in shadow-lg"
+                      title={mapFilterActive ? "Desactivar filtro de mapa" : "Filtrar por área visible"}
+                    >
+                      <svg 
+                        className={`h-5 w-5 transition-transform ${mapFilterActive ? 'scale-110' : ''}`}
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2"
+                      >
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>
+                      </svg>
+                    </Button>
                   </div>
                 )}
               </Card>

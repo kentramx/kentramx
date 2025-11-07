@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, Home as HomeIcon, Building2, TreePine, ArrowRight, SlidersHorizontal, Map as MapIcon } from "lucide-react";
+import { Search, MapPin, Home as HomeIcon, Building2, TreePine, ArrowRight, SlidersHorizontal, Map } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import heroBackground from "@/assets/hero-background.jpg";
 import { usePlacesAutocomplete } from "@/hooks/usePlacesAutocomplete";
@@ -13,7 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { InteractiveMapSearch } from "@/components/InteractiveMapSearch";
-import { InteractivePropertyMap } from "@/components/InteractivePropertyMap";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -41,9 +40,6 @@ interface Property {
   bathrooms?: number;
   parking?: number;
   sqft?: number;
-  lat?: number;
-  lng?: number;
-  created_at?: string;
   images?: { url: string }[];
 }
 
@@ -54,7 +50,6 @@ const Home = () => {
   const [featuredProperties, setFeaturedProperties] = useState<Property[]>([]);
   const [isLoadingProperties, setIsLoadingProperties] = useState(true);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState<'search' | 'map'>('search');
   
   // Advanced filters
   const [priceMin, setPriceMin] = useState("");
@@ -137,15 +132,12 @@ const Home = () => {
             bathrooms,
             parking,
             sqft,
-            lat,
-            lng,
-            created_at,
             images (url)
           `)
           .eq('status', 'activa')
           .eq('listing_type', listingType)
           .order('created_at', { ascending: false })
-          .limit(20);
+          .limit(6);
 
         if (error) throw error;
         setFeaturedProperties(data || []);
@@ -168,8 +160,8 @@ const Home = () => {
         className="relative flex min-h-[600px] items-center justify-center bg-cover bg-center"
         style={{ backgroundImage: `url(${heroBackground})` }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/30 pointer-events-none" style={{ zIndex: 1 }} />
-        <div className="container relative mx-auto px-4 text-center text-white" style={{ zIndex: 20 }}>
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/30" />
+        <div className="container relative z-10 mx-auto px-4 text-center text-white">
           <h1 className="mb-4 text-5xl font-bold md:text-6xl">
             Encuentra Tu Hogar Ideal
           </h1>
@@ -178,7 +170,7 @@ const Home = () => {
           </p>
 
           {/* Search Bar */}
-          <div className="mx-auto max-w-3xl relative z-50 pointer-events-auto">
+          <div className="mx-auto max-w-3xl">
             <div className="flex flex-col gap-4">
               {/* Listing Type Selector */}
               <div className="flex justify-center gap-2">
@@ -346,35 +338,19 @@ const Home = () => {
               </Collapsible>
 
               {/* Tabs para búsqueda por texto o mapa */}
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'search' | 'map')} className="w-full" style={{ position: 'relative', zIndex: 100 }}>
-                <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white/95 pointer-events-auto">
-                  <TabsTrigger 
-                    value="search" 
-                    onClick={(e) => {
-                      console.log('Click en tab Buscar');
-                      e.stopPropagation();
-                      setActiveTab('search');
-                    }} 
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
-                  >
+              <Tabs defaultValue="search" className="w-full">
+                <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white/95">
+                  <TabsTrigger value="search" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                     <Search className="mr-2 h-4 w-4" />
                     Buscar
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="map" 
-                    onClick={(e) => {
-                      console.log('Click en tab Mapa Interactivo');
-                      e.stopPropagation();
-                      setActiveTab('map');
-                    }} 
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground cursor-pointer"
-                  >
-                    <MapIcon className="mr-2 h-4 w-4" />
-                    Mapa Interactivo
+                  <TabsTrigger value="map" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <Map className="mr-2 h-4 w-4" />
+                    Mapa
                   </TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="search" className="mt-4 relative z-10">
+                <TabsContent value="search" className="mt-4">
                   <div className="flex gap-2 rounded-lg bg-white p-2 shadow-2xl">
                     <div className="flex flex-1 items-center gap-2 px-4">
                       <MapPin className="h-5 w-5 text-muted-foreground" />
@@ -385,43 +361,27 @@ const Home = () => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                        disabled={!isLoaded && !error}
                         className="border-0 bg-transparent text-foreground focus-visible:ring-0"
                       />
                     </div>
-                      <Button
-                        onClick={handleSearch}
-                        size="lg"
-                        className="bg-secondary hover:bg-secondary/90"
-                      >
-                        <Search className="mr-2 h-5 w-5" />
-                        Buscar
-                      </Button>
-                      <Button
-                        onClick={(e) => {
-                          console.log('Click en botón Mapa Interactivo');
-                          e.stopPropagation();
-                          setActiveTab('map');
-                        }}
-                        size="lg"
-                        variant="outline"
-                        className="border-white/50 bg-white/90 text-foreground hover:bg-white cursor-pointer"
-                        title="Abrir mapa interactivo"
-                      >
-                        <MapIcon className="mr-2 h-5 w-5" />
-                        Mapa Interactivo
-                      </Button>
+                    <Button
+                      onClick={handleSearch}
+                      size="lg"
+                      className="bg-secondary hover:bg-secondary/90"
+                    >
+                      <Search className="mr-2 h-5 w-5" />
+                      Buscar
+                    </Button>
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="map" className="mt-4 relative z-10">
-                  {activeTab === 'map' && (
-                    <InteractivePropertyMap
-                      properties={featuredProperties}
-                      onPropertySelect={(property) => navigate(`/propiedad/${property.id}`)}
-                      height="500px"
-                      defaultZoom={5}
-                    />
-                  )}
+                <TabsContent value="map" className="mt-4">
+                  <InteractiveMapSearch
+                    onLocationSelect={handleMapLocationSelect}
+                    height="450px"
+                    defaultZoom={6}
+                  />
                 </TabsContent>
               </Tabs>
             </div>
