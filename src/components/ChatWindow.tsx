@@ -104,19 +104,9 @@ export const ChatWindow = ({
           if (newMsg.sender_id !== user.id) {
             markAsRead();
             
-            // Mostrar notificación push si el usuario no está viendo la ventana
-            if (document.hidden && permission === 'granted') {
-              const notificationBody = newMsg.message_type === 'image' 
-                ? '📷 Te envió una imagen' 
-                : newMsg.content;
-              
-              showNotification(`Nuevo mensaje de ${otherUserName}`, {
-                body: notificationBody,
-                data: {
-                  conversationId,
-                  propertyId,
-                },
-              });
+            // Enviar notificación por email si el usuario no está viendo la ventana
+            if (document.hidden) {
+              sendEmailNotification(newMsg);
             }
           }
         }
@@ -409,6 +399,39 @@ export const ChatWindow = ({
         .eq('user_id', user.id);
     } catch (error) {
       console.error('Error marking as read:', error);
+    }
+  };
+
+  // Enviar notificación por email
+  const sendEmailNotification = async (message: Message) => {
+    if (!user) return;
+
+    try {
+      // Obtener información de la conversación para saber quién es el receptor
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('buyer_id, agent_id')
+        .eq('id', conversationId)
+        .single();
+
+      if (!conversation) return;
+
+      const recipientId = conversation.buyer_id === user.id 
+        ? conversation.agent_id 
+        : conversation.buyer_id;
+
+      await supabase.functions.invoke('send-message-notification', {
+        body: {
+          recipientId,
+          senderName: otherUserName || 'Usuario',
+          messageContent: message.content,
+          messageType: message.message_type,
+          conversationId,
+          propertyTitle,
+        },
+      });
+    } catch (error) {
+      console.error('Error sending email notification:', error);
     }
   };
 
