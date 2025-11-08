@@ -439,6 +439,68 @@ const Buscar = () => {
     console.log('Clicked property:', property.id);
   };
 
+  const handleMarkerClick = (propertyId: string) => {
+    window.location.href = `/property/${propertyId}`;
+  };
+
+  const handleFavoriteClick = async (propertyId: string) => {
+    if (!user) {
+      toast({
+        title: 'Inicia sesión',
+        description: 'Debes iniciar sesión para agregar favoritos',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      // Verificar si ya está en favoritos
+      const { data: existing } = await supabase
+        .from('favorites')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('property_id', propertyId)
+        .maybeSingle();
+
+      if (existing) {
+        // Eliminar de favoritos
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('id', existing.id);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Eliminado de favoritos',
+          description: 'La propiedad se eliminó de tus favoritos',
+        });
+      } else {
+        // Agregar a favoritos
+        const { error } = await supabase
+          .from('favorites')
+          .insert([{
+            user_id: user.id,
+            property_id: propertyId,
+          }]);
+
+        if (error) throw error;
+
+        toast({
+          title: '⭐ Agregado a favoritos',
+          description: 'La propiedad se agregó a tus favoritos',
+        });
+      }
+    } catch (error: any) {
+      console.error('Error managing favorite:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo actualizar favoritos',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
@@ -463,7 +525,18 @@ const Buscar = () => {
 
   const mapMarkers = filteredProperties
     .filter(p => typeof p.lat === 'number' && typeof p.lng === 'number')
-    .map(p => ({ id: p.id, lat: p.lat as number, lng: p.lng as number }));
+    .map(p => ({ 
+      id: p.id, 
+      lat: p.lat as number, 
+      lng: p.lng as number,
+      title: p.title,
+      price: p.price,
+      bedrooms: p.bedrooms,
+      bathrooms: p.bathrooms,
+      images: p.images,
+      listing_type: p.listing_type,
+      address: p.address,
+    }));
 
   const mapCenter = hoveredProperty && hoveredProperty.lat && hoveredProperty.lng
     ? { lat: hoveredProperty.lat, lng: hoveredProperty.lng }
@@ -943,6 +1016,8 @@ const Buscar = () => {
               markers={mapMarkers}
               height="calc(100vh - 8rem)"
               className="rounded-lg overflow-hidden shadow-lg"
+              onMarkerClick={handleMarkerClick}
+              onFavoriteClick={handleFavoriteClick}
             />
           </div>
         </div>
