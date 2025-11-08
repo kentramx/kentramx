@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import PropertyCard from '@/components/PropertyCard';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { DynamicBreadcrumbs } from '@/components/DynamicBreadcrumbs';
 
 interface Property {
   id: string;
@@ -121,6 +122,15 @@ const Favorites = () => {
       <Navbar />
       
       <main className="container mx-auto px-4 py-8">
+        {/* Breadcrumbs */}
+        <DynamicBreadcrumbs 
+          items={[
+            { label: 'Inicio', href: '/', active: false },
+            { label: 'Favoritos', href: '', active: true }
+          ]} 
+          className="mb-4" 
+        />
+
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">
             Mis Favoritos

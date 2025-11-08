@@ -6,6 +6,7 @@ import { ChatWindow } from '@/components/ChatWindow';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, MessageCircle } from 'lucide-react';
+import { DynamicBreadcrumbs } from '@/components/DynamicBreadcrumbs';
 
 interface Conversation {
   id: string;
@@ -61,6 +62,15 @@ const MessagesPage = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto py-8 px-4">
+        {/* Breadcrumbs */}
+        <DynamicBreadcrumbs 
+          items={[
+            { label: 'Inicio', href: '/', active: false },
+            { label: 'Mensajes', href: '', active: true }
+          ]} 
+          className="mb-4" 
+        />
+
         <div className="mb-6">
           <Button variant="ghost" onClick={() => navigate('/')} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />

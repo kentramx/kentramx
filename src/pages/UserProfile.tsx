@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
+import { DynamicBreadcrumbs } from "@/components/DynamicBreadcrumbs";
 import {
   Loader2,
   User,
@@ -211,6 +212,15 @@ const UserProfile = () => {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumbs */}
+        <DynamicBreadcrumbs 
+          items={[
+            { label: 'Inicio', href: '/', active: false },
+            { label: 'Mi Perfil', href: '', active: true }
+          ]} 
+          className="mb-4" 
+        />
+
         <h1 className="text-3xl font-bold mb-8">Mi Perfil</h1>
 
         <Tabs defaultValue="profile" className="w-full">
