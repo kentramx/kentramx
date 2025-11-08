@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, Home as HomeIcon, Building2, TreePine, ArrowRight, SlidersHorizontal, Map } from "lucide-react";
+import { Search, MapPin, Home as HomeIcon, Building2, TreePine, ArrowRight, SlidersHorizontal, Map, Briefcase, Store, Warehouse, Building, Tractor } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import heroBackground from "@/assets/hero-background.jpg";
 import { usePlacesAutocomplete } from "@/hooks/usePlacesAutocomplete";
@@ -474,37 +474,92 @@ const Home = () => {
           <h2 className="mb-8 text-center text-3xl font-bold">
             Explora por Tipo de Propiedad
           </h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             <button
               onClick={() => navigate(`/propiedades?tipo_listado=${listingType}&tipo=casa`)}
-              className="group flex flex-col items-center rounded-xl border border-border p-8 transition-all hover:border-primary hover:shadow-lg"
+              className="group flex flex-col items-center rounded-xl border border-border bg-background p-8 transition-all hover:border-primary hover:shadow-lg"
             >
               <HomeIcon className="mb-4 h-16 w-16 text-primary transition-transform group-hover:scale-110" />
               <h3 className="text-xl font-semibold">Casas</h3>
-              <p className="mt-2 text-muted-foreground">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Encuentra tu casa perfecta
               </p>
             </button>
 
             <button
               onClick={() => navigate(`/propiedades?tipo_listado=${listingType}&tipo=departamento`)}
-              className="group flex flex-col items-center rounded-xl border border-border p-8 transition-all hover:border-primary hover:shadow-lg"
+              className="group flex flex-col items-center rounded-xl border border-border bg-background p-8 transition-all hover:border-primary hover:shadow-lg"
             >
               <Building2 className="mb-4 h-16 w-16 text-primary transition-transform group-hover:scale-110" />
               <h3 className="text-xl font-semibold">Departamentos</h3>
-              <p className="mt-2 text-muted-foreground">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Vida urbana moderna
               </p>
             </button>
 
             <button
               onClick={() => navigate(`/propiedades?tipo_listado=${listingType}&tipo=terreno`)}
-              className="group flex flex-col items-center rounded-xl border border-border p-8 transition-all hover:border-primary hover:shadow-lg"
+              className="group flex flex-col items-center rounded-xl border border-border bg-background p-8 transition-all hover:border-primary hover:shadow-lg"
             >
               <TreePine className="mb-4 h-16 w-16 text-primary transition-transform group-hover:scale-110" />
               <h3 className="text-xl font-semibold">Terrenos</h3>
-              <p className="mt-2 text-muted-foreground">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Construye tu proyecto
+              </p>
+            </button>
+
+            <button
+              onClick={() => navigate(`/propiedades?tipo_listado=${listingType}&tipo=oficina`)}
+              className="group flex flex-col items-center rounded-xl border border-border bg-background p-8 transition-all hover:border-primary hover:shadow-lg"
+            >
+              <Briefcase className="mb-4 h-16 w-16 text-primary transition-transform group-hover:scale-110" />
+              <h3 className="text-xl font-semibold">Oficinas</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Espacios profesionales
+              </p>
+            </button>
+
+            <button
+              onClick={() => navigate(`/propiedades?tipo_listado=${listingType}&tipo=local`)}
+              className="group flex flex-col items-center rounded-xl border border-border bg-background p-8 transition-all hover:border-primary hover:shadow-lg"
+            >
+              <Store className="mb-4 h-16 w-16 text-primary transition-transform group-hover:scale-110" />
+              <h3 className="text-xl font-semibold">Locales</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Comercios y negocios
+              </p>
+            </button>
+
+            <button
+              onClick={() => navigate(`/propiedades?tipo_listado=${listingType}&tipo=bodega`)}
+              className="group flex flex-col items-center rounded-xl border border-border bg-background p-8 transition-all hover:border-primary hover:shadow-lg"
+            >
+              <Warehouse className="mb-4 h-16 w-16 text-primary transition-transform group-hover:scale-110" />
+              <h3 className="text-xl font-semibold">Bodegas</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Almacenamiento e industria
+              </p>
+            </button>
+
+            <button
+              onClick={() => navigate(`/propiedades?tipo_listado=${listingType}&tipo=edificio`)}
+              className="group flex flex-col items-center rounded-xl border border-border bg-background p-8 transition-all hover:border-primary hover:shadow-lg"
+            >
+              <Building className="mb-4 h-16 w-16 text-primary transition-transform group-hover:scale-110" />
+              <h3 className="text-xl font-semibold">Edificios</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Inversión comercial
+              </p>
+            </button>
+
+            <button
+              onClick={() => navigate(`/propiedades?tipo_listado=${listingType}&tipo=rancho`)}
+              className="group flex flex-col items-center rounded-xl border border-border bg-background p-8 transition-all hover:border-primary hover:shadow-lg"
+            >
+              <Tractor className="mb-4 h-16 w-16 text-primary transition-transform group-hover:scale-110" />
+              <h3 className="text-xl font-semibold">Ranchos</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Vida campestre
               </p>
             </button>
           </div>
