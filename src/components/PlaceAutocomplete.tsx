@@ -41,6 +41,7 @@ export const PlaceAutocomplete = ({
 }: PlaceAutocompleteProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const autocompleteRef = useRef<any>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
 
@@ -127,9 +128,17 @@ export const PlaceAutocomplete = ({
           toast({ title: '📍 Ubicación seleccionada', description: `${location.municipality}, ${location.state}` });
         });
         
-        // Listener para detectar cuando el usuario escribe
+        // Listener para detectar cuando el usuario escribe (con debouncing)
         if (onInputChange) {
-          placeAutocomplete.addEventListener('input', onInputChange);
+          const debouncedInputHandler = () => {
+            if (debounceTimerRef.current) {
+              clearTimeout(debounceTimerRef.current);
+            }
+            debounceTimerRef.current = setTimeout(() => {
+              onInputChange();
+            }, 300);
+          };
+          placeAutocomplete.addEventListener('input', debouncedInputHandler);
         }
 
         // Si el Web Component falla por API deshabilitada, hacemos fallback automático
@@ -149,7 +158,15 @@ export const PlaceAutocomplete = ({
           containerRef.current.appendChild(input);
 
           if (onInputChange) {
-            input.addEventListener('input', onInputChange);
+            const debouncedInputHandler = () => {
+              if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+              }
+              debounceTimerRef.current = setTimeout(() => {
+                onInputChange();
+              }, 300);
+            };
+            input.addEventListener('input', debouncedInputHandler);
           }
 
           const autocomplete = new google.maps.places.Autocomplete(input, {
@@ -222,7 +239,15 @@ export const PlaceAutocomplete = ({
         containerRef.current.appendChild(input);
 
         if (onInputChange) {
-          input.addEventListener('input', onInputChange);
+          const debouncedInputHandler = () => {
+            if (debounceTimerRef.current) {
+              clearTimeout(debounceTimerRef.current);
+            }
+            debounceTimerRef.current = setTimeout(() => {
+              onInputChange();
+            }, 300);
+          };
+          input.addEventListener('input', debouncedInputHandler);
         }
 
         const autocomplete = new google.maps.places.Autocomplete(input, {
@@ -281,6 +306,11 @@ export const PlaceAutocomplete = ({
     initAutocomplete();
 
     return () => {
+      // Limpiar debounce timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      
       if (autocompleteRef.current) {
         if (autocompleteRef.current instanceof HTMLElement) {
           // Cleanup para Web Component
