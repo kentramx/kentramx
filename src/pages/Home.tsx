@@ -75,7 +75,7 @@ const Home = () => {
   }) => {
     const params = new URLSearchParams();
     
-    params.set('tipo_listado', listingType);
+    params.set('listingType', listingType);
     if (propertyType && propertyType !== 'all') params.set('tipo', propertyType);
     if (location.state) params.set('estado', location.state);
     if (location.municipality) params.set('municipio', location.municipality);
@@ -103,7 +103,7 @@ const Home = () => {
   };
   const handleSearch = () => {
     const params = new URLSearchParams();
-    params.set('tipo_listado', listingType);
+    params.set('listingType', listingType);
     if (propertyType && propertyType !== 'all') params.set('tipo', propertyType);
     if (searchQuery) params.set('busqueda', encodeURIComponent(searchQuery));
     if (priceMin) params.set('precioMin', priceMin);

@@ -71,11 +71,11 @@ export function HeaderSearchBar() {
     }
     
     if (transactionType !== "all") {
-      params.append("tipo", transactionType);
+      params.append("listingType", transactionType);
     }
     
     if (propertyType !== "all") {
-      params.append("propiedad", propertyType);
+      params.append("tipo", propertyType);
     }
 
     setIsOpen(false);
