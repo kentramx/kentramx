@@ -26,6 +26,14 @@ import { useToast } from '@/hooks/use-toast';
 import { mexicoStates, mexicoMunicipalities } from '@/data/mexicoLocations';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { PropertyStats } from '@/components/PropertyStats';
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbSeparator,
+  BreadcrumbPage,
+} from '@/components/ui/breadcrumb';
 
 interface Property {
   id: string;
@@ -593,6 +601,39 @@ const Buscar = () => {
         ? { lat: mapMarkers[0].lat, lng: mapMarkers[0].lng }
         : { lat: 19.4326, lng: -99.1332 });
 
+  const getBreadcrumbItems = () => {
+    const items = [
+      { label: 'Inicio', href: '/', active: false }
+    ];
+
+    if (filters.estado && filters.municipio) {
+      items.push({
+        label: filters.estado,
+        href: `/buscar?estado=${filters.estado}`,
+        active: false
+      });
+      items.push({
+        label: filters.municipio,
+        href: `/buscar?estado=${filters.estado}&municipio=${filters.municipio}`,
+        active: true
+      });
+    } else if (filters.estado) {
+      items.push({
+        label: filters.estado,
+        href: `/buscar?estado=${filters.estado}`,
+        active: true
+      });
+    } else {
+      items.push({
+        label: 'Buscar Propiedades',
+        href: '/buscar',
+        active: true
+      });
+    }
+
+    return items;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -609,6 +650,26 @@ const Buscar = () => {
       <Navbar />
       
       <main className="container mx-auto px-4 pt-20 pb-8">
+        {/* Breadcrumbs */}
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            {getBreadcrumbItems().map((item, index, array) => (
+              <div key={item.href} className="contents">
+                <BreadcrumbItem>
+                  {item.active ? (
+                    <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink asChild>
+                      <Link to={item.href}>{item.label}</Link>
+                    </BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
+                {index < array.length - 1 && <BreadcrumbSeparator />}
+              </div>
+            ))}
+          </BreadcrumbList>
+        </Breadcrumb>
+
         {/* Barra de búsqueda estilo Zillow */}
         <Card className="mb-4 shadow-sm border-border/40">
           <CardContent className="p-3">
