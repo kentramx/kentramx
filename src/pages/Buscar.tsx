@@ -14,12 +14,14 @@ import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { MapPin, Bed, Bath, Car, Search, AlertCircle, Save, Star, Trash2, X, Tag, TrendingUp, ChevronDown } from 'lucide-react';
+import { MapPin, Bed, Bath, Car, Search, AlertCircle, Save, Star, Trash2, X, Tag, TrendingUp, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { mexicoStates, mexicoMunicipalities } from '@/data/mexicoLocations';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
@@ -85,6 +87,7 @@ const Buscar = () => {
   const [searchName, setSearchName] = useState('');
   const [savedSearchQuery, setSavedSearchQuery] = useState('');
   const [savedSearchSort, setSavedSearchSort] = useState<'date' | 'name'>('date');
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   
   const [filters, setFilters] = useState<Filters>({
     estado: searchParams.get('estado') || '',
@@ -599,6 +602,175 @@ const Buscar = () => {
 
               <Separator orientation="vertical" className="h-8 hidden lg:block" />
 
+              {/* Botón de Filtros para Móvil */}
+              <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="lg:hidden">
+                    <SlidersHorizontal className="h-4 w-4 mr-2" />
+                    Filtros
+                    {activeFiltersCount > 0 && ` (${activeFiltersCount})`}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="h-[90vh]">
+                  <SheetHeader>
+                    <SheetTitle>Filtros de búsqueda</SheetTitle>
+                    <SheetDescription>
+                      Personaliza tu búsqueda de propiedades
+                    </SheetDescription>
+                  </SheetHeader>
+                  <ScrollArea className="h-[calc(90vh-120px)] mt-4">
+                    <div className="space-y-6 pr-4">
+                      {/* Operación */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-sm">Tipo de operación</h4>
+                        <RadioGroup value={filters.listingType || ''} onValueChange={(value) => setFilters(prev => ({ ...prev, listingType: value }))}>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="venta" id="venta-mobile" />
+                            <Label htmlFor="venta-mobile">💰 Venta</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="renta" id="renta-mobile" />
+                            <Label htmlFor="renta-mobile">📅 Renta</Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+
+                      <Separator />
+
+                      {/* Precio */}
+                      <div className="space-y-4">
+                        <h4 className="font-medium text-sm">Rango de precio</h4>
+                        <Slider
+                          min={MIN_PRICE}
+                          max={MAX_PRICE}
+                          step={0.5}
+                          value={priceRange}
+                          onValueChange={handlePriceRangeChange}
+                        />
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <span>{formatPriceDisplay(priceRange[0])}</span>
+                          <span>{formatPriceDisplay(priceRange[1])}</span>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Recámaras y Baños */}
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-medium text-sm mb-3">Recámaras</h4>
+                          <div className="grid grid-cols-5 gap-2">
+                            {['', '1', '2', '3', '4'].map(num => (
+                              <Button
+                                key={num}
+                                variant={filters.recamaras === num ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setFilters(prev => ({ ...prev, recamaras: num }))}
+                              >
+                                {num || 'Todas'}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm mb-3">Baños</h4>
+                          <div className="grid grid-cols-4 gap-2">
+                            {['', '1', '2', '3'].map(num => (
+                              <Button
+                                key={num}
+                                variant={filters.banos === num ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setFilters(prev => ({ ...prev, banos: num }))}
+                              >
+                                {num || 'Todos'}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Tipo de Propiedad */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-sm">Tipo de propiedad</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { value: 'casa', label: '🏠 Casa' },
+                            { value: 'departamento', label: '🏢 Depto' },
+                            { value: 'terreno', label: '🌳 Terreno' },
+                            { value: 'oficina', label: '💼 Oficina' },
+                            { value: 'local', label: '🏪 Local' },
+                            { value: 'bodega', label: '📦 Bodega' },
+                            { value: 'edificio', label: '🏛️ Edificio' },
+                            { value: 'rancho', label: '🐎 Rancho' },
+                          ].map(tipo => (
+                            <Button
+                              key={tipo.value}
+                              variant={filters.tipo === tipo.value ? 'default' : 'outline'}
+                              size="sm"
+                              className="justify-start"
+                              onClick={() => setFilters(prev => ({ ...prev, tipo: prev.tipo === tipo.value ? '' : tipo.value }))}
+                            >
+                              {tipo.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Ubicación */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-sm">Ubicación</h4>
+                        <div className="space-y-2">
+                          <Combobox
+                            options={estados.map(e => ({ value: e, label: e }))}
+                            value={filters.estado}
+                            onValueChange={(value) => setFilters(prev => ({ ...prev, estado: value }))}
+                            placeholder="Estado"
+                            searchPlaceholder="Buscar estado..."
+                          />
+                          {filters.estado && (
+                            <Combobox
+                              options={municipios.map(m => ({ value: m, label: m }))}
+                              value={filters.municipio}
+                              onValueChange={(value) => setFilters(prev => ({ ...prev, municipio: value }))}
+                              placeholder="Municipio"
+                              searchPlaceholder="Buscar municipio..."
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Ordenar */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-sm">Ordenar por</h4>
+                        <RadioGroup value={filters.orden} onValueChange={(value: 'asc' | 'desc') => setFilters(prev => ({ ...prev, orden: value }))}>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="desc" id="desc-mobile" />
+                            <Label htmlFor="desc-mobile">Precio: Mayor a menor</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="asc" id="asc-mobile" />
+                            <Label htmlFor="asc-mobile">Precio: Menor a mayor</Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                    </div>
+                  </ScrollArea>
+                  <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background">
+                    <Button className="w-full" onClick={() => setMobileFiltersOpen(false)}>
+                      Ver {filteredProperties.length} propiedades
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              {/* Filtros Desktop - Popovers (ocultos en móvil) */}
+              <div className="hidden lg:flex items-center gap-2">
               {/* 2. Operación (Venta/Renta) */}
               <Popover>
                 <PopoverTrigger asChild>
@@ -783,6 +955,7 @@ const Buscar = () => {
                   </div>
                 </PopoverContent>
               </Popover>
+              </div>
 
               {/* Espaciador */}
               <div className="flex-1 hidden lg:block" />
@@ -791,7 +964,7 @@ const Buscar = () => {
               {user && (
                 <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="default" size="sm">
+                    <Button variant="default" size="sm" className="hidden lg:flex">
                       <Save className="h-4 w-4 mr-2" />
                       Guardar
                     </Button>
