@@ -29,12 +29,12 @@ const Navbar = () => {
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Left Navigation - Desktop */}
           <div className="hidden md:flex items-center gap-1">
-            <Link to="/propiedades?transaction_type=sale">
+            <Link to="/propiedades?tipo_listado=venta">
               <Button variant="ghost" size="sm">
                 Comprar
               </Button>
             </Link>
-            <Link to="/propiedades?transaction_type=rent">
+            <Link to="/propiedades?tipo_listado=renta">
               <Button variant="ghost" size="sm">
                 Rentar
               </Button>
