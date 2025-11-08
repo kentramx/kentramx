@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { NotificationPermissionBanner } from "@/components/NotificationPermissionBanner";
 import Home from "./pages/Home";
 import Properties from "./pages/Properties";
@@ -25,33 +26,35 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <NotificationPermissionBanner />
-      <MapPreloader />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/propiedades" element={<Properties />} />
-            <Route path="/propiedad/:id" element={<PropertyDetail />} />
-            <Route path="/agente/:id" element={<AgentProfile />} />
-            <Route path="/perfil" element={<UserProfile />} />
-            <Route path="/notificaciones" element={<NotificationSettings />} />
-            <Route path="/buscar" element={<Buscar />} />
-            <Route path="/favoritos" element={<Favorites />} />
-            <Route path="/panel-agente" element={<AgentDashboard />} />
-            <Route path="/mensajes" element={<MessagesPage />} />
-            <Route path="/instalar" element={<InstallPWA />} />
-            <Route path="/setup-demo" element={<SetupDemo />} />
-            <Route path="/auth" element={<Auth />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <NotificationPermissionBanner />
+        <MapPreloader />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/propiedades" element={<Properties />} />
+              <Route path="/propiedad/:id" element={<PropertyDetail />} />
+              <Route path="/agente/:id" element={<AgentProfile />} />
+              <Route path="/perfil" element={<UserProfile />} />
+              <Route path="/notificaciones" element={<NotificationSettings />} />
+              <Route path="/buscar" element={<Buscar />} />
+              <Route path="/favoritos" element={<Favorites />} />
+              <Route path="/panel-agente" element={<AgentDashboard />} />
+              <Route path="/mensajes" element={<MessagesPage />} />
+              <Route path="/instalar" element={<InstallPWA />} />
+              <Route path="/setup-demo" element={<SetupDemo />} />
+              <Route path="/auth" element={<Auth />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
