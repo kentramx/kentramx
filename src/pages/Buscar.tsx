@@ -66,6 +66,10 @@ const debounce = <T extends (...args: any[]) => void>(
 // Cache de iconos de marcadores a nivel módulo
 const iconCache = new Map<string, string>();
 
+// Contadores de cache para telemetría
+let iconCacheHits = 0;
+let iconCacheMisses = 0;
+
 // Función para obtener bucket de precio
 const getPriceBucket = (price: number): string => {
   if (price < 1000000) return 'economic';
@@ -79,8 +83,11 @@ const getCachedIcon = (type: string, bucket: string): string => {
   const key = `${type}-${bucket}`;
   
   if (iconCache.has(key)) {
+    iconCacheHits++;
     return iconCache.get(key)!;
   }
+  
+  iconCacheMisses++;
   
   // Mapeo de colores por bucket
   const colorMap: Record<string, string> = {
@@ -171,6 +178,9 @@ const Buscar = () => {
   const [propertiesInViewport, setPropertiesInViewport] = useState<Property[]>([]);
   const [markersLoadingProgress, setMarkersLoadingProgress] = useState(0);
   const [isLoadingMarkers, setIsLoadingMarkers] = useState(false);
+  const [viewportBounds, setViewportBounds] = useState<google.maps.LatLngBounds | null>(null);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
+  const [isLoadingViewport, setIsLoadingViewport] = useState(false);
   
   // Crear función debounced para hover (150ms de delay)
   const debouncedSetHoveredProperty = useCallback(
@@ -389,37 +399,30 @@ const Buscar = () => {
     setSearchParams(params, { replace: true });
   }, [filters, setSearchParams]);
 
-  // Cargar propiedades desde Supabase
+  // Fetch inicial de propiedades (limitado a viewport inicial - CDMX)
   useEffect(() => {
     const fetchProperties = async () => {
+      console.time('[Fetch] Carga inicial de propiedades');
+      
       try {
+        // Cargar solo propiedades en área inicial (CDMX aproximado)
         const { data, error } = await supabase
           .from('properties')
           .select(`
-            id, 
-            title, 
-            price, 
-            bedrooms, 
-            bathrooms, 
-            parking, 
-            lat, 
-            lng, 
-            address, 
-            state, 
-            municipality, 
-            type,
-            listing_type,
-            images (
-              url,
-              position
-            )
+            id, title, price, bedrooms, bathrooms, parking, 
+            lat, lng, address, state, municipality, type, listing_type,
+            images (url, position)
           `)
           .eq('status', 'activa')
-          .order('position', { foreignTable: 'images', ascending: true });
+          .gte('lat', 19.2)
+          .lte('lat', 19.6)
+          .gte('lng', -99.3)
+          .lte('lng', -98.9)
+          .order('position', { foreignTable: 'images', ascending: true })
+          .limit(500);
 
         if (error) throw error;
 
-        // Ordenar imágenes por posición y convertir tipos antiguos
         const propertiesWithSortedImages = data?.map(property => ({
           ...property,
           type: property.type === 'local_comercial' ? 'local' : property.type,
@@ -428,6 +431,9 @@ const Buscar = () => {
 
         setProperties(propertiesWithSortedImages);
         setFilteredProperties(propertiesWithSortedImages);
+        setHasMoreResults(data?.length === 500);
+        
+        console.timeEnd('[Fetch] Carga inicial de propiedades');
       } catch (error) {
         console.error('Error fetching properties:', error);
       } finally {
@@ -437,6 +443,79 @@ const Buscar = () => {
 
     fetchProperties();
   }, []);
+
+  // Función para fetch por viewport
+  const fetchPropertiesByViewport = async (bounds: google.maps.LatLngBounds) => {
+    if (isLoadingViewport) return;
+    
+    setIsLoadingViewport(true);
+    console.time('[Fetch] Propiedades por viewport');
+    
+    try {
+      const ne = bounds.getNorthEast();
+      const sw = bounds.getSouthWest();
+      
+      let query = supabase
+        .from('properties')
+        .select(`
+          id, title, price, bedrooms, bathrooms, parking, 
+          lat, lng, address, state, municipality, type, listing_type,
+          images (url, position)
+        `)
+        .eq('status', 'activa')
+        .gte('lat', sw.lat())
+        .lte('lat', ne.lat())
+        .gte('lng', sw.lng())
+        .lte('lng', ne.lng());
+      
+      // Aplicar filtros activos
+      if (filters.estado) query = query.eq('state', filters.estado);
+      if (filters.municipio) query = query.eq('municipality', filters.municipio);
+      if (filters.tipo) query = query.eq('type', filters.tipo as any);
+      if (filters.listingType) query = query.eq('listing_type', filters.listingType);
+      if (filters.precioMin) query = query.gte('price', parseFloat(filters.precioMin));
+      if (filters.precioMax) query = query.lte('price', parseFloat(filters.precioMax));
+      
+      query = query.order('position', { foreignTable: 'images', ascending: true })
+                   .limit(500);
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      const propertiesWithSortedImages = data?.map(property => ({
+        ...property,
+        type: property.type === 'local_comercial' ? 'local' : property.type,
+        images: (property.images || []).sort((a: any, b: any) => a.position - b.position)
+      })) as Property[] || [];
+      
+      setProperties(propertiesWithSortedImages);
+      setFilteredProperties(propertiesWithSortedImages);
+      setHasMoreResults(data?.length === 500);
+      
+      if (data?.length === 500) {
+        toast({
+          title: "Hay más resultados disponibles",
+          description: "Acerca el zoom o ajusta los filtros para ver todas las propiedades",
+          duration: 4000,
+        });
+      }
+      
+      console.timeEnd('[Fetch] Propiedades por viewport');
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    } finally {
+      setIsLoadingViewport(false);
+    }
+  };
+
+  // Debounced fetch por viewport
+  const debouncedFetchByViewport = useCallback(
+    debounce((bounds: google.maps.LatLngBounds) => {
+      fetchPropertiesByViewport(bounds);
+    }, 400),
+    [filters]
+  );
 
   // Actualizar municipios cuando cambia el estado
   useEffect(() => {
@@ -726,37 +805,22 @@ const Buscar = () => {
   useEffect(() => {
     let isMounted = true;
     let timeoutId: NodeJS.Timeout;
-    let progressInterval: NodeJS.Timeout;
-    
+
     const initMap = async () => {
       try {
         setIsMapLoading(true);
-        setMapLoadingProgress(0);
-        
-        // Simular progreso de carga inicial (0-30%)
-        progressInterval = setInterval(() => {
-          setMapLoadingProgress(prev => {
-            if (prev < 30) return prev + 5;
-            return prev;
-          });
-        }, 100);
+        setMapLoadingProgress(10);
         
         await loadGoogleMaps();
-        
-        // Progreso después de cargar API (30-50%)
-        setMapLoadingProgress(50);
+        setMapLoadingProgress(40);
         
         if (!isMounted || !mapRef.current) return;
-
-        // Pequeño delay para asegurar que el DOM está listo
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 50));
         
         if (!mapRef.current) return;
+        setMapLoadingProgress(60);
 
-        // Progreso después de verificar DOM (50-70%)
-        setMapLoadingProgress(70);
-
-        // Crear mapa centrado en CDMX
+        // Crear mapa
         mapInstanceRef.current = new google.maps.Map(mapRef.current, {
           center: { lat: 19.4326, lng: -99.1332 },
           zoom: 12,
@@ -767,7 +831,6 @@ const Buscar = () => {
           mapTypeId: mapType,
         });
 
-        // Progreso después de crear instancia (70-85%)
         setMapLoadingProgress(85);
 
         let mapReadySet = false;
@@ -778,38 +841,46 @@ const Buscar = () => {
             console.log('[Mapa] Listo para renderizar marcadores');
             setMapLoadingProgress(100);
             
-            // Marcar como listo inmediatamente (sin delay)
             if (isMounted) {
               setMapReady(true);
               setIsMapLoading(false);
             }
             
             if (timeoutId) clearTimeout(timeoutId);
-            if (progressInterval) clearInterval(progressInterval);
           }
         };
 
-        // Múltiples listeners para asegurar que el mapa se marca como listo
-        mapInstanceRef.current.addListener('tilesloaded', setMapReadyOnce);
-        mapInstanceRef.current.addListener('idle', setMapReadyOnce);
-        
-        // Listener para viewport changes
+        // CONSOLIDAR en un solo listener idle con lógica dual
         mapInstanceRef.current.addListener('idle', () => {
-          if (!isMounted || !mapReadySet) return;
+          // Primero marcar como listo si no lo está
+          if (!mapReadySet && isMounted) {
+            setMapReadyOnce();
+          }
           
-          // Activar filtro de viewport cuando el mapa se detiene
-          if (mapFilterActive) {
-            throttledViewportFilter();
+          // Luego manejar viewport filter
+          if (mapReadySet && isMounted) {
+            const currentBounds = mapInstanceRef.current?.getBounds();
+            if (currentBounds) {
+              setViewportBounds(currentBounds);
+              
+              if (mapFilterActive) {
+                debouncedFetchByViewport(currentBounds);
+              }
+            }
           }
         });
 
-        // Timeout de seguridad: marcar como listo después de 3 segundos
+        // Listeners adicionales para casos edge
+        mapInstanceRef.current.addListener('tilesloaded', setMapReadyOnce);
+        mapInstanceRef.current.addListener('projection_changed', setMapReadyOnce);
+
+        // Timeout de seguridad más agresivo: 1.5s
         timeoutId = setTimeout(() => {
           if (isMounted && !mapReadySet) {
-            console.log('[Mapa] Timeout alcanzado - forzando estado listo');
+            console.log('[Mapa] Timeout - forzando estado listo');
             setMapReadyOnce();
           }
-        }, 3000);
+        }, 1500);
 
       } catch (err: any) {
         console.error('Error loading map:', err);
@@ -818,7 +889,6 @@ const Buscar = () => {
           setIsMapLoading(false);
           setMapLoadingProgress(0);
         }
-        if (progressInterval) clearInterval(progressInterval);
       }
     };
 
@@ -827,7 +897,6 @@ const Buscar = () => {
     return () => {
       isMounted = false;
       if (timeoutId) clearTimeout(timeoutId);
-      if (progressInterval) clearInterval(progressInterval);
     };
   }, []);
 
@@ -838,6 +907,9 @@ const Buscar = () => {
       return;
     }
 
+    console.time('[Marcadores] Render total');
+    console.time('[Marcadores] Diffing');
+    
     renderingRef.current = true;
     setIsLoadingMarkers(true);
     setMarkersLoadingProgress(0);
@@ -869,6 +941,8 @@ const Buscar = () => {
     const idsToAdd = propertiesWithCoords.filter(p => !currentIds.has(p.id));
     
     console.log('[Marcadores] Diff - Agregar:', idsToAdd.length, 'Eliminar:', idsToRemove.length, 'Mantener:', currentIds.size - idsToRemove.length);
+    console.timeEnd('[Marcadores] Diffing');
+    console.time('[Marcadores] Limpieza');
 
     // Eliminar marcadores que ya no están
     idsToRemove.forEach(id => {
@@ -882,6 +956,9 @@ const Buscar = () => {
         }
       }
     });
+    
+    console.timeEnd('[Marcadores] Limpieza');
+    console.time('[Marcadores] Creación');
 
     // Limpiar clusterer solo si hay cambios
     if (markerClustererRef.current && (idsToRemove.length > 0 || idsToAdd.length > 0)) {
@@ -1068,7 +1145,9 @@ const Buscar = () => {
 
     console.log('[Marcadores] Nuevos marcadores agregados:', newMarkersToAdd.length);
     console.log('[Marcadores] Total de marcadores activos:', markersRef.current.length);
-    console.log('[Cache] Hits de cache de iconos:', iconCache.size, 'tipos únicos cacheados');
+    console.timeEnd('[Marcadores] Creación');
+    console.timeEnd('[Marcadores] Render total');
+    console.log(`[Cache] ${iconCacheHits} hits, ${iconCacheMisses} misses, ratio: ${iconCacheHits > 0 ? (iconCacheHits / (iconCacheHits + iconCacheMisses) * 100).toFixed(1) : 0}%`);
     
     setIsLoadingMarkers(false);
     setMarkersLoadingProgress(100);

@@ -55,6 +55,8 @@ const PropertyCard = ({
           <img
             src={imageUrl || propertyPlaceholder}
             alt={title}
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition-transform group-hover:scale-105"
           />
           <div className="absolute left-3 top-3 flex gap-2">
