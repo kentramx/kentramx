@@ -18,7 +18,7 @@ import { ThemeToggle } from "./ThemeToggle";
 const Navbar = () => {
   const { user, signOut } = useAuth();
   const [searchParams] = useSearchParams();
-  const tipoListado = searchParams.get("tipo_listado");
+  const listingType = searchParams.get("listingType");
 
   const getUserInitials = () => {
     if (!user?.email) return "U";
@@ -31,20 +31,20 @@ const Navbar = () => {
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Left Navigation - Desktop */}
           <div className="hidden md:flex items-center gap-1">
-            <Link to="/propiedades?tipo_listado=venta">
+            <Link to="/buscar?listingType=venta">
               <Button 
-                variant={tipoListado === "venta" ? "default" : "ghost"} 
+                variant={listingType === "venta" ? "default" : "ghost"} 
                 size="sm"
-                className={tipoListado === "venta" ? "shadow-sm" : ""}
+                className={listingType === "venta" ? "shadow-sm" : ""}
               >
                 Comprar
               </Button>
             </Link>
-            <Link to="/propiedades?tipo_listado=renta">
+            <Link to="/buscar?listingType=renta">
               <Button 
-                variant={tipoListado === "renta" ? "default" : "ghost"} 
+                variant={listingType === "renta" ? "default" : "ghost"} 
                 size="sm"
-                className={tipoListado === "renta" ? "shadow-sm" : ""}
+                className={listingType === "renta" ? "shadow-sm" : ""}
               >
                 Rentar
               </Button>

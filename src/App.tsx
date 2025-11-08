@@ -7,7 +7,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { NotificationPermissionBanner } from "@/components/NotificationPermissionBanner";
 import Home from "./pages/Home";
-import Properties from "./pages/Properties";
 import PropertyDetail from "./pages/PropertyDetail";
 import Favorites from "./pages/Favorites";
 import AgentDashboard from "./pages/AgentDashboard";
@@ -36,7 +35,6 @@ const App = () => (
           <AuthProvider>
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/propiedades" element={<Properties />} />
               <Route path="/propiedad/:id" element={<PropertyDetail />} />
               <Route path="/agente/:id" element={<AgentProfile />} />
               <Route path="/perfil" element={<UserProfile />} />
