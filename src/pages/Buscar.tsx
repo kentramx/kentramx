@@ -843,8 +843,11 @@ const Buscar = () => {
         
         if (!isMounted || !mapRef.current) return;
 
+        console.log('[Mapa] Iniciando initMap. Tamaño inicial:', mapRef.current.getBoundingClientRect());
+
         // NUEVO: esperar a que el contenedor tenga tamaño real
         await waitForNonZeroSize(mapRef.current, 60, 50); // ~3s máx
+        console.log('[Mapa] Tamaño tras espera:', mapRef.current.getBoundingClientRect());
         setMapLoadingProgress(60);
 
         // Crear mapa SOLO ahora que el contenedor tiene tamaño
@@ -857,6 +860,7 @@ const Buscar = () => {
           fullscreenControl: false,
           mapTypeId: mapType,
         });
+        console.log('[Mapa] Instancia creada');
 
         // Forzar reflow/resize del mapa por si el contenedor aún ajusta altura
         setTimeout(() => {
@@ -885,6 +889,9 @@ const Buscar = () => {
             if (timeoutId) clearTimeout(timeoutId);
           }
         };
+
+        // Fallback: marcar listo inmediatamente tras crear el mapa
+        setMapReadyOnce();
 
         // CONSOLIDAR en un solo listener idle con lógica dual
         mapInstanceRef.current.addListener('idle', () => {
