@@ -829,7 +829,7 @@ const Buscar = () => {
       if (timeoutId) clearTimeout(timeoutId);
       if (progressInterval) clearInterval(progressInterval);
     };
-  }, [mapType, mapFilterActive]);
+  }, []);
 
   // Actualizar marcadores cuando cambian las propiedades filtradas
   useEffect(() => {
