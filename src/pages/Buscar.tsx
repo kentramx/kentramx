@@ -42,6 +42,8 @@ interface Property {
   type: 'casa' | 'departamento' | 'terreno' | 'oficina' | 'local' | 'bodega' | 'edificio' | 'rancho';
   listing_type: 'venta' | 'renta';
   images: { url: string; position: number }[];
+  created_at: string | null;
+  sqft: number | null;
 }
 
 interface Filters {
@@ -53,7 +55,7 @@ interface Filters {
   listingType: string;
   recamaras: string;
   banos: string;
-  orden: 'asc' | 'desc';
+  orden: 'price_desc' | 'price_asc' | 'newest' | 'oldest' | 'bedrooms_desc' | 'sqft_desc';
 }
 
 const getTipoLabel = (tipo: string) => {
@@ -98,7 +100,7 @@ const Buscar = () => {
     listingType: searchParams.get('listingType') || '',
     recamaras: searchParams.get('recamaras') || '',
     banos: searchParams.get('banos') || '',
-    orden: (searchParams.get('orden') as 'asc' | 'desc') || 'desc',
+    orden: (searchParams.get('orden') as any) || 'price_desc',
   });
 
   const [estados] = useState<string[]>(mexicoStates);
@@ -263,7 +265,7 @@ const Buscar = () => {
     if (filters.listingType) params.set('listingType', filters.listingType);
     if (filters.recamaras) params.set('recamaras', filters.recamaras);
     if (filters.banos) params.set('banos', filters.banos);
-    if (filters.orden !== 'desc') params.set('orden', filters.orden);
+    if (filters.orden !== 'price_desc') params.set('orden', filters.orden);
 
     setSearchParams(params, { replace: true });
   }, [filters, setSearchParams]);
@@ -273,11 +275,12 @@ const Buscar = () => {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select(`
-            id, title, price, bedrooms, bathrooms, parking, 
-            lat, lng, address, state, municipality, type, listing_type,
-            images (url, position)
-          `)
+      .select(`
+        id, title, price, bedrooms, bathrooms, parking, 
+        lat, lng, address, state, municipality, type, listing_type,
+        created_at, sqft,
+        images (url, position)
+      `)
           .eq('status', 'activa')
           .order('position', { foreignTable: 'images', ascending: true })
           .limit(1000);
@@ -314,7 +317,7 @@ const Buscar = () => {
   const removeFilter = (filterKey: keyof Filters) => {
     setFilters(prev => ({
       ...prev,
-      [filterKey]: filterKey === 'orden' ? 'desc' : ''
+      [filterKey]: filterKey === 'orden' ? 'price_desc' : ''
     }));
   };
 
@@ -402,15 +405,7 @@ const Buscar = () => {
     return chips;
   };
 
-  const moreFiltersCount = [
-    filters.estado,
-    filters.municipio,
-    filters.orden !== 'desc' ? filters.orden : null
-  ].filter(Boolean).length;
-
   const activeFiltersCount = [
-    filters.estado,
-    filters.municipio,
     filters.precioMin,
     filters.precioMax,
     filters.tipo,
@@ -454,9 +449,37 @@ const Buscar = () => {
       filtered = filtered.filter(p => (p.bathrooms || 0) >= Number(filters.banos));
     }
 
-    filtered.sort((a, b) => 
-      filters.orden === 'asc' ? a.price - b.price : b.price - a.price
-    );
+    // Ordenar según el criterio seleccionado
+    switch (filters.orden) {
+      case 'price_desc':
+        filtered.sort((a, b) => b.price - a.price);
+        break;
+      case 'price_asc':
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case 'newest':
+        filtered.sort((a, b) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA;
+        });
+        break;
+      case 'oldest':
+        filtered.sort((a, b) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateA - dateB;
+        });
+        break;
+      case 'bedrooms_desc':
+        filtered.sort((a, b) => (b.bedrooms || 0) - (a.bedrooms || 0));
+        break;
+      case 'sqft_desc':
+        filtered.sort((a, b) => (b.sqft || 0) - (a.sqft || 0));
+        break;
+      default:
+        filtered.sort((a, b) => b.price - a.price);
+    }
 
     setFilteredProperties(filtered);
   }, [filters, properties]);
@@ -720,42 +743,33 @@ const Buscar = () => {
 
                       <Separator />
 
-                      {/* Ubicación */}
-                      <div className="space-y-3">
-                        <h4 className="font-medium text-sm">Ubicación</h4>
-                        <div className="space-y-2">
-                          <Combobox
-                            options={estados.map(e => ({ value: e, label: e }))}
-                            value={filters.estado}
-                            onValueChange={(value) => setFilters(prev => ({ ...prev, estado: value }))}
-                            placeholder="Estado"
-                            searchPlaceholder="Buscar estado..."
-                          />
-                          {filters.estado && (
-                            <Combobox
-                              options={municipios.map(m => ({ value: m, label: m }))}
-                              value={filters.municipio}
-                              onValueChange={(value) => setFilters(prev => ({ ...prev, municipio: value }))}
-                              placeholder="Municipio"
-                              searchPlaceholder="Buscar municipio..."
-                            />
-                          )}
-                        </div>
-                      </div>
-
-                      <Separator />
-
                       {/* Ordenar */}
                       <div className="space-y-3">
                         <h4 className="font-medium text-sm">Ordenar por</h4>
-                        <RadioGroup value={filters.orden} onValueChange={(value: 'asc' | 'desc') => setFilters(prev => ({ ...prev, orden: value }))}>
+                        <RadioGroup value={filters.orden} onValueChange={(value: any) => setFilters(prev => ({ ...prev, orden: value }))}>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="desc" id="desc-mobile" />
-                            <Label htmlFor="desc-mobile">Precio: Mayor a menor</Label>
+                            <RadioGroupItem value="price_desc" id="price_desc_mobile" />
+                            <Label htmlFor="price_desc_mobile">💰 Precio: Mayor a menor</Label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="asc" id="asc-mobile" />
-                            <Label htmlFor="asc-mobile">Precio: Menor a mayor</Label>
+                            <RadioGroupItem value="price_asc" id="price_asc_mobile" />
+                            <Label htmlFor="price_asc_mobile">💸 Precio: Menor a mayor</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="newest" id="newest_mobile" />
+                            <Label htmlFor="newest_mobile">✨ Más recientes</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="oldest" id="oldest_mobile" />
+                            <Label htmlFor="oldest_mobile">🕰️ Más antiguos</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="bedrooms_desc" id="bedrooms_desc_mobile" />
+                            <Label htmlFor="bedrooms_desc_mobile">🛏️ Recámaras: Mayor a menor</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="sqft_desc" id="sqft_desc_mobile" />
+                            <Label htmlFor="sqft_desc_mobile">📏 Área (m²): Mayor a menor</Label>
                           </div>
                         </RadioGroup>
                       </div>
@@ -907,51 +921,58 @@ const Buscar = () => {
                 </PopoverContent>
               </Popover>
 
-              {/* 6. More (Estado, Municipio, Orden) */}
+              {/* 6. Ordenar por */}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm">
-                    Más {moreFiltersCount > 0 && `(${moreFiltersCount})`}
+                    Ordenar por
                     <ChevronDown className="h-4 w-4 ml-1" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-96" align="start">
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Ubicación</h4>
-                      <div className="space-y-2">
-                        <Combobox
-                          options={estados.map(e => ({ value: e, label: e }))}
-                          value={filters.estado}
-                          onValueChange={(value) => setFilters(prev => ({ ...prev, estado: value }))}
-                          placeholder="Estado"
-                          searchPlaceholder="Buscar estado..."
-                        />
-                        {filters.estado && (
-                          <Combobox
-                            options={municipios.map(m => ({ value: m, label: m }))}
-                            value={filters.municipio}
-                            onValueChange={(value) => setFilters(prev => ({ ...prev, municipio: value }))}
-                            placeholder="Municipio"
-                            searchPlaceholder="Buscar municipio..."
-                          />
-                        )}
+                <PopoverContent className="w-72" align="start">
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Ordenar propiedades por</h4>
+                    <RadioGroup 
+                      value={filters.orden} 
+                      onValueChange={(value: any) => setFilters(prev => ({ ...prev, orden: value }))}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="price_desc" id="price_desc" />
+                        <Label htmlFor="price_desc" className="cursor-pointer">
+                          💰 Precio: Mayor a menor
+                        </Label>
                       </div>
-                    </div>
-                    <Separator />
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Ordenar por</h4>
-                      <RadioGroup value={filters.orden} onValueChange={(value: 'asc' | 'desc') => setFilters(prev => ({ ...prev, orden: value }))}>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="desc" id="desc" />
-                          <Label htmlFor="desc">Precio: Mayor a menor</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="asc" id="asc" />
-                          <Label htmlFor="asc">Precio: Menor a mayor</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="price_asc" id="price_asc" />
+                        <Label htmlFor="price_asc" className="cursor-pointer">
+                          💸 Precio: Menor a mayor
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="newest" id="newest" />
+                        <Label htmlFor="newest" className="cursor-pointer">
+                          ✨ Más recientes
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="oldest" id="oldest" />
+                        <Label htmlFor="oldest" className="cursor-pointer">
+                          🕰️ Más antiguos
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="bedrooms_desc" id="bedrooms_desc" />
+                        <Label htmlFor="bedrooms_desc" className="cursor-pointer">
+                          🛏️ Recámaras: Mayor a menor
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="sqft_desc" id="sqft_desc" />
+                        <Label htmlFor="sqft_desc" className="cursor-pointer">
+                          📏 Área (m²): Mayor a menor
+                        </Label>
+                      </div>
+                    </RadioGroup>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -1016,7 +1037,7 @@ const Buscar = () => {
                       listingType: '',
                       recamaras: '',
                       banos: '',
-                      orden: 'desc',
+                      orden: 'price_desc',
                     });
                     setPriceRange([MIN_PRICE, MAX_PRICE]);
                   }}
