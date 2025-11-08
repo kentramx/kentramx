@@ -560,6 +560,15 @@ const Buscar = () => {
     }).format(price);
   };
 
+  const handleSearchInputChange = () => {
+    // Limpiar filtros de estado y municipio cuando el usuario empiece a escribir
+    setFilters(prev => ({
+      ...prev,
+      estado: '',
+      municipio: ''
+    }));
+  };
+
   const handlePlaceSelect = (location: { address: string; municipality: string; state: string; lat?: number; lng?: number; }) => {
     setFilters(prev => ({
       ...prev,
@@ -654,6 +663,7 @@ const Buscar = () => {
           <div className="min-w-[280px] flex-1 lg:flex-initial">
             <PlaceAutocomplete
               onPlaceSelect={handlePlaceSelect}
+              onInputChange={handleSearchInputChange}
               placeholder="Ciudad, código postal o dirección..."
               showIcon={true}
               label=""

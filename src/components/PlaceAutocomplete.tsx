@@ -14,6 +14,7 @@ interface PlaceAutocompleteProps {
     lat?: number;
     lng?: number;
   }) => void;
+  onInputChange?: () => void;
   defaultValue?: string;
   placeholder?: string;
   label?: string;
@@ -30,7 +31,8 @@ declare global {
 }
 
 export const PlaceAutocomplete = ({ 
-  onPlaceSelect, 
+  onPlaceSelect,
+  onInputChange,
   defaultValue = '', 
   placeholder = 'Escribe para buscar dirección...',
   label,
@@ -69,6 +71,11 @@ export const PlaceAutocomplete = ({
         : 'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
       containerRef.current.appendChild(input);
+
+      // Detectar cuando el usuario comienza a escribir
+      if (onInputChange) {
+        input.addEventListener('input', onInputChange);
+      }
 
       const autocomplete = new google.maps.places.Autocomplete(input, {
         componentRestrictions: { country: 'mx' },
@@ -131,8 +138,13 @@ export const PlaceAutocomplete = ({
         google.maps.event.clearInstanceListeners(autocompleteRef.current);
         autocompleteRef.current = null;
       }
+      // Limpiar el event listener de input
+      const input = containerRef.current?.querySelector('input');
+      if (input && onInputChange) {
+        input.removeEventListener('input', onInputChange);
+      }
     };
-  }, [isLoaded, placeholder, defaultValue, onPlaceSelect]);
+  }, [isLoaded, placeholder, defaultValue, onPlaceSelect, onInputChange]);
 
   if (loadError) {
     return (
