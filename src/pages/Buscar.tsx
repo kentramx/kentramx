@@ -87,9 +87,28 @@ const Buscar = () => {
   // Flag para prevenir sobrescritura durante sincronización URL -> estado
   const syncingFromUrl = useRef(false);
   
-  const MIN_PRICE = 0;
-  const MAX_PRICE = 100;
-  const [priceRange, setPriceRange] = useState<[number, number]>([MIN_PRICE, MAX_PRICE]);
+// Rangos para VENTA (en millones)
+const SALE_MIN_PRICE = 0;
+const SALE_MAX_PRICE = 100; // $100M o más
+
+// Rangos para RENTA (en miles)
+const RENT_MIN_PRICE = 0;
+const RENT_MAX_PRICE = 200; // $200,000 mensuales o más
+
+const getPriceRangeForListingType = (listingType: string): [number, number] => {
+  if (listingType === 'renta') {
+    return [RENT_MIN_PRICE, RENT_MAX_PRICE];
+  }
+  return [SALE_MIN_PRICE, SALE_MAX_PRICE];
+};
+
+const convertSliderValueToPrice = (value: number, listingType: string): number => {
+  if (listingType === 'renta') {
+    return value * 1000; // Miles para rentas
+  }
+  return value * 1000000; // Millones para ventas
+};
+  const [priceRange, setPriceRange] = useState<[number, number]>([SALE_MIN_PRICE, SALE_MAX_PRICE]);
   
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -185,6 +204,18 @@ const Buscar = () => {
     // Reset flag después de hacer scroll
     hoverFromMap.current = false;
   }, [hoveredProperty]);
+
+  // Reiniciar rango de precios cuando cambia el tipo de operación
+  useEffect(() => {
+    const [minRange, maxRange] = getPriceRangeForListingType(filters.listingType);
+    setPriceRange([minRange, maxRange]);
+    
+    setFilters(prev => ({
+      ...prev,
+      precioMin: '',
+      precioMax: ''
+    }));
+  }, [filters.listingType]);
 
   useEffect(() => {
     if (user) {
@@ -291,34 +322,55 @@ const Buscar = () => {
   };
 
   useEffect(() => {
-    const minFromUrl = filters.precioMin ? parseFloat(filters.precioMin) / 1000000 : MIN_PRICE;
-    const maxFromUrl = filters.precioMax ? parseFloat(filters.precioMax) / 1000000 : MAX_PRICE;
+    const currentListingType = filters.listingType;
+    const [minRange, maxRange] = getPriceRangeForListingType(currentListingType);
+    
+    const minFromUrl = filters.precioMin 
+      ? parseFloat(filters.precioMin) / (currentListingType === 'renta' ? 1000 : 1000000)
+      : minRange;
+    const maxFromUrl = filters.precioMax 
+      ? parseFloat(filters.precioMax) / (currentListingType === 'renta' ? 1000 : 1000000)
+      : maxRange;
     setPriceRange([minFromUrl, maxFromUrl]);
   }, []);
 
   const handlePriceRangeChange = (values: number[]) => {
     setPriceRange(values as [number, number]);
     
+    const [minRange, maxRange] = getPriceRangeForListingType(filters.listingType);
+    
     setFilters(prev => ({
       ...prev,
-      precioMin: values[0] === MIN_PRICE ? '' : (values[0] * 1000000).toString(),
-      precioMax: values[1] === MAX_PRICE ? '' : (values[1] * 1000000).toString(),
+      precioMin: values[0] === minRange ? '' : convertSliderValueToPrice(values[0], prev.listingType).toString(),
+      precioMax: values[1] === maxRange ? '' : convertSliderValueToPrice(values[1], prev.listingType).toString(),
     }));
   };
 
-  const formatPriceDisplay = (millions: number) => {
-    if (millions === 0) return '$0';
-    if (millions === MAX_PRICE) return 'Sin límite';
+  const formatPriceDisplay = (value: number, listingType?: string) => {
+    const currentListingType = listingType || filters.listingType;
+    const [minRange, maxRange] = getPriceRangeForListingType(currentListingType);
     
-    if (millions >= 1) {
-      return `$${millions.toFixed(1)}M`;
-    } else {
+    if (value === 0 || value === minRange) return '$0';
+    if (value === maxRange) return 'Sin límite';
+    
+    if (currentListingType === 'renta') {
       return new Intl.NumberFormat('es-MX', {
         style: 'currency',
         currency: 'MXN',
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
-      }).format(millions * 1000000);
+      }).format(value * 1000);
+    } else {
+      if (value >= 1) {
+        return `$${value.toFixed(1)}M`;
+      } else {
+        return new Intl.NumberFormat('es-MX', {
+          style: 'currency',
+          currency: 'MXN',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(value * 1000000);
+      }
     }
   };
 
@@ -893,9 +945,9 @@ const Buscar = () => {
                       <div className="space-y-4">
                         <h4 className="font-medium text-sm">Rango de precio</h4>
                         <Slider
-                          min={MIN_PRICE}
-                          max={MAX_PRICE}
-                          step={0.5}
+                          min={getPriceRangeForListingType(filters.listingType)[0]}
+                          max={getPriceRangeForListingType(filters.listingType)[1]}
+                          step={filters.listingType === 'renta' ? 1 : 0.5}
                           value={priceRange}
                           onValueChange={handlePriceRangeChange}
                         />
@@ -1051,9 +1103,12 @@ const Buscar = () => {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm">
-                    {priceRange[0] === MIN_PRICE && priceRange[1] === MAX_PRICE 
-                      ? 'Precio' 
-                      : `${formatPriceDisplay(priceRange[0])} - ${formatPriceDisplay(priceRange[1])}`}
+                    {(() => {
+                      const [minRange, maxRange] = getPriceRangeForListingType(filters.listingType);
+                      return priceRange[0] === minRange && priceRange[1] === maxRange 
+                        ? 'Precio' 
+                        : `${formatPriceDisplay(priceRange[0])} - ${formatPriceDisplay(priceRange[1])}`;
+                    })()}
                     <ChevronDown className="h-4 w-4 ml-1" />
                   </Button>
                 </PopoverTrigger>
@@ -1061,9 +1116,9 @@ const Buscar = () => {
                   <div className="space-y-4">
                     <h4 className="font-medium text-sm">Rango de precio</h4>
                     <Slider
-                      min={MIN_PRICE}
-                      max={MAX_PRICE}
-                      step={0.5}
+                      min={getPriceRangeForListingType(filters.listingType)[0]}
+                      max={getPriceRangeForListingType(filters.listingType)[1]}
+                      step={filters.listingType === 'renta' ? 1 : 0.5}
                       value={priceRange}
                       onValueChange={handlePriceRangeChange}
                     />
@@ -1239,7 +1294,7 @@ const Buscar = () => {
                       orden: 'price_desc',
                     });
                     setSearchCoordinates(null);
-                    setPriceRange([MIN_PRICE, MAX_PRICE]);
+                    setPriceRange([SALE_MIN_PRICE, SALE_MAX_PRICE]);
                   }}
                 >
                   Limpiar todo
