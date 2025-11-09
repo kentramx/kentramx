@@ -110,8 +110,8 @@ export const PropertyStats = ({ properties, listingType, duration = 800 }: Prope
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 animate-fade-in">
         {/* Promedio Venta */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-lg hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 shrink-0">
+        <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-lg hover:shadow-lg hover:shadow-primary/20 hover:scale-105 hover:from-primary/15 hover:to-primary/10 transition-all duration-300 cursor-pointer">
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 shrink-0 group-hover:bg-primary/30 transition-colors">
             <TrendingUp className="h-4 w-4 text-primary" />
           </div>
           <div className="flex flex-col flex-1 overflow-hidden">
@@ -125,8 +125,8 @@ export const PropertyStats = ({ properties, listingType, duration = 800 }: Prope
         </div>
 
         {/* Promedio Renta */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-violet-500/10 to-violet-500/5 border border-violet-500/20 rounded-lg hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-violet-500/20 shrink-0">
+        <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-violet-500/10 to-violet-500/5 border border-violet-500/20 rounded-lg hover:shadow-lg hover:shadow-violet-500/20 hover:scale-105 hover:from-violet-500/15 hover:to-violet-500/10 transition-all duration-300 cursor-pointer">
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-violet-500/20 shrink-0 group-hover:bg-violet-500/30 transition-colors">
             <TrendingUp className="h-4 w-4 text-violet-600" />
           </div>
           <div className="flex flex-col flex-1 overflow-hidden">
@@ -140,8 +140,8 @@ export const PropertyStats = ({ properties, listingType, duration = 800 }: Prope
         </div>
 
         {/* Precio mínimo */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 rounded-lg hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 shrink-0">
+        <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 rounded-lg hover:shadow-lg hover:shadow-emerald-500/20 hover:scale-105 hover:from-emerald-500/15 hover:to-emerald-500/10 transition-all duration-300 cursor-pointer">
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 shrink-0 group-hover:bg-emerald-500/30 transition-colors">
             <DollarSign className="h-4 w-4 text-emerald-600" />
           </div>
           <div className="flex flex-col flex-1 overflow-hidden">
@@ -155,8 +155,8 @@ export const PropertyStats = ({ properties, listingType, duration = 800 }: Prope
         </div>
 
         {/* Precio máximo */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20 rounded-lg hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500/20 shrink-0">
+        <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20 rounded-lg hover:shadow-lg hover:shadow-orange-500/20 hover:scale-105 hover:from-orange-500/15 hover:to-orange-500/10 transition-all duration-300 cursor-pointer">
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500/20 shrink-0 group-hover:bg-orange-500/30 transition-colors">
             <ArrowUpDown className="h-4 w-4 text-orange-600" />
           </div>
           <div className="flex flex-col flex-1 overflow-hidden">
@@ -176,8 +176,8 @@ export const PropertyStats = ({ properties, listingType, duration = 800 }: Prope
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-fade-in">
       {/* Precio promedio */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-lg hover:shadow-md transition-shadow">
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 shrink-0">
+      <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-lg hover:shadow-lg hover:shadow-primary/20 hover:scale-105 hover:from-primary/15 hover:to-primary/10 transition-all duration-300 cursor-pointer">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 shrink-0 group-hover:bg-primary/30 transition-colors">
           <TrendingUp className="h-4 w-4 text-primary" />
         </div>
         <div className="flex flex-col flex-1 overflow-hidden">
@@ -191,8 +191,8 @@ export const PropertyStats = ({ properties, listingType, duration = 800 }: Prope
       </div>
 
       {/* Precio mínimo */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 rounded-lg hover:shadow-md transition-shadow">
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 shrink-0">
+      <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 rounded-lg hover:shadow-lg hover:shadow-emerald-500/20 hover:scale-105 hover:from-emerald-500/15 hover:to-emerald-500/10 transition-all duration-300 cursor-pointer">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 shrink-0 group-hover:bg-emerald-500/30 transition-colors">
           <DollarSign className="h-4 w-4 text-emerald-600" />
         </div>
         <div className="flex flex-col flex-1 overflow-hidden">
@@ -206,8 +206,8 @@ export const PropertyStats = ({ properties, listingType, duration = 800 }: Prope
       </div>
 
       {/* Precio máximo */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20 rounded-lg hover:shadow-md transition-shadow">
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500/20 shrink-0">
+      <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20 rounded-lg hover:shadow-lg hover:shadow-orange-500/20 hover:scale-105 hover:from-orange-500/15 hover:to-orange-500/10 transition-all duration-300 cursor-pointer">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500/20 shrink-0 group-hover:bg-orange-500/30 transition-colors">
           <ArrowUpDown className="h-4 w-4 text-orange-600" />
         </div>
         <div className="flex flex-col flex-1 overflow-hidden">
