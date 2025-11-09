@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { RefreshCw } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -69,6 +70,45 @@ const AgentPropertyList = ({ onEdit }: AgentPropertyListProps) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getDaysUntilExpiration = (expiresAt: string | null) => {
+    if (!expiresAt) return 0;
+    const expires = new Date(expiresAt);
+    const now = new Date();
+    const diffTime = expires.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  };
+
+  const getRenewalBadgeVariant = (daysLeft: number): "default" | "secondary" | "destructive" => {
+    if (daysLeft > 14) return 'default';
+    if (daysLeft > 3) return 'secondary';
+    return 'destructive';
+  };
+
+  const handleRenewProperty = async (propertyId: string) => {
+    try {
+      const { error } = await supabase.rpc('renew_property', {
+        property_id: propertyId
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: '✅ Renovado',
+        description: 'Tu propiedad ha sido renovada por 30 días más',
+      });
+      
+      fetchProperties();
+    } catch (error) {
+      console.error('Error renewing property:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo renovar la propiedad',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -156,6 +196,7 @@ const AgentPropertyList = ({ onEdit }: AgentPropertyListProps) => {
               <TableHead>Tipo</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Renovación</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -191,6 +232,28 @@ const AgentPropertyList = ({ onEdit }: AgentPropertyListProps) => {
                   >
                     {property.status}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {(() => {
+                    const daysLeft = getDaysUntilExpiration(property.expires_at);
+                    const variant = getRenewalBadgeVariant(daysLeft);
+                    return (
+                      <div className="flex flex-col gap-2">
+                        <Badge variant={variant} className="w-fit">
+                          {daysLeft === 0 ? '¡Expira hoy!' : `${daysLeft} días`}
+                        </Badge>
+                        <Button
+                          variant={daysLeft <= 3 ? 'destructive' : 'outline'}
+                          size="sm"
+                          onClick={() => handleRenewProperty(property.id)}
+                          className="gap-1"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          {daysLeft <= 3 ? '¡Renovar ahora!' : 'Renovar'}
+                        </Button>
+                      </div>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">

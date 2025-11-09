@@ -573,7 +573,9 @@ export type Database = {
           bedrooms: number | null
           created_at: string | null
           description: string | null
+          expires_at: string | null
           id: string
+          last_renewed_at: string | null
           lat: number | null
           listing_type: string
           lng: number | null
@@ -599,7 +601,9 @@ export type Database = {
           bedrooms?: number | null
           created_at?: string | null
           description?: string | null
+          expires_at?: string | null
           id?: string
+          last_renewed_at?: string | null
           lat?: number | null
           listing_type?: string
           lng?: number | null
@@ -625,7 +629,9 @@ export type Database = {
           bedrooms?: number | null
           created_at?: string | null
           description?: string | null
+          expires_at?: string | null
           id?: string
+          last_renewed_at?: string | null
           lat?: number | null
           listing_type?: string
           lng?: number | null
@@ -658,6 +664,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      property_expiration_log: {
+        Row: {
+          agent_id: string
+          expired_at: string | null
+          id: string
+          last_renewed_at: string
+          property_created_at: string
+          property_id: string
+          property_title: string
+        }
+        Insert: {
+          agent_id: string
+          expired_at?: string | null
+          id?: string
+          last_renewed_at: string
+          property_created_at: string
+          property_id: string
+          property_title: string
+        }
+        Update: {
+          agent_id?: string
+          expired_at?: string | null
+          id?: string
+          last_renewed_at?: string
+          property_created_at?: string
+          property_id?: string
+          property_title?: string
+        }
+        Relationships: []
       }
       property_views: {
         Row: {
@@ -908,6 +944,7 @@ export type Database = {
         Args: { p_conversation_id: string; p_user_id: string }
         Returns: undefined
       }
+      renew_property: { Args: { property_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "buyer" | "agent" | "agency" | "admin"
