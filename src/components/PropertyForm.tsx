@@ -14,7 +14,6 @@ import { z } from 'zod';
 import { LocationSearch } from '@/components/LocationSearch';
 
 const propertySchema = z.object({
-  title: z.string().trim().min(5, 'El título debe tener al menos 5 caracteres').max(200, 'El título no puede exceder 200 caracteres'),
   description: z.string().trim().min(20, 'La descripción debe tener al menos 20 caracteres').max(2000, 'La descripción no puede exceder 2000 caracteres'),
   price: z.number().positive('El precio debe ser mayor a 0'),
   type: z.enum(['casa', 'departamento', 'terreno', 'oficina', 'local', 'bodega', 'edificio', 'rancho']),
@@ -48,7 +47,6 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
   const [existingImages, setExistingImages] = useState<any[]>([]);
   
   const [formData, setFormData] = useState({
-    title: '',
     description: '',
     price: '',
     type: 'casa',
@@ -89,7 +87,6 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
   useEffect(() => {
     if (property) {
       setFormData({
-        title: property.title || '',
         description: property.description || '',
         price: property.price?.toString() || '',
         type: property.type || 'casa',
@@ -214,6 +211,21 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
     setLoading(true);
 
     try {
+      // Auto-generate title for SEO/metadata
+      const propertyTypeLabel = {
+        casa: 'Casa',
+        departamento: 'Departamento',
+        terreno: 'Terreno',
+        oficina: 'Oficina',
+        local: 'Local Comercial',
+        bodega: 'Bodega',
+        edificio: 'Edificio',
+        rancho: 'Rancho'
+      }[formData.type] || 'Propiedad';
+      
+      const listingTypeLabel = formData.listing_type === 'renta' ? 'Renta' : 'Venta';
+      const autoTitle = `${propertyTypeLabel} en ${listingTypeLabel} - ${formData.municipality}, ${formData.state}`;
+
       // Validate form data
       const validatedData = propertySchema.parse({
         ...formData,
@@ -233,14 +245,14 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
       if (property) {
         const { error } = await supabase
           .from('properties')
-          .update(validatedData as any)
+          .update({ ...validatedData, title: autoTitle } as any)
           .eq('id', property.id);
 
         if (error) throw error;
       } else {
         const { data, error } = await supabase
           .from('properties')
-          .insert([{ ...validatedData, agent_id: user?.id } as any])
+          .insert([{ ...validatedData, title: autoTitle, agent_id: user?.id } as any])
           .select()
           .single();
 
@@ -306,17 +318,6 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="title">Título*</Label>
-          <Input
-            id="title"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            placeholder="Ej: Casa moderna en zona residencial"
-            required
-          />
-        </div>
-
         <div className="space-y-2">
           <Label htmlFor="listing_type">Tipo de Listado*</Label>
           <Select value={formData.listing_type} onValueChange={(value) => setFormData({ ...formData, listing_type: value })}>

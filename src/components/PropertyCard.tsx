@@ -92,13 +92,10 @@ const PropertyCard = ({
 
       <CardContent className="p-4">
         <Link to={`/propiedad/${id}`}>
-          <h3 className="mb-2 text-xl font-semibold text-foreground hover:text-primary">
-            {title}
-          </h3>
           <p className="mb-3 text-2xl font-bold text-primary">
             {formatPrice(price)}
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mb-2">
             {address}, {municipality}, {state}
           </p>
         </Link>

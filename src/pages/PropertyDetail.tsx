@@ -485,13 +485,12 @@ const PropertyDetail = () => {
             <div className="mb-6 mt-6">
               <div className="mb-4 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex flex-wrap gap-2 mb-2">
+                  <div className="flex flex-wrap gap-2 mb-3">
                     <Badge className="bg-primary text-primary-foreground">{property.type}</Badge>
                     <Badge variant={property.listing_type === 'venta' ? 'default' : 'secondary'}>
                       {property.listing_type === 'venta' ? 'En Venta' : 'En Renta'}
                     </Badge>
                   </div>
-                  <h1 className="text-2xl md:text-3xl font-bold mb-2">{property.title}</h1>
                   <div className="flex items-center text-muted-foreground">
                     <MapPin className="mr-1 h-4 w-4 flex-shrink-0" />
                     <span className="text-sm md:text-base">
