@@ -7,6 +7,7 @@ import { loadGoogleMaps } from '@/lib/loadGoogleMaps';
 import { placesCache } from '@/lib/placesCache';
 import { toast } from '@/hooks/use-toast';
 
+
 interface PlaceAutocompleteProps {
   onPlaceSelect: (location: {
     address: string;
@@ -15,7 +16,7 @@ interface PlaceAutocompleteProps {
     lat?: number;
     lng?: number;
   }) => void;
-  onInputChange?: () => void;
+  onInputChange?: (value: string) => void;
   defaultValue?: string;
   placeholder?: string;
   label?: string;
@@ -167,12 +168,13 @@ export const PlaceAutocomplete = ({
         
         // Listener para detectar cuando el usuario escribe (con debouncing)
         if (onInputChange) {
-          const debouncedInputHandler = () => {
+          const debouncedInputHandler = (e: Event) => {
             if (debounceTimerRef.current) {
               clearTimeout(debounceTimerRef.current);
             }
             debounceTimerRef.current = setTimeout(() => {
-              onInputChange();
+              const target = e.target as HTMLInputElement;
+              onInputChange(target.value || '');
             }, 300);
           };
           placeAutocomplete.addEventListener('input', debouncedInputHandler);
@@ -249,12 +251,13 @@ export const PlaceAutocomplete = ({
     };
 
     if (onInputChange) {
-      const debouncedInputHandler = () => {
+      const debouncedInputHandler = (e: Event) => {
         if (debounceTimerRef.current) {
           clearTimeout(debounceTimerRef.current);
         }
         debounceTimerRef.current = setTimeout(() => {
-          onInputChange();
+          const target = e.target as HTMLInputElement;
+          onInputChange(target.value || '');
         }, 300);
       };
       inputRef.current.addEventListener('input', debouncedInputHandler);

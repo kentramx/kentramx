@@ -576,13 +576,20 @@ const Buscar = () => {
     }).format(price);
   };
 
-  const handleSearchInputChange = () => {
-    // Limpiar filtros de estado y municipio cuando el usuario empiece a escribir
-    setFilters(prev => ({
-      ...prev,
-      estado: '',
-      municipio: ''
-    }));
+  const handleSearchInputChange = (value: string) => {
+    // Solo limpiar si el input está realmente vacío
+    if (!value || value.trim() === '') {
+      setFilters(prev => {
+        // Si ya están vacíos, no hacer nada
+        if (!prev.estado && !prev.municipio) return prev;
+        
+        return {
+          ...prev,
+          estado: '',
+          municipio: ''
+        };
+      });
+    }
   };
 
   const handlePlaceSelect = (location: { address: string; municipality: string; state: string; lat?: number; lng?: number; }) => {
@@ -676,15 +683,33 @@ const Buscar = () => {
           <CardContent className="p-3">
             <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
           {/* 1. Búsqueda de ubicación */}
-          <div className="min-w-[280px] flex-1 lg:flex-initial">
+          <div className="min-w-[280px] flex-1 lg:flex-initial relative">
             <PlaceAutocomplete
+              key={`location-${locationDisplayValue || 'empty'}`}
               onPlaceSelect={handlePlaceSelect}
-              onInputChange={handleSearchInputChange}
+              onInputChange={handleSearchInputChange as (value: string) => void}
               placeholder="Ciudad, código postal o dirección..."
               defaultValue={locationDisplayValue}
               showIcon={true}
               label=""
             />
+            {locationDisplayValue && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 z-20"
+                onClick={() => {
+                  setFilters(prev => ({
+                    ...prev,
+                    estado: '',
+                    municipio: ''
+                  }));
+                }}
+                title="Limpiar ubicación"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
               <Separator orientation="vertical" className="h-8 hidden lg:block" />
