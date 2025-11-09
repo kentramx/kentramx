@@ -113,6 +113,9 @@ export const PlaceAutocomplete = ({
           requestedRegion: 'MX',
         });
         
+        // Configurar tipos de búsqueda para incluir colonias
+        placeAutocomplete.types = ['(regions)'];
+        
         // Aplicar estilos personalizados y forzar ancho completo
         placeAutocomplete.style.display = 'block';
         placeAutocomplete.style.width = '100%';
@@ -140,11 +143,14 @@ export const PlaceAutocomplete = ({
           let state = '';
           
           place.addressComponents?.forEach((component: any) => {
-            if (component.types.includes('locality')) {
-              municipality = component.longText;
-            }
             if (component.types.includes('administrative_area_level_1')) {
               state = component.longText;
+            }
+            // Priorizar administrative_area_level_2 (municipio), luego locality
+            if (component.types.includes('administrative_area_level_2')) {
+              municipality = component.longText;
+            } else if (!municipality && component.types.includes('locality')) {
+              municipality = component.longText;
             }
           });
           
@@ -257,7 +263,7 @@ export const PlaceAutocomplete = ({
     const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
       componentRestrictions: { country: 'mx' },
       fields: ['address_components', 'formatted_address', 'geometry'],
-      types: ['(cities)'],
+      types: ['(regions)'],
     });
 
     autocomplete.addListener('place_changed', () => {
@@ -276,11 +282,14 @@ export const PlaceAutocomplete = ({
       let state = '';
 
       place.address_components.forEach((component) => {
-        if (component.types.includes('locality')) {
-          municipality = component.long_name;
-        }
         if (component.types.includes('administrative_area_level_1')) {
           state = component.long_name;
+        }
+        // Priorizar administrative_area_level_2 (municipio), luego locality
+        if (component.types.includes('administrative_area_level_2')) {
+          municipality = component.long_name;
+        } else if (!municipality && component.types.includes('locality')) {
+          municipality = component.long_name;
         }
       });
 
