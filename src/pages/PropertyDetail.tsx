@@ -35,12 +35,21 @@ import {
   Calendar,
   Home,
   Ruler,
+  GitCompare,
+  CheckCircle2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import propertyPlaceholder from "@/assets/property-placeholder.jpg";
 import { AgentReviews } from "@/components/AgentReviews";
 import { ReviewForm } from "@/components/ReviewForm";
+import { PropertyAmenities } from "@/components/PropertyAmenities";
+import { PropertyVirtualTour } from "@/components/PropertyVirtualTour";
+import { PropertyTimeline } from "@/components/PropertyTimeline";
+import { PropertyInvestmentMetrics } from "@/components/PropertyInvestmentMetrics";
+import { PropertyExportPDF } from "@/components/PropertyExportPDF";
+import { ContactPropertyDialog } from "@/components/ContactPropertyDialog";
+import { usePropertyCompare } from "@/hooks/usePropertyCompare";
 
 const PropertyDetail = () => {
   const { id } = useParams();
@@ -55,6 +64,7 @@ const PropertyDetail = () => {
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [agentStats, setAgentStats] = useState<any>(null);
   const { toast } = useToast();
+  const { addToCompare, isInCompare, removeFromCompare } = usePropertyCompare();
 
   const handleReviewSubmitted = () => {
     setReviewsKey(prev => prev + 1);
@@ -411,6 +421,8 @@ const PropertyDetail = () => {
           </Button>
 
           <div className="flex gap-2">
+            <PropertyExportPDF property={property} agent={agent} />
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon">
@@ -432,6 +444,20 @@ const PropertyDetail = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <Button
+              variant={isInCompare(id!) ? "default" : "outline"}
+              onClick={() => {
+                if (isInCompare(id!)) {
+                  removeFromCompare(id!);
+                } else {
+                  addToCompare(id!);
+                }
+              }}
+              size="icon"
+            >
+              <GitCompare className={`h-4 w-4 ${isInCompare(id!) ? "fill-current" : ""}`} />
+            </Button>
 
             <Button
               variant={isFavorite ? "default" : "outline"}
@@ -524,6 +550,12 @@ const PropertyDetail = () => {
                 )}
               </div>
 
+              {/* Virtual Tour */}
+              <PropertyVirtualTour
+                videoUrl={property.video_url}
+                title={property.title}
+              />
+
               {/* Description */}
               <Card className="mb-6">
                 <CardHeader>
@@ -536,6 +568,27 @@ const PropertyDetail = () => {
                   </p>
                 </CardContent>
               </Card>
+
+              {/* Amenities */}
+              <PropertyAmenities amenities={property.amenities || []} />
+
+              {/* Investment Metrics */}
+              <PropertyInvestmentMetrics
+                price={property.price}
+                sqft={property.sqft}
+                listingType={property.listing_type}
+                state={property.state}
+                municipality={property.municipality}
+                type={property.type}
+              />
+
+              {/* Timeline */}
+              <PropertyTimeline
+                createdAt={property.created_at}
+                updatedAt={property.updated_at}
+                priceHistory={property.price_history || []}
+                currentPrice={property.price}
+              />
 
               {/* Additional Details */}
               <Card className="mb-6">
@@ -668,13 +721,10 @@ const PropertyDetail = () => {
                       </Button>
                     )}
 
-                    <Button 
-                      className="w-full"
-                      onClick={handleSendMessage}
-                    >
-                      <Mail className="mr-2 h-4 w-4" />
-                      Enviar Mensaje
-                    </Button>
+                    <ContactPropertyDialog
+                      property={property}
+                      agentId={agent.id}
+                    />
 
                     <Button 
                       variant="outline"

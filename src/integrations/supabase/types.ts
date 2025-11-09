@@ -465,6 +465,7 @@ export type Database = {
           address: string
           agency_id: string | null
           agent_id: string
+          amenities: Json | null
           bathrooms: number | null
           bedrooms: number | null
           created_at: string | null
@@ -477,17 +478,20 @@ export type Database = {
           municipality: string
           parking: number | null
           price: number
+          price_history: Json | null
           sqft: number | null
           state: string
           status: Database["public"]["Enums"]["property_status"] | null
           title: string
           type: Database["public"]["Enums"]["property_type"]
           updated_at: string | null
+          video_url: string | null
         }
         Insert: {
           address: string
           agency_id?: string | null
           agent_id: string
+          amenities?: Json | null
           bathrooms?: number | null
           bedrooms?: number | null
           created_at?: string | null
@@ -500,17 +504,20 @@ export type Database = {
           municipality: string
           parking?: number | null
           price: number
+          price_history?: Json | null
           sqft?: number | null
           state: string
           status?: Database["public"]["Enums"]["property_status"] | null
           title: string
           type: Database["public"]["Enums"]["property_type"]
           updated_at?: string | null
+          video_url?: string | null
         }
         Update: {
           address?: string
           agency_id?: string | null
           agent_id?: string
+          amenities?: Json | null
           bathrooms?: number | null
           bedrooms?: number | null
           created_at?: string | null
@@ -523,12 +530,14 @@ export type Database = {
           municipality?: string
           parking?: number | null
           price?: number
+          price_history?: Json | null
           sqft?: number | null
           state?: string
           status?: Database["public"]["Enums"]["property_status"] | null
           title?: string
           type?: Database["public"]["Enums"]["property_type"]
           updated_at?: string | null
+          video_url?: string | null
         }
         Relationships: [
           {
