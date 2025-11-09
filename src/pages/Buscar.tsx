@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { MapPin, Bed, Bath, Car, Search, AlertCircle, Save, Star, Trash2, X, Tag, TrendingUp, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { MapPin, Bed, Bath, Car, Search, AlertCircle, Save, Star, Trash2, X, Tag, TrendingUp, ChevronDown, SlidersHorizontal, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
@@ -80,6 +81,7 @@ const Buscar = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFiltering, setIsFiltering] = useState(false);
   
   const MIN_PRICE = 0;
   const MAX_PRICE = 100;
@@ -421,73 +423,82 @@ const Buscar = () => {
   ].filter(Boolean).length;
 
   useEffect(() => {
-    let filtered = [...properties];
+    // Indicar que se está filtrando
+    setIsFiltering(true);
+    
+    // Usar un pequeño delay para permitir que se muestre el indicador
+    const timeoutId = setTimeout(() => {
+      let filtered = [...properties];
 
-    if (filters.estado) {
-      filtered = filtered.filter(p => p.state === filters.estado);
-    }
+      if (filters.estado) {
+        filtered = filtered.filter(p => p.state === filters.estado);
+      }
 
-    if (filters.municipio) {
-      filtered = filtered.filter(p => p.municipality === filters.municipio);
-    }
+      if (filters.municipio) {
+        filtered = filtered.filter(p => p.municipality === filters.municipio);
+      }
 
-    if (filters.precioMin) {
-      filtered = filtered.filter(p => p.price >= Number(filters.precioMin));
-    }
+      if (filters.precioMin) {
+        filtered = filtered.filter(p => p.price >= Number(filters.precioMin));
+      }
 
-    if (filters.precioMax) {
-      filtered = filtered.filter(p => p.price <= Number(filters.precioMax));
-    }
+      if (filters.precioMax) {
+        filtered = filtered.filter(p => p.price <= Number(filters.precioMax));
+      }
 
-    if (filters.tipo) {
-      filtered = filtered.filter(p => p.type === filters.tipo);
-    }
+      if (filters.tipo) {
+        filtered = filtered.filter(p => p.type === filters.tipo);
+      }
 
-    if (filters.listingType) {
-      filtered = filtered.filter(p => p.listing_type === filters.listingType);
-    }
+      if (filters.listingType) {
+        filtered = filtered.filter(p => p.listing_type === filters.listingType);
+      }
 
-    if (filters.recamaras) {
-      filtered = filtered.filter(p => (p.bedrooms || 0) >= Number(filters.recamaras));
-    }
+      if (filters.recamaras) {
+        filtered = filtered.filter(p => (p.bedrooms || 0) >= Number(filters.recamaras));
+      }
 
-    if (filters.banos) {
-      filtered = filtered.filter(p => (p.bathrooms || 0) >= Number(filters.banos));
-    }
+      if (filters.banos) {
+        filtered = filtered.filter(p => (p.bathrooms || 0) >= Number(filters.banos));
+      }
 
-    // Ordenar según el criterio seleccionado
-    switch (filters.orden) {
-      case 'price_desc':
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case 'price_asc':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'newest':
-        filtered.sort((a, b) => {
-          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-          return dateB - dateA;
-        });
-        break;
-      case 'oldest':
-        filtered.sort((a, b) => {
-          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-          return dateA - dateB;
-        });
-        break;
-      case 'bedrooms_desc':
-        filtered.sort((a, b) => (b.bedrooms || 0) - (a.bedrooms || 0));
-        break;
-      case 'sqft_desc':
-        filtered.sort((a, b) => (b.sqft || 0) - (a.sqft || 0));
-        break;
-      default:
-        filtered.sort((a, b) => b.price - a.price);
-    }
+      // Ordenar según el criterio seleccionado
+      switch (filters.orden) {
+        case 'price_desc':
+          filtered.sort((a, b) => b.price - a.price);
+          break;
+        case 'price_asc':
+          filtered.sort((a, b) => a.price - b.price);
+          break;
+        case 'newest':
+          filtered.sort((a, b) => {
+            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return dateB - dateA;
+          });
+          break;
+        case 'oldest':
+          filtered.sort((a, b) => {
+            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return dateA - dateB;
+          });
+          break;
+        case 'bedrooms_desc':
+          filtered.sort((a, b) => (b.bedrooms || 0) - (a.bedrooms || 0));
+          break;
+        case 'sqft_desc':
+          filtered.sort((a, b) => (b.sqft || 0) - (a.sqft || 0));
+          break;
+        default:
+          filtered.sort((a, b) => b.price - a.price);
+      }
 
-    setFilteredProperties(filtered);
+      setFilteredProperties(filtered);
+      setIsFiltering(false);
+    }, 150); // Small delay para mostrar feedback visual
+    
+    return () => clearTimeout(timeoutId);
   }, [filters, properties]);
 
   const handlePropertyClick = (property: Property) => {
@@ -1178,14 +1189,42 @@ const Buscar = () => {
 
             {/* Lista de propiedades */}
             <div className="space-y-4">
-              <AnimatedCounter 
-                value={filteredProperties.length} 
-                label={filteredProperties.length === 1 ? 'propiedad' : 'propiedades'}
-              />
+              {/* Contador de resultados con indicador de filtrado */}
+              <div className="flex items-center gap-3">
+                <AnimatedCounter 
+                  value={filteredProperties.length} 
+                  label={filteredProperties.length === 1 ? 'propiedad' : 'propiedades'}
+                />
+                {isFiltering && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground animate-fade-in">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Filtrando...</span>
+                  </div>
+                )}
+              </div>
 
               <PropertyStats properties={filteredProperties} />
 
-              {filteredProperties.length === 0 ? (
+              {isFiltering ? (
+                // Skeletons mientras se está filtrando
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i} className="animate-pulse">
+                      <CardContent className="p-4">
+                        <Skeleton className="w-full h-48 mb-4 rounded-lg" />
+                        <Skeleton className="h-6 w-3/4 mb-2" />
+                        <Skeleton className="h-4 w-1/2 mb-3" />
+                        <Skeleton className="h-8 w-1/3 mb-3" />
+                        <div className="flex gap-4">
+                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-4 w-16" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : filteredProperties.length === 0 ? (
                 <Card>
                   <CardContent className="p-8 text-center">
                     <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
