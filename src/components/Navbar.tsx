@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,11 +18,18 @@ import { ThemeToggle } from "./ThemeToggle";
 const Navbar = () => {
   const { user, signOut } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const listingType = searchParams.get("listingType");
 
   const getUserInitials = () => {
     if (!user?.email) return "U";
     return user.email.charAt(0).toUpperCase();
+  };
+
+  const handleListingTypeChange = (newListingType: "venta" | "renta") => {
+    const params = new URLSearchParams(searchParams);
+    params.set("listingType", newListingType);
+    navigate(`/buscar?${params.toString()}`);
   };
 
   return (
@@ -31,24 +38,22 @@ const Navbar = () => {
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Left Navigation - Desktop */}
           <div className="hidden md:flex items-center gap-1">
-            <Link to="/buscar?listingType=venta">
-              <Button 
-                variant={listingType === "venta" ? "default" : "ghost"} 
-                size="sm"
-                className={listingType === "venta" ? "shadow-sm" : ""}
-              >
-                Comprar
-              </Button>
-            </Link>
-            <Link to="/buscar?listingType=renta">
-              <Button 
-                variant={listingType === "renta" ? "default" : "ghost"} 
-                size="sm"
-                className={listingType === "renta" ? "shadow-sm" : ""}
-              >
-                Rentar
-              </Button>
-            </Link>
+            <Button 
+              variant={listingType === "venta" ? "default" : "ghost"} 
+              size="sm"
+              className={listingType === "venta" ? "shadow-sm" : ""}
+              onClick={() => handleListingTypeChange("venta")}
+            >
+              Comprar
+            </Button>
+            <Button 
+              variant={listingType === "renta" ? "default" : "ghost"} 
+              size="sm"
+              className={listingType === "renta" ? "shadow-sm" : ""}
+              onClick={() => handleListingTypeChange("renta")}
+            >
+              Rentar
+            </Button>
           </div>
 
           {/* Center Logo - Always visible */}
