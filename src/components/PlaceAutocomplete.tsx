@@ -1,8 +1,9 @@
 /// <reference types="google.maps" />
 import React, { useEffect, useRef } from 'react';
 import { Label } from '@/components/ui/label';
-import { MapPin, AlertCircle } from 'lucide-react';
+import { MapPin, AlertCircle, Navigation, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { loadGoogleMaps } from '@/lib/loadGoogleMaps';
 import { placesCache } from '@/lib/placesCache';
 import { toast } from '@/hooks/use-toast';
@@ -23,6 +24,7 @@ interface PlaceAutocompleteProps {
   showIcon?: boolean;
   id?: string;
   unstyled?: boolean;
+  showMyLocationButton?: boolean;
 }
 
 declare global {
@@ -41,7 +43,8 @@ export const PlaceAutocomplete = ({
   label,
   showIcon = true,
   id = 'place-autocomplete',
-  unstyled = false
+  unstyled = false,
+  showMyLocationButton = true
 }: PlaceAutocompleteProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const webComponentContainerRef = useRef<HTMLDivElement>(null);
@@ -50,12 +53,123 @@ export const PlaceAutocomplete = ({
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [useWebComponent, setUseWebComponent] = React.useState<boolean | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = React.useState(false);
 
   // keep latest onPlaceSelect without recreating input
   const onPlaceSelectRef = React.useRef(onPlaceSelect);
   useEffect(() => {
     onPlaceSelectRef.current = onPlaceSelect;
   }, [onPlaceSelect]);
+
+  const handleGetMyLocation = async () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: '❌ Geolocalización no disponible',
+        description: 'Tu navegador no soporta geolocalización',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsGettingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        try {
+          await loadGoogleMaps();
+
+          const geocoder = new google.maps.Geocoder();
+          const result = await geocoder.geocode({
+            location: { lat: latitude, lng: longitude }
+          });
+
+          if (result.results[0]) {
+            const place = result.results[0];
+            const addressComponents = place.address_components;
+            
+            let municipality = '';
+            let state = '';
+            
+            addressComponents?.forEach((component) => {
+              if (component.types.includes('administrative_area_level_1')) {
+                state = component.long_name;
+              }
+              if (component.types.includes('administrative_area_level_2')) {
+                municipality = component.long_name;
+              } else if (!municipality && component.types.includes('locality')) {
+                municipality = component.long_name;
+              }
+            });
+            
+            const address = place.formatted_address;
+
+            const location = {
+              address,
+              municipality,
+              state,
+              lat: latitude,
+              lng: longitude
+            };
+
+            // Actualizar el input según el tipo
+            if (autocompleteRef.current) {
+              if (autocompleteRef.current instanceof HTMLElement) {
+                // Web Component (tiene propiedad value pero TypeScript no la ve)
+                (autocompleteRef.current as any).value = address;
+              } else if (inputRef.current) {
+                // Legacy input
+                inputRef.current.value = address;
+              }
+            }
+
+            onPlaceSelectRef.current(location);
+            toast({
+              title: '📍 Ubicación detectada',
+              description: `${municipality}, ${state}`,
+            });
+          }
+        } catch (error) {
+          console.error('Error geocoding:', error);
+          toast({
+            title: '❌ Error',
+            description: 'No se pudo obtener la dirección',
+            variant: 'destructive',
+          });
+        } finally {
+          setIsGettingLocation(false);
+        }
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        
+        let description = 'Error obteniendo ubicación';
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            description = 'Debes permitir el acceso a tu ubicación';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            description = 'Ubicación no disponible';
+            break;
+          case error.TIMEOUT:
+            description = 'Tiempo de espera agotado';
+            break;
+        }
+        
+        toast({
+          title: '❌ Error de geolocalización',
+          description,
+          variant: 'destructive',
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
 
   useEffect(() => {
     loadGoogleMaps()
@@ -365,6 +479,25 @@ export const PlaceAutocomplete = ({
                 return showIcon ? `${base} pl-12` : base;
               })()}
             />
+        )}
+
+        {/* Botón de Geolocalización */}
+        {showMyLocationButton && isLoaded && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 z-10 hover:bg-primary/10"
+            onClick={handleGetMyLocation}
+            disabled={isGettingLocation}
+            title="Usar mi ubicación"
+          >
+            {isGettingLocation ? (
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            ) : (
+              <Navigation className="h-4 w-4 text-muted-foreground hover:text-primary" />
+            )}
+          </Button>
         )}
       </div>
     </div>
