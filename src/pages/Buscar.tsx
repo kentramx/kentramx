@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { MapPin, Bed, Bath, Car, Search, AlertCircle, Save, Star, Trash2, X, Tag, TrendingUp, ChevronDown, SlidersHorizontal, Loader2 } from 'lucide-react';
+import { MapPin, Bed, Bath, Car, Search, AlertCircle, Save, Star, Trash2, X, Tag, TrendingUp, ChevronDown, SlidersHorizontal, Loader2, Map as MapIcon, List as ListIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -180,6 +180,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   const hoverFromMap = useRef(false);
   const [currentPage, setCurrentPage] = useState(1);
   const PROPERTIES_PER_PAGE = 20;
+  const [mobileView, setMobileView] = useState<'map' | 'list'>('list');
 
   const filteredSavedSearches = savedSearches
     .filter(search => 
@@ -1313,8 +1314,32 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
 
         {/* Layout estilo Zillow: Mapa a la izquierda, lista a la derecha */}
         <div className="flex flex-col lg:flex-row h-[calc(100vh-140px)]">
-          {/* Mapa a la izquierda - 50% width */}
-          <div className="hidden lg:block lg:w-1/2 relative">
+          {/* Toggle móvil para cambiar entre mapa y lista */}
+          <div className="lg:hidden sticky top-0 z-20 bg-background border-b p-2">
+            <div className="flex gap-2">
+              <Button
+                variant={mobileView === 'list' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setMobileView('list')}
+                className="flex-1"
+              >
+                <ListIcon className="h-4 w-4 mr-2" />
+                Lista ({filteredProperties.length})
+              </Button>
+              <Button
+                variant={mobileView === 'map' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setMobileView('map')}
+                className="flex-1"
+              >
+                <MapIcon className="h-4 w-4 mr-2" />
+                Mapa
+              </Button>
+            </div>
+          </div>
+
+          {/* Mapa a la izquierda - 50% width en desktop, condicional en móvil */}
+          <div className={`relative ${mobileView === 'map' ? 'block' : 'hidden'} lg:block lg:w-1/2 h-[calc(100vh-200px)] lg:h-full`}>
             {/* Contador de resultados sobre el mapa */}
             <div className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border">
               <p className="text-sm font-medium">
@@ -1348,7 +1373,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
           </div>
 
           {/* Lista de propiedades a la derecha - 50% width con scroll */}
-          <div className="w-full lg:w-1/2 overflow-y-auto">
+          <div className={`w-full lg:w-1/2 overflow-y-auto ${mobileView === 'list' ? 'block' : 'hidden'} lg:block`}>
             <div className="p-4 space-y-4">
               {/* Stats */}
               <PropertyStats properties={filteredProperties} listingType={filters.listingType} />
