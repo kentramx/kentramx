@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
@@ -7,13 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DynamicBreadcrumbs } from "@/components/DynamicBreadcrumbs";
+import { PropertyImageGallery } from "@/components/PropertyImageGallery";
+import { PropertyMap } from "@/components/PropertyMap";
+import PropertyCard from "@/components/PropertyCard";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Loader2,
   Bed,
@@ -25,6 +28,13 @@ import {
   Phone,
   Mail,
   Heart,
+  Share2,
+  Copy,
+  MessageCircle,
+  Facebook,
+  Calendar,
+  Home,
+  Ruler,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
@@ -41,6 +51,9 @@ const PropertyDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [reviewsKey, setReviewsKey] = useState(0);
+  const [similarProperties, setSimilarProperties] = useState<any[]>([]);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
+  const [agentStats, setAgentStats] = useState<any>(null);
   const { toast } = useToast();
 
   const handleReviewSubmitted = () => {
@@ -206,10 +219,16 @@ const PropertyDetail = () => {
           .from("profiles")
           .select("*")
           .eq("id", propertyData.agent_id)
-          .single();
+          .maybeSingle();
 
-        setAgent(agentData);
+        if (agentData) {
+          setAgent(agentData);
+          fetchAgentStats(propertyData.agent_id);
+        }
       }
+
+      // Fetch similar properties
+      fetchSimilarProperties(propertyData);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -222,6 +241,92 @@ const PropertyDetail = () => {
     }
   };
 
+  const fetchSimilarProperties = async (currentProperty: any) => {
+    setLoadingSimilar(true);
+    try {
+      const priceRange = currentProperty.price * 0.2;
+      const minPrice = currentProperty.price - priceRange;
+      const maxPrice = currentProperty.price + priceRange;
+
+      const { data, error } = await supabase
+        .from("properties")
+        .select(`
+          *,
+          images (url)
+        `)
+        .eq("state", currentProperty.state)
+        .eq("municipality", currentProperty.municipality)
+        .neq("id", currentProperty.id)
+        .gte("price", minPrice)
+        .lte("price", maxPrice)
+        .limit(4);
+
+      if (error) throw error;
+      setSimilarProperties(data || []);
+    } catch (error) {
+      console.error("Error fetching similar properties:", error);
+    } finally {
+      setLoadingSimilar(false);
+    }
+  };
+
+  const fetchAgentStats = async (agentId: string) => {
+    try {
+      const { data: propertiesCount } = await supabase
+        .from("properties")
+        .select("id", { count: "exact" })
+        .eq("agent_id", agentId)
+        .eq("status", "activa");
+
+      const { data: reviewsData } = await supabase
+        .from("agent_reviews")
+        .select("rating")
+        .eq("agent_id", agentId);
+
+      const avgRating = reviewsData?.length
+        ? (reviewsData.reduce((acc, r) => acc + r.rating, 0) / reviewsData.length).toFixed(1)
+        : null;
+
+      setAgentStats({
+        activeProperties: propertiesCount?.length || 0,
+        avgRating,
+        totalReviews: reviewsData?.length || 0,
+      });
+    } catch (error) {
+      console.error("Error fetching agent stats:", error);
+    }
+  };
+
+  const handleShare = async (method: 'copy' | 'whatsapp' | 'facebook') => {
+    const url = window.location.href;
+    const text = `${property.title} - ${formatPrice(property.price)}`;
+
+    try {
+      switch (method) {
+        case 'copy':
+          await navigator.clipboard.writeText(url);
+          toast({
+            title: 'Enlace copiado',
+            description: 'El enlace ha sido copiado al portapapeles',
+          });
+          break;
+        case 'whatsapp':
+          window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, '_blank');
+          break;
+        case 'facebook':
+          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+          break;
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo compartir',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("es-MX", {
       style: "currency",
@@ -230,10 +335,39 @@ const PropertyDetail = () => {
     }).format(price);
   };
 
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString("es-MX", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-6">
+              <Skeleton className="aspect-video w-full rounded-lg" />
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-1/4" />
+                <Skeleton className="h-10 w-3/4" />
+                <Skeleton className="h-6 w-1/2" />
+              </div>
+              <div className="flex gap-6">
+                <Skeleton className="h-16 w-32" />
+                <Skeleton className="h-16 w-32" />
+                <Skeleton className="h-16 w-32" />
+              </div>
+              <Skeleton className="h-40 w-full" />
+            </div>
+            <div className="lg:col-span-1">
+              <Skeleton className="h-64 w-full rounded-lg" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -276,105 +410,188 @@ const PropertyDetail = () => {
             Volver
           </Button>
 
-          <Button
-            variant={isFavorite ? "default" : "outline"}
-            onClick={handleToggleFavorite}
-          >
-            <Heart
-              className={`mr-2 h-4 w-4 ${isFavorite ? "fill-current" : ""}`}
-            />
-            {isFavorite ? "Guardado" : "Guardar"}
-          </Button>
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleShare('copy')}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copiar enlace
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleShare('whatsapp')}>
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  WhatsApp
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleShare('facebook')}>
+                  <Facebook className="mr-2 h-4 w-4" />
+                  Facebook
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button
+              variant={isFavorite ? "default" : "outline"}
+              onClick={handleToggleFavorite}
+            >
+              <Heart
+                className={`mr-2 h-4 w-4 ${isFavorite ? "fill-current" : ""}`}
+              />
+              {isFavorite ? "Guardado" : "Guardar"}
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Main Content */}
           <div className="lg:col-span-2">
-            {/* Image Carousel */}
-            <Carousel className="mb-6">
-              <CarouselContent>
-                {images.map((url: string, index: number) => (
-                  <CarouselItem key={index}>
-                    <div className="aspect-[16/9] overflow-hidden rounded-lg">
-                      <img
-                        src={url}
-                        alt={`${property.title} - Imagen ${index + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              {images.length > 1 && (
-                <>
-                  <CarouselPrevious />
-                  <CarouselNext />
-                </>
-              )}
-            </Carousel>
+            {/* Image Gallery */}
+            <PropertyImageGallery
+              images={property.images || []}
+              title={property.title}
+              type={property.type}
+            />
 
             {/* Property Info */}
-            <div className="mb-6">
-              <div className="mb-4 flex items-start justify-between">
-                <div>
-                  <Badge className="mb-2">{property.type}</Badge>
-                  <h1 className="text-3xl font-bold">{property.title}</h1>
-                  <div className="mt-2 flex items-center text-muted-foreground">
-                    <MapPin className="mr-1 h-4 w-4" />
-                    <span>
+            <div className="mb-6 mt-6">
+              <div className="mb-4 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <Badge className="bg-primary text-primary-foreground">{property.type}</Badge>
+                    <Badge variant={property.listing_type === 'venta' ? 'default' : 'secondary'}>
+                      {property.listing_type === 'venta' ? 'En Venta' : 'En Renta'}
+                    </Badge>
+                  </div>
+                  <h1 className="text-2xl md:text-3xl font-bold mb-2">{property.title}</h1>
+                  <div className="flex items-center text-muted-foreground">
+                    <MapPin className="mr-1 h-4 w-4 flex-shrink-0" />
+                    <span className="text-sm md:text-base">
                       {property.address}, {property.municipality},{" "}
                       {property.state}
                     </span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-primary">
+                <div className="text-left md:text-right">
+                  <p className="text-2xl md:text-3xl font-bold text-primary">
                     {formatPrice(property.price)}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {property.listing_type === 'venta' ? 'Precio de venta' : 'Renta mensual'}
                   </p>
                 </div>
               </div>
 
               {/* Features */}
-              <div className="mb-6 flex gap-6 border-y border-border py-4">
+              <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
                 {property.bedrooms && (
-                  <div className="flex items-center gap-2">
-                    <Bed className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">{property.bedrooms}</span>
-                    <span className="text-muted-foreground">Recámaras</span>
-                  </div>
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                      <Bed className="h-8 w-8 text-primary mb-2" />
+                      <span className="text-2xl font-bold">{property.bedrooms}</span>
+                      <span className="text-sm text-muted-foreground">Recámaras</span>
+                    </CardContent>
+                  </Card>
                 )}
                 {property.bathrooms && (
-                  <div className="flex items-center gap-2">
-                    <Bath className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">{property.bathrooms}</span>
-                    <span className="text-muted-foreground">Baños</span>
-                  </div>
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                      <Bath className="h-8 w-8 text-primary mb-2" />
+                      <span className="text-2xl font-bold">{property.bathrooms}</span>
+                      <span className="text-sm text-muted-foreground">Baños</span>
+                    </CardContent>
+                  </Card>
                 )}
                 {property.parking && (
-                  <div className="flex items-center gap-2">
-                    <Car className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">{property.parking}</span>
-                    <span className="text-muted-foreground">
-                      Estacionamientos
-                    </span>
-                  </div>
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                      <Car className="h-8 w-8 text-primary mb-2" />
+                      <span className="text-2xl font-bold">{property.parking}</span>
+                      <span className="text-sm text-muted-foreground">Estacionamientos</span>
+                    </CardContent>
+                  </Card>
                 )}
                 {property.sqft && (
-                  <div className="flex items-center gap-2">
-                    <Maximize className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">{property.sqft} m²</span>
-                  </div>
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                      <Maximize className="h-8 w-8 text-primary mb-2" />
+                      <span className="text-2xl font-bold">{property.sqft}</span>
+                      <span className="text-sm text-muted-foreground">m² construidos</span>
+                    </CardContent>
+                  </Card>
                 )}
               </div>
 
               {/* Description */}
-              <div className="mb-6">
-                <h2 className="mb-3 text-2xl font-semibold">Descripción</h2>
-                <p className="whitespace-pre-line text-muted-foreground">
-                  {property.description ||
-                    "Esta propiedad no tiene descripción disponible."}
-                </p>
-              </div>
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Descripción</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="whitespace-pre-line text-muted-foreground">
+                    {property.description ||
+                      "Esta propiedad no tiene descripción disponible."}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Additional Details */}
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Detalles Adicionales</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {property.lot_size && (
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                        <Ruler className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">Tamaño del terreno</p>
+                          <p className="font-semibold">{property.lot_size} m²</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <Home className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Tipo de propiedad</p>
+                        <p className="font-semibold">{property.type}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <Calendar className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Publicado</p>
+                        <p className="font-semibold">{formatDate(property.created_at)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <Calendar className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Actualizado</p>
+                        <p className="font-semibold">{formatDate(property.updated_at)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Location Map */}
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Ubicación</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PropertyMap
+                    lat={property.lat}
+                    lng={property.lng}
+                    address={`${property.address}, ${property.municipality}, ${property.state}`}
+                    height="400px"
+                  />
+                </CardContent>
+              </Card>
 
               {/* Agent Reviews */}
               {agent && (
@@ -402,36 +619,72 @@ const PropertyDetail = () => {
               <CardContent>
                 {agent ? (
                   <div className="space-y-4">
-                    <div>
-                      <button
-                        onClick={() => navigate(`/agente/${agent.id}`)}
-                        className="font-semibold hover:text-primary transition-colors text-left"
-                      >
-                        {agent.name}
-                      </button>
-                      {agent.is_verified && (
-                        <Badge variant="secondary" className="mt-1">
-                          Verificado
-                        </Badge>
-                      )}
+                    <div className="flex items-center gap-3 pb-4 border-b">
+                      <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-primary">
+                          {agent.name?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <button
+                          onClick={() => navigate(`/agente/${agent.id}`)}
+                          className="font-semibold text-lg hover:text-primary transition-colors text-left"
+                        >
+                          {agent.name}
+                        </button>
+                        <div className="flex items-center gap-2 mt-1">
+                          {agent.is_verified && (
+                            <Badge variant="secondary" className="text-xs">
+                              Verificado
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
+                    {agentStats && (
+                      <div className="grid grid-cols-2 gap-3 pb-4 border-b">
+                        <div className="text-center p-3 rounded-lg bg-muted/50">
+                          <p className="text-2xl font-bold text-primary">{agentStats.activeProperties}</p>
+                          <p className="text-xs text-muted-foreground">Propiedades</p>
+                        </div>
+                        {agentStats.avgRating && (
+                          <div className="text-center p-3 rounded-lg bg-muted/50">
+                            <p className="text-2xl font-bold text-primary">⭐ {agentStats.avgRating}</p>
+                            <p className="text-xs text-muted-foreground">{agentStats.totalReviews} reseñas</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {agent.phone && (
-                      <Button className="w-full" variant="outline">
-                        <Phone className="mr-2 h-4 w-4" />
-                        {agent.phone}
+                      <Button 
+                        className="w-full" 
+                        variant="outline"
+                        onClick={() => window.open(`https://wa.me/${agent.phone.replace(/\D/g, '')}`, '_blank')}
+                      >
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                        WhatsApp
                       </Button>
                     )}
 
                     <Button 
-                      className="w-full bg-secondary hover:bg-secondary/90"
+                      className="w-full"
                       onClick={handleSendMessage}
                     >
                       <Mail className="mr-2 h-4 w-4" />
                       Enviar Mensaje
                     </Button>
 
-                    <p className="text-xs text-muted-foreground">
+                    <Button 
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => navigate(`/agente/${agent.id}`)}
+                    >
+                      Ver Perfil Completo
+                    </Button>
+
+                    <p className="text-xs text-muted-foreground text-center pt-2">
                       Al contactar al agente, aceptas compartir tu información
                       de contacto.
                     </p>
@@ -445,6 +698,43 @@ const PropertyDetail = () => {
             </Card>
           </div>
         </div>
+
+        {/* Similar Properties */}
+        {similarProperties.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-semibold mb-6">Propiedades Similares</h2>
+            {loadingSimilar ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-80 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {similarProperties.map((similar) => (
+                  <PropertyCard
+                    key={similar.id}
+                    id={similar.id}
+                    title={similar.title}
+                    address={similar.address}
+                    municipality={similar.municipality}
+                    state={similar.state}
+                    price={similar.price}
+                    bedrooms={similar.bedrooms}
+                    bathrooms={similar.bathrooms}
+                    parking={similar.parking}
+                    sqft={similar.sqft}
+                    type={similar.type}
+                    listingType={similar.listing_type}
+                    imageUrl={similar.images?.[0]?.url || propertyPlaceholder}
+                    isFavorite={false}
+                    onToggleFavorite={() => {}}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
