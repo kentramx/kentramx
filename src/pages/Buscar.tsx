@@ -178,6 +178,8 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   const [hoveredProperty, setHoveredProperty] = useState<Property | null>(null);
   const propertyCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const hoverFromMap = useRef(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PROPERTIES_PER_PAGE = 20;
 
   const filteredSavedSearches = savedSearches
     .filter(search => 
@@ -216,6 +218,11 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       precioMax: ''
     }));
   }, [filters.listingType]);
+
+  // Reiniciar a página 1 cuando cambien los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, searchCoordinates]);
 
   useEffect(() => {
     if (user) {
@@ -1394,42 +1401,121 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {filteredProperties.map((property) => (
-                    <div
-                      key={property.id}
-                      ref={(el) => {
-                        if (el) {
-                          propertyCardRefs.current.set(property.id, el);
-                        } else {
-                          propertyCardRefs.current.delete(property.id);
-                        }
-                      }}
-                      onMouseEnter={() => {
-                        hoverFromMap.current = false;
-                        setHoveredProperty(property);
-                      }}
-                      onMouseLeave={() => setHoveredProperty(null)}
-                    >
-                      <PropertyCard
-                        id={property.id}
-                        title={property.title}
-                        price={property.price}
-                        type={property.type}
-                        listingType={property.listing_type}
-                        address={property.address}
-                        municipality={property.municipality}
-                        state={property.state}
-                        bedrooms={property.bedrooms || undefined}
-                        bathrooms={property.bathrooms || undefined}
-                        parking={property.parking || undefined}
-                        sqft={property.sqft || undefined}
-                        imageUrl={property.images?.[0]?.url}
-                        isHovered={hoveredProperty?.id === property.id}
-                      />
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {(() => {
+                      const startIndex = (currentPage - 1) * PROPERTIES_PER_PAGE;
+                      const endIndex = startIndex + PROPERTIES_PER_PAGE;
+                      const paginatedProperties = filteredProperties.slice(startIndex, endIndex);
+                      
+                      return paginatedProperties.map((property) => (
+                        <div
+                          key={property.id}
+                          ref={(el) => {
+                            if (el) {
+                              propertyCardRefs.current.set(property.id, el);
+                            } else {
+                              propertyCardRefs.current.delete(property.id);
+                            }
+                          }}
+                          onMouseEnter={() => {
+                            hoverFromMap.current = false;
+                            setHoveredProperty(property);
+                          }}
+                          onMouseLeave={() => setHoveredProperty(null)}
+                        >
+                          <PropertyCard
+                            id={property.id}
+                            title={property.title}
+                            price={property.price}
+                            type={property.type}
+                            listingType={property.listing_type}
+                            address={property.address}
+                            municipality={property.municipality}
+                            state={property.state}
+                            bedrooms={property.bedrooms || undefined}
+                            bathrooms={property.bathrooms || undefined}
+                            parking={property.parking || undefined}
+                            sqft={property.sqft || undefined}
+                            imageUrl={property.images?.[0]?.url}
+                            isHovered={hoveredProperty?.id === property.id}
+                          />
+                        </div>
+                      ));
+                    })()}
+                  </div>
+
+                  {/* Paginación */}
+                  {filteredProperties.length > PROPERTIES_PER_PAGE && (
+                    <div className="flex items-center justify-center gap-2 py-6">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCurrentPage(prev => Math.max(1, prev - 1));
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronDown className="h-4 w-4 rotate-90" />
+                        Anterior
+                      </Button>
+                      
+                      <div className="flex items-center gap-1">
+                        {(() => {
+                          const totalPages = Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE);
+                          const pages = [];
+                          
+                          // Mostrar siempre primera página
+                          pages.push(1);
+                          
+                          // Páginas alrededor de la actual
+                          if (currentPage > 3) pages.push('...');
+                          
+                          for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+                            pages.push(i);
+                          }
+                          
+                          // Mostrar siempre última página
+                          if (currentPage < totalPages - 2) pages.push('...');
+                          if (totalPages > 1) pages.push(totalPages);
+                          
+                          return pages.map((page, idx) => 
+                            page === '...' ? (
+                              <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+                            ) : (
+                              <Button
+                                key={page}
+                                variant={currentPage === page ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => {
+                                  setCurrentPage(page as number);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                className="min-w-[2.5rem]"
+                              >
+                                {page}
+                              </Button>
+                            )
+                          );
+                        })()}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCurrentPage(prev => Math.min(Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE), prev + 1));
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        disabled={currentPage === Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE)}
+                      >
+                        Siguiente
+                        <ChevronDown className="h-4 w-4 -rotate-90" />
+                      </Button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
 
               {/* Búsquedas guardadas expandido */}
