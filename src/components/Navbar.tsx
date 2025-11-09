@@ -28,6 +28,13 @@ const Navbar = () => {
 
   const handleListingTypeChange = (newListingType: "venta" | "renta") => {
     const params = new URLSearchParams(searchParams);
+    
+    // Si estamos cambiando al tipo que ya está activo, no hacer nada
+    const currentType = listingType || "venta"; // Por defecto "venta"
+    if (currentType === newListingType && params.has("listingType")) {
+      return;
+    }
+    
     params.set("listingType", newListingType);
     navigate(`/buscar?${params.toString()}`);
   };
@@ -39,9 +46,9 @@ const Navbar = () => {
           {/* Left Navigation - Desktop */}
           <div className="hidden md:flex items-center gap-1">
             <Button 
-              variant={listingType === "venta" ? "default" : "ghost"} 
+              variant={(listingType === "venta" || !listingType) ? "default" : "ghost"} 
               size="sm"
-              className={listingType === "venta" ? "shadow-sm" : ""}
+              className={(listingType === "venta" || !listingType) ? "shadow-sm" : ""}
               onClick={() => handleListingTypeChange("venta")}
             >
               Comprar
