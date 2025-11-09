@@ -7,6 +7,7 @@ import { Search, MapPin, Home as HomeIcon, Building2, TreePine, ArrowRight, Slid
 import Navbar from "@/components/Navbar";
 import heroBackground from "@/assets/hero-background.jpg";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
+import { SearchBar } from "@/components/SearchBar";
 import { supabase } from "@/integrations/supabase/client";
 import PropertyCard from "@/components/PropertyCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -345,24 +346,12 @@ const Home = () => {
                 </TabsList>
                 
                 <TabsContent value="search" className="mt-4">
-                  <div className="flex gap-1 rounded-lg bg-white p-2 shadow-2xl w-full max-w-3xl mx-auto">
-                    <div className="flex items-center flex-1 min-w-0">
-                      <PlaceAutocomplete
-                        onPlaceSelect={handlePlaceSelect}
-                        placeholder="Ciudad, colonia o código postal"
-                        defaultValue={searchQuery}
-                        showIcon={true}
-                      />
-                    </div>
-                    <Button
-                      onClick={handleSearch}
-                      size="lg"
-                      className="bg-secondary hover:bg-secondary/90 shrink-0"
-                    >
-                      <Search className="mr-2 h-5 w-5" />
-                      Buscar
-                    </Button>
-                  </div>
+                  <SearchBar
+                    onPlaceSelect={handlePlaceSelect}
+                    onSearch={handleSearch}
+                    placeholder="Ciudad, colonia o código postal"
+                    defaultValue={searchQuery}
+                  />
                 </TabsContent>
                 
                 <TabsContent value="map" className="mt-4">

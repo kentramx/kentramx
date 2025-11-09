@@ -21,6 +21,7 @@ interface PlaceAutocompleteProps {
   label?: string;
   showIcon?: boolean;
   id?: string;
+  unstyled?: boolean;
 }
 
 declare global {
@@ -38,7 +39,8 @@ export const PlaceAutocomplete = ({
   placeholder = 'Escribe para buscar dirección...',
   label,
   showIcon = true,
-  id = 'place-autocomplete'
+  id = 'place-autocomplete',
+  unstyled = false
 }: PlaceAutocompleteProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const webComponentContainerRef = useRef<HTMLDivElement>(null);
@@ -117,8 +119,9 @@ export const PlaceAutocomplete = ({
         placeAutocomplete.style.maxWidth = 'none';
         placeAutocomplete.style.boxSizing = 'border-box';
 
-        const baseClasses =
-          'h-12 w-full rounded-full border-2 border-primary/60 bg-background px-5 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 ring-offset-background disabled:cursor-not-allowed disabled:opacity-50';
+        const baseClasses = unstyled
+          ? 'h-12 w-full bg-transparent px-5 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50'
+          : 'h-12 w-full rounded-full border-2 border-primary/60 bg-background px-5 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 ring-offset-background disabled:cursor-not-allowed disabled:opacity-50';
         placeAutocomplete.className = showIcon ? `${baseClasses} pl-12` : baseClasses;
         
         if (placeholder) placeAutocomplete.placeholder = placeholder;
@@ -343,11 +346,13 @@ export const PlaceAutocomplete = ({
             type="text"
             placeholder={placeholder}
             defaultValue={defaultValue}
-              className={showIcon 
-                ? 'h-12 w-full rounded-full border-2 border-primary/60 bg-background px-5 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 pl-12'
-                : 'h-12 w-full rounded-full border-2 border-primary/60 bg-background px-5 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 ring-offset-background disabled:cursor-not-allowed disabled:opacity-50'
-              }
-          />
+              className={(() => {
+                const base = unstyled
+                  ? 'h-12 w-full bg-transparent px-5 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50'
+                  : 'h-12 w-full rounded-full border-2 border-primary/60 bg-background px-5 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 ring-offset-background disabled:cursor-not-allowed disabled:opacity-50';
+                return showIcon ? `${base} pl-12` : base;
+              })()}
+            />
         )}
       </div>
     </div>

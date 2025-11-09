@@ -109,6 +109,7 @@ export function HeaderSearchBar() {
                 onPlaceSelect={handlePlaceSelect}
                 placeholder="Buscar ubicación..."
                 defaultValue={searchText}
+                unstyled
               />
             </div>
 
