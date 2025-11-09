@@ -316,8 +316,12 @@ const Buscar = () => {
       params.set('lng', searchCoordinates.lng.toString());
     }
 
-    setSearchParams(params, { replace: true });
-  }, [filters, searchCoordinates, setSearchParams]);
+    const next = params.toString();
+    const current = searchParams.toString();
+    if (next !== current) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [filters, searchCoordinates, searchParams, setSearchParams]);
 
   useEffect(() => {
     const fetchProperties = async () => {
