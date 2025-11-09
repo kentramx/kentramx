@@ -6,7 +6,7 @@ import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import PropertyForm from '@/components/PropertyForm';
 import AgentPropertyList from '@/components/AgentPropertyList';
@@ -94,9 +94,46 @@ const AgentDashboard = () => {
     setActiveTab('form');
   };
 
-  const handleNewProperty = () => {
-    setEditingProperty(null);
-    setActiveTab('form');
+  const handleNewProperty = async () => {
+    if (!user) return;
+
+    try {
+      // Validar si puede crear propiedades
+      const { data: validation, error } = await supabase.rpc('can_create_property', {
+        user_uuid: user.id,
+      });
+
+      if (error) throw error;
+
+      if (!validation || !validation[0]?.can_create) {
+        toast({
+          title: 'Límite alcanzado',
+          description: validation?.[0]?.reason || 'No puedes publicar más propiedades',
+          variant: 'destructive',
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/pricing')}
+            >
+              Ver Planes
+            </Button>
+          ),
+        });
+        return;
+      }
+
+      // Puede crear - mostrar formulario
+      setEditingProperty(null);
+      setActiveTab('form');
+    } catch (error) {
+      console.error('Error validating property creation:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo validar el límite de propiedades',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (authLoading || loading) {

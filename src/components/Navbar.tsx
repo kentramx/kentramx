@@ -84,6 +84,12 @@ const Navbar = () => {
             </Link>
             {user ? (
               <>
+                <Link to="/elige-rol-publicacion">
+                  <Button size="sm" className="shadow-sm">
+                    <Building className="h-4 w-4 mr-2" />
+                    Publicar Propiedad
+                  </Button>
+                </Link>
                 <MessageBadge />
                 <Link to="/favoritos">
                   <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -156,6 +162,13 @@ const Navbar = () => {
           {/* Mobile Navigation */}
           <div className="flex md:hidden items-center gap-2">
             <MobileMenu />
+            {user && (
+              <Link to="/elige-rol-publicacion">
+                <Button size="icon" variant="default" className="h-9 w-9 shadow-sm">
+                  <Building className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
             {user ? (
               <>
                 <MessageBadge />

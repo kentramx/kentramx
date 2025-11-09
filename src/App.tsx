@@ -21,6 +21,8 @@ import InstallPWA from "./pages/InstallPWA";
 import SetupDemo from "./pages/SetupDemo";
 import NotFound from "./pages/NotFound";
 import MapPreloader from "@/components/MapPreloader";
+import EligeRolPublicacion from "./pages/EligeRolPublicacion";
+import Pricing from "./pages/Pricing";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +50,8 @@ const App = () => (
               <Route path="/instalar" element={<InstallPWA />} />
               <Route path="/setup-demo" element={<SetupDemo />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/elige-rol-publicacion" element={<EligeRolPublicacion />} />
+              <Route path="/pricing" element={<Pricing />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
