@@ -93,7 +93,22 @@ const Home = () => {
   };
   const handleSearch = () => {
     const params = new URLSearchParams();
-    params.set('listingType', listingType);
+    
+    // Detectar si hay filtros activos
+    const hasLocation = selectedLocation?.state || selectedLocation?.municipality;
+    const hasPropertyType = propertyType && propertyType !== 'all';
+    const hasAdvancedFilters = priceMin || priceMax || 
+                               (bedrooms && bedrooms !== 'all') || 
+                               (bathrooms && bathrooms !== 'all') || 
+                               (parking && parking !== 'all');
+    
+    const hasAnyFilter = hasLocation || hasPropertyType || hasAdvancedFilters;
+    
+    // Solo agregar listingType si hay filtros activos
+    if (hasAnyFilter) {
+      params.set('listingType', listingType);
+    }
+    
     if (propertyType && propertyType !== 'all') params.set('tipo', propertyType);
     
     // Usar la ubicación seleccionada del autocomplete si existe
@@ -107,7 +122,10 @@ const Home = () => {
     if (bedrooms && bedrooms !== 'all') params.set('recamaras', bedrooms);
     if (bathrooms && bathrooms !== 'all') params.set('banos', bathrooms);
     if (parking && parking !== 'all') params.set('estacionamiento', parking);
-    navigate(`/buscar?${params.toString()}`);
+    
+    // Navegar con o sin parámetros
+    const queryString = params.toString();
+    navigate(queryString ? `/buscar?${queryString}` : '/buscar');
   };
   useEffect(() => {
     const fetchFeaturedProperties = async () => {
