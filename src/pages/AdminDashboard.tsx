@@ -17,6 +17,7 @@ import Navbar from '@/components/Navbar';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
 import QualityChecklist from '@/components/QualityChecklist';
 import PropertyDiff from '@/components/PropertyDiff';
+import AdminModerationMetrics from '@/components/AdminModerationMetrics';
 
 const REJECTION_REASONS = [
   { code: 'incomplete_info', label: 'Información incompleta' },
@@ -379,6 +380,9 @@ const AdminDashboard = () => {
             <TabsTrigger value="old">
               Antiguas ({metrics.old})
             </TabsTrigger>
+            <TabsTrigger value="metrics">
+              Métricas y Tendencias
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value={activeTab} className="space-y-4">
@@ -464,6 +468,10 @@ const AdminDashboard = () => {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="metrics">
+            <AdminModerationMetrics />
           </TabsContent>
         </Tabs>
       </div>
