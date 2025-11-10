@@ -48,11 +48,24 @@ const AgentCard = ({
     return "bg-secondary text-secondary-foreground";
   };
 
+  const isFeatured = () => {
+    if (!plan_level) return false;
+    return plan_level.includes('elite') || plan_level.includes('pro') || plan_level.includes('grow');
+  };
+
   const linkTo = type === 'agency' ? `/agencia/${id}` : `/agente/${id}`;
 
   return (
-    <Card className="group overflow-hidden transition-all hover:shadow-lg hover:scale-[1.02]">
-      <CardContent className="p-6">
+    <Card className={`group overflow-hidden transition-all hover:shadow-lg hover:scale-[1.02] ${isFeatured() ? 'ring-2 ring-primary' : ''}`}>
+      <CardContent className="p-6 relative">
+        {isFeatured() && (
+          <div className="absolute top-2 right-2 z-10">
+            <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white border-0 shadow-md">
+              ⭐ Destacado
+            </Badge>
+          </div>
+        )}
+        
         <Link to={linkTo} className="block">
           <div className="flex items-start gap-4 mb-4">
             <Avatar className="h-16 w-16 border-2 border-border">

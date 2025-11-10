@@ -196,8 +196,24 @@ const DirectorioAgentes = () => {
         });
       }
 
-      // Apply sorting
+      // Función para determinar el nivel del plan
+      const getPlanLevel = (planLevel: string | null) => {
+        if (!planLevel) return 0;
+        if (planLevel.includes('elite')) return 3;
+        if (planLevel.includes('pro') || planLevel.includes('grow')) return 2;
+        if (planLevel.includes('basico') || planLevel.includes('start')) return 1;
+        return 0;
+      };
+
+      // Apply sorting - prioritize by plan level first
       combinedData.sort((a, b) => {
+        const aLevel = getPlanLevel(a.plan_level);
+        const bLevel = getPlanLevel(b.plan_level);
+        
+        // First sort by plan level (featured agents first)
+        if (aLevel !== bLevel) return bLevel - aLevel;
+        
+        // Then apply secondary sorting
         if (sortBy === "active") {
           return b.active_properties - a.active_properties;
         }
