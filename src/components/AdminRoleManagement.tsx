@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Shield, UserCog, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Loader2, Shield, UserCog, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AdminUser {
@@ -44,7 +44,7 @@ export const AdminRoleManagement = ({ currentUserId, isSuperAdmin }: AdminRoleMa
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role, granted_at, granted_by')
-        .in('role', ['super_admin', 'moderator', 'admin'] as any)
+        .in('role', ['super_admin', 'moderator'] as any)
         .order('granted_at', { ascending: false });
 
       if (rolesError) throw rolesError;
@@ -161,8 +161,6 @@ export const AdminRoleManagement = ({ currentUserId, isSuperAdmin }: AdminRoleMa
         return 'Super Admin';
       case 'moderator':
         return 'Moderador';
-      case 'admin':
-        return 'Admin';
       default:
         return role;
     }
@@ -174,8 +172,6 @@ export const AdminRoleManagement = ({ currentUserId, isSuperAdmin }: AdminRoleMa
         return <Badge className="bg-purple-600">Super Admin</Badge>;
       case 'moderator':
         return <Badge variant="secondary">Moderador</Badge>;
-      case 'admin':
-        return <Badge variant="outline">Admin</Badge>;
       default:
         return <Badge>{role}</Badge>;
     }
@@ -254,12 +250,6 @@ export const AdminRoleManagement = ({ currentUserId, isSuperAdmin }: AdminRoleMa
                       Moderador
                     </div>
                   </SelectItem>
-                  <SelectItem value="admin">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4" />
-                      Admin
-                    </div>
-                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -287,9 +277,6 @@ export const AdminRoleManagement = ({ currentUserId, isSuperAdmin }: AdminRoleMa
               </li>
               <li>
                 <strong>Moderador:</strong> Moderación de contenido, soporte al cliente, sin acceso a datos financieros.
-              </li>
-              <li>
-                <strong>Admin:</strong> Permisos administrativos básicos (legacy, usar Moderador para nuevos roles).
               </li>
             </ul>
           </div>
