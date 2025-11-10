@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Check } from 'lucide-react';
+import { Check, Calendar, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Plan {
@@ -35,8 +35,9 @@ const PLANS: Plan[] = [
     price_yearly: 3150,
     category: 'agent',
     features: [
-      'Hasta 4 propiedades activas',
-      'Renovación sin caducar',
+      '4 propiedades activas simultáneas',
+      'Renovación mensual (1 click, sin caducar)',
+      'Rotación ilimitada: publica más al vender/rentar',
       'Página básica',
       'Leads directo a WhatsApp',
       '1 propiedad destacada al mes'
@@ -52,7 +53,9 @@ const PLANS: Plan[] = [
     category: 'agent',
     is_popular: true,
     features: [
-      'Hasta 10 propiedades activas',
+      '10 propiedades activas simultáneas',
+      'Renovación mensual (1 click, sin caducar)',
+      'Rotación ilimitada: publica más al vender/rentar',
       'Página profesional',
       'Autopublicación Facebook e Instagram',
       'Leads directo a WhatsApp',
@@ -68,7 +71,9 @@ const PLANS: Plan[] = [
     price_yearly: 14256,
     category: 'agent',
     features: [
-      'Hasta 20 propiedades activas',
+      '20 propiedades activas simultáneas',
+      'Renovación mensual (1 click, sin caducar)',
+      'Rotación ilimitada: publica más al vender/rentar',
       'Presencia premium + branding',
       'Autopublicación optimizada',
       '6 propiedades destacadas al mes',
@@ -86,7 +91,9 @@ const PLANS: Plan[] = [
     category: 'agency',
     features: [
       'Hasta 5 agentes',
-      '50 propiedades activas',
+      '50 propiedades activas simultáneas',
+      'Renovación mensual (1 click, sin caducar)',
+      'Rotación ilimitada por agente',
       'Inventario en pool compartido',
       'Sitio inmobiliaria',
       'Páginas por agente',
@@ -104,7 +111,9 @@ const PLANS: Plan[] = [
     is_popular: true,
     features: [
       'Hasta 10 agentes',
-      '120 propiedades activas',
+      '120 propiedades activas simultáneas',
+      'Renovación mensual (1 click, sin caducar)',
+      'Rotación ilimitada por agente',
       'Inventario en pool compartido',
       'Métricas de equipo',
       'Prioridad de visibilidad',
@@ -121,7 +130,9 @@ const PLANS: Plan[] = [
     category: 'agency',
     features: [
       'Hasta 20 agentes',
-      '250 propiedades activas',
+      '250 propiedades activas simultáneas',
+      'Renovación mensual (1 click, sin caducar)',
+      'Rotación ilimitada por agente',
       'Roles y permisos',
       'Visibilidad preferencial',
       'Acompañamiento dedicado',
@@ -242,6 +253,30 @@ const Pricing = () => {
                 ? 'Selecciona un plan para comenzar a publicar propiedades'
                 : 'Planes flexibles para cada tipo de usuario'}
             </p>
+
+            {/* Banner explicativo del sistema de publicación */}
+            <Card className="mb-8 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="bg-primary text-primary-foreground p-2 rounded-lg shrink-0">
+                    <Calendar className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                      <Info className="h-5 w-5" />
+                      Sistema de Publicación Mensual
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Cada plan incluye un número de <strong>propiedades activas simultáneas</strong>. 
+                      Tus propiedades <strong>NO caducan</strong> mientras las renueves cada mes con un simple click. 
+                      Cuando vendas o rentes una propiedad, <strong>liberas ese espacio</strong> para publicar otra nueva. 
+                      Con rotación normal, podrías publicar <strong>30+ propiedades al año</strong> aunque tu plan 
+                      tenga 4 slots activos.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Toggle Mensual/Anual */}
             <div className="flex flex-col items-center justify-center gap-3">
@@ -514,6 +549,34 @@ const Pricing = () => {
                     Sí, emitimos facturas electrónicas automáticamente después de cada pago. Puedes
                     descargarlas desde tu panel de usuario.
                   </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">¿Cómo funciona el sistema de propiedades activas?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 text-muted-foreground text-sm">
+                    <p>
+                      <strong className="text-foreground">Propiedades activas simultáneas:</strong> Es el número máximo de propiedades 
+                      que puedes tener publicadas al mismo tiempo. Por ejemplo, el plan Básico permite 
+                      4 propiedades activas.
+                    </p>
+                    <p>
+                      <strong className="text-foreground">Renovación mensual:</strong> Cada mes debes renovar tus propiedades con un 
+                      simple click. Mientras las renueves, permanecen activas sin límite de tiempo.
+                    </p>
+                    <p>
+                      <strong className="text-foreground">¿Qué pasa si no renuevo?</strong> Si no renuevas una propiedad en 30 días, 
+                      se elimina automáticamente del sistema.
+                    </p>
+                    <p>
+                      <strong className="text-foreground">Rotación natural:</strong> Cuando vendes o rentas una propiedad, ese espacio 
+                      se libera y puedes publicar otra nueva. Con un plan de 4 propiedades y rotación normal, 
+                      podrías publicar 20-30+ propiedades durante un año.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </div>
