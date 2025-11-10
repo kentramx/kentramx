@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -43,11 +44,15 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAdmin, isSuperAdmin, adminRole, loading: adminLoading } = useAdminCheck();
   
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('new');
+  
+  // Leer la pestaña activa de la URL (si existe) o usar 'new' por defecto
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'new');
   
   const [rejectProperty, setRejectProperty] = useState<any>(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -77,6 +82,14 @@ const AdminDashboard = () => {
       });
     }
   }, [isAdmin, adminLoading, navigate]);
+
+  // Sincronizar activeTab con el parámetro tab de la URL
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (isAdmin) {

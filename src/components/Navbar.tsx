@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Home, Heart, User, PlusCircle, LogOut, Search, Building, GitCompare, Settings } from "lucide-react";
+import { Home, Heart, User, PlusCircle, LogOut, Search, Building, GitCompare, Settings, DollarSign } from "lucide-react";
 import { MessageBadge } from "./MessageBadge";
 import { MobileMenu } from "./MobileMenu";
 import { ThemeToggle } from "./ThemeToggle";
@@ -26,7 +26,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const listingType = searchParams.get("listingType");
   const { compareList } = usePropertyCompare();
-  const { isAdmin } = useAdminCheck();
+  const { isAdmin, isSuperAdmin } = useAdminCheck();
 
   const getUserInitials = () => {
     if (!user?.email) return "U";
@@ -139,6 +139,14 @@ const Navbar = () => {
                             Panel de Moderación
                           </DropdownMenuItem>
                         </Link>
+                        {isSuperAdmin && (
+                          <Link to="/admin/dashboard?tab=financiero">
+                            <DropdownMenuItem className="cursor-pointer">
+                              <DollarSign className="mr-2 h-4 w-4 text-green-600" />
+                              Panel Financiero
+                            </DropdownMenuItem>
+                          </Link>
+                        )}
                         <Link to="/admin/subscription-changes">
                           <DropdownMenuItem className="cursor-pointer">
                             <Badge className="mr-2 bg-purple-600">Admin</Badge>
@@ -240,6 +248,14 @@ const Navbar = () => {
                             Panel de Moderación
                           </DropdownMenuItem>
                         </Link>
+                        {isSuperAdmin && (
+                          <Link to="/admin/dashboard?tab=financiero">
+                            <DropdownMenuItem className="cursor-pointer">
+                              <DollarSign className="mr-2 h-4 w-4 text-green-600" />
+                              Panel Financiero
+                            </DropdownMenuItem>
+                          </Link>
+                        )}
                         <Link to="/admin/subscription-changes">
                           <DropdownMenuItem className="cursor-pointer">
                             <Badge className="mr-2 bg-purple-600">Admin</Badge>
