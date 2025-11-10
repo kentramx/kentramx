@@ -31,14 +31,13 @@ const EligeRolPublicacion = () => {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [limitMessage, setLimitMessage] = useState('');
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth?redirect=/elige-rol-publicacion');
-    }
-  }, [user, authLoading, navigate]);
-
   const handleRoleSelection = async (targetRole: RoleOption) => {
-    if (!user) return;
+    // Si no hay usuario, guardar selección y redirigir a auth
+    if (!user) {
+      localStorage.setItem('pendingRoleSelection', targetRole);
+      navigate(`/auth?redirect=/elige-rol-publicacion&role=${targetRole}`);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -109,14 +108,6 @@ const EligeRolPublicacion = () => {
       setLoading(false);
     }
   };
-
-  if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   const roleOptions = [
     {

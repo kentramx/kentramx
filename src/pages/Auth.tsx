@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,11 +33,29 @@ const Auth = () => {
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already logged in
+  const redirect = searchParams.get('redirect');
+  const pendingRole = searchParams.get('role');
+
+  // Process pending role selection after successful auth
+  useEffect(() => {
+    if (user && redirect) {
+      const storedRole = localStorage.getItem('pendingRoleSelection');
+      if (storedRole) {
+        localStorage.removeItem('pendingRoleSelection');
+        // User is authenticated and has a pending role, redirect to process it
+        navigate(redirect);
+      } else {
+        navigate(redirect);
+      }
+    } else if (user) {
+      navigate('/');
+    }
+  }, [user, redirect, navigate]);
+
   if (user) {
-    navigate('/');
     return null;
   }
 
@@ -78,9 +96,10 @@ const Auth = () => {
           variant: 'destructive',
         });
       } else {
+        const roleText = pendingRole === 'buyer' ? 'particular' : pendingRole === 'agent' ? 'agente' : 'agencia';
         toast({
           title: 'Bienvenido',
-          description: 'Has iniciado sesión correctamente',
+          description: pendingRole ? `Continuemos con tu publicación como ${roleText}` : 'Has iniciado sesión correctamente',
         });
       }
     } catch (error) {
@@ -133,9 +152,10 @@ const Auth = () => {
         });
       } else {
         const roleText = role === 'agent' ? 'agente inmobiliario' : role === 'agency' ? 'agencia inmobiliaria' : 'comprador';
+        const actionText = pendingRole ? 'Continuemos con tu publicación' : 'Tu cuenta ha sido creada exitosamente';
         toast({
           title: '¡Cuenta creada!',
-          description: `Tu cuenta como ${roleText} ha sido creada exitosamente`,
+          description: `${roleText} - ${actionText}`,
         });
       }
     } catch (error) {
