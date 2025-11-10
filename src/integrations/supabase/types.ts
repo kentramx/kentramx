@@ -410,6 +410,75 @@ export type Database = {
           },
         ]
       }
+      image_ai_analysis: {
+        Row: {
+          ai_notes: string | null
+          analyzed_at: string
+          composition_score: number | null
+          created_at: string
+          detected_issues: string[] | null
+          id: string
+          image_id: string
+          is_blurry: boolean | null
+          is_dark: boolean | null
+          is_inappropriate: boolean | null
+          is_manipulated: boolean | null
+          lighting_score: number | null
+          property_id: string
+          quality_score: number | null
+          resolution_score: number | null
+        }
+        Insert: {
+          ai_notes?: string | null
+          analyzed_at?: string
+          composition_score?: number | null
+          created_at?: string
+          detected_issues?: string[] | null
+          id?: string
+          image_id: string
+          is_blurry?: boolean | null
+          is_dark?: boolean | null
+          is_inappropriate?: boolean | null
+          is_manipulated?: boolean | null
+          lighting_score?: number | null
+          property_id: string
+          quality_score?: number | null
+          resolution_score?: number | null
+        }
+        Update: {
+          ai_notes?: string | null
+          analyzed_at?: string
+          composition_score?: number | null
+          created_at?: string
+          detected_issues?: string[] | null
+          id?: string
+          image_id?: string
+          is_blurry?: boolean | null
+          is_dark?: boolean | null
+          is_inappropriate?: boolean | null
+          is_manipulated?: boolean | null
+          lighting_score?: number | null
+          property_id?: string
+          quality_score?: number | null
+          resolution_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "image_ai_analysis_image_id_fkey"
+            columns: ["image_id"]
+            isOneToOne: false
+            referencedRelation: "images"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "image_ai_analysis_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       images: {
         Row: {
           created_at: string | null
@@ -664,7 +733,11 @@ export type Database = {
           created_at: string | null
           description: string | null
           expires_at: string | null
+          has_inappropriate_images: boolean | null
+          has_manipulated_images: boolean | null
           id: string
+          images_analyzed_count: number | null
+          images_quality_avg: number | null
           last_renewed_at: string | null
           lat: number | null
           listing_type: string
@@ -698,7 +771,11 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           expires_at?: string | null
+          has_inappropriate_images?: boolean | null
+          has_manipulated_images?: boolean | null
           id?: string
+          images_analyzed_count?: number | null
+          images_quality_avg?: number | null
           last_renewed_at?: string | null
           lat?: number | null
           listing_type?: string
@@ -732,7 +809,11 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           expires_at?: string | null
+          has_inappropriate_images?: boolean | null
+          has_manipulated_images?: boolean | null
           id?: string
+          images_analyzed_count?: number | null
+          images_quality_avg?: number | null
           last_renewed_at?: string | null
           lat?: number | null
           listing_type?: string
@@ -1232,6 +1313,10 @@ export type Database = {
     }
     Functions: {
       auto_assign_badges: { Args: { p_user_id: string }; Returns: undefined }
+      calculate_property_images_score: {
+        Args: { p_property_id: string }
+        Returns: number
+      }
       can_create_property: {
         Args: { user_uuid: string }
         Returns: {

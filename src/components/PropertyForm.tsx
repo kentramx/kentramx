@@ -331,6 +331,7 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
       }
 
       // Upload new images
+      const uploadedImages: Array<{ id: string; url: string }> = [];
       if (imageFiles.length > 0) {
         for (let i = 0; i < imageFiles.length; i++) {
           const file = imageFiles[i];
@@ -347,15 +348,95 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
             .from('property-images')
             .getPublicUrl(fileName);
 
-          const { error: imageError } = await supabase
+          const { data: imageData, error: imageError } = await supabase
             .from('images')
             .insert({
               property_id: propertyId,
               url: publicUrl,
               position: existingImages.length + i,
-            });
+            })
+            .select()
+            .single();
 
           if (imageError) throw imageError;
+          
+          if (imageData) {
+            uploadedImages.push({ id: imageData.id, url: publicUrl });
+          }
+        }
+
+        // 🖼️ ANÁLISIS DE IMÁGENES CON IA (solo para propiedades nuevas)
+        if (!property && uploadedImages.length > 0) {
+          toast({
+            title: '🖼️ Analizando imágenes...',
+            description: 'Verificando calidad y contenido de las fotos',
+          });
+
+          try {
+            const { data: analysisResult, error: analysisError } = await supabase.functions.invoke(
+              'ai-analyze-images',
+              {
+                body: {
+                  images: uploadedImages.map(img => ({
+                    imageId: img.id,
+                    imageUrl: img.url,
+                    propertyId: propertyId,
+                  }))
+                }
+              }
+            );
+
+            if (analysisError) {
+              console.error('Image analysis error:', analysisError);
+            } else if (analysisResult?.success && analysisResult?.results) {
+              // Guardar resultados en image_ai_analysis
+              const analysisInserts = analysisResult.results.map((result: any) => ({
+                image_id: result.imageId,
+                property_id: propertyId,
+                quality_score: result.qualityScore,
+                resolution_score: result.resolutionScore,
+                lighting_score: result.lightingScore,
+                composition_score: result.compositionScore,
+                is_inappropriate: result.isInappropriate,
+                is_manipulated: result.isManipulated,
+                is_blurry: result.isBlurry,
+                is_dark: result.isDark,
+                detected_issues: result.detectedIssues,
+                ai_notes: result.aiNotes,
+              }));
+
+              const { error: insertError } = await supabase
+                .from('image_ai_analysis')
+                .insert(analysisInserts);
+
+              if (insertError) {
+                console.error('Error saving image analysis:', insertError);
+              } else {
+                // Mostrar feedback sobre calidad de imágenes
+                const summary = analysisResult.summary;
+                if (summary.inappropriateCount > 0 || summary.manipulatedCount > 0) {
+                  toast({
+                    title: '⚠️ Problemas detectados en imágenes',
+                    description: `Se detectaron ${summary.inappropriateCount} imágenes inapropiadas y ${summary.manipulatedCount} manipuladas. Tu propiedad será revisada cuidadosamente.`,
+                    variant: 'destructive',
+                  });
+                } else if (summary.lowQualityCount > 0) {
+                  toast({
+                    title: '📸 Mejorar calidad de imágenes',
+                    description: `${summary.lowQualityCount} imágenes tienen baja calidad. Considera reemplazarlas con fotos más nítidas y bien iluminadas.`,
+                  });
+                } else if (summary.averageQuality >= 80) {
+                  toast({
+                    title: '✨ Excelente calidad de imágenes',
+                    description: `Tus fotos tienen una calidad promedio de ${summary.averageQuality}/100. ¡Bien hecho!`,
+                  });
+                }
+              }
+            }
+          } catch (analysisCatchError) {
+            console.error('Image analysis invocation failed:', analysisCatchError);
+            // Continuar sin bloquear
+          }
         }
       }
 

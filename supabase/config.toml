@@ -26,3 +26,6 @@ verify_jwt = true
 
 [functions.ai-premoderate-property]
 verify_jwt = true
+
+[functions.ai-analyze-images]
+verify_jwt = true
