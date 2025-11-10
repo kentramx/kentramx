@@ -40,12 +40,75 @@ Deno.serve(async (req) => {
 
     const { newPlanId, billingCycle, previewOnly } = await req.json();
 
+    // Validate input
+    if (!newPlanId || typeof newPlanId !== 'string') {
+      return new Response(JSON.stringify({ error: 'Invalid plan ID' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!billingCycle || !['monthly', 'yearly'].includes(billingCycle)) {
+      return new Response(JSON.stringify({ error: 'Invalid billing cycle' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     console.log('Changing subscription plan:', {
       userId: user.id,
       newPlanId,
       billingCycle,
       previewOnly: previewOnly || false,
     });
+
+    // Check cooldown period (30 days) - only for actual changes, not previews
+    if (!previewOnly) {
+      const { data: recentChanges, error: changesError } = await supabaseClient
+        .from('subscription_changes')
+        .select('changed_at')
+        .eq('user_id', user.id)
+        .order('changed_at', { ascending: false })
+        .limit(1);
+
+      if (changesError) {
+        console.error('Error checking recent changes:', changesError);
+      }
+
+      if (recentChanges && recentChanges.length > 0) {
+        const lastChangeDate = new Date(recentChanges[0].changed_at);
+        const daysSinceLastChange = Math.floor(
+          (Date.now() - lastChangeDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const cooldownDays = 30;
+
+        if (daysSinceLastChange < cooldownDays) {
+          const daysRemaining = cooldownDays - daysSinceLastChange;
+          const nextChangeDate = new Date(lastChangeDate);
+          nextChangeDate.setDate(nextChangeDate.getDate() + cooldownDays);
+
+          console.log('Cooldown period active:', {
+            daysSinceLastChange,
+            daysRemaining,
+            nextChangeDate,
+          });
+
+          return new Response(
+            JSON.stringify({
+              error: 'COOLDOWN_ACTIVE',
+              message: `Debes esperar ${daysRemaining} día${daysRemaining > 1 ? 's' : ''} antes de cambiar de plan nuevamente`,
+              daysRemaining,
+              nextChangeDate: nextChangeDate.toISOString(),
+              lastChangeDate: lastChangeDate.toISOString(),
+            }),
+            {
+              status: 429,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+      }
+    }
 
     // Get current subscription
     const { data: currentSub, error: subError } = await supabaseClient
@@ -177,6 +240,37 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error('Database update error:', updateError);
+    }
+
+    // Log the subscription change
+    const currentPlan = currentSub.subscription_plans;
+    const currentPrice = currentSub.billing_cycle === 'yearly'
+      ? Number(currentPlan.price_yearly)
+      : Number(currentPlan.price_monthly);
+    
+    const newPrice = billingCycle === 'yearly'
+      ? Number(newPlan.price_yearly)
+      : Number(newPlan.price_monthly);
+
+    const changeType = newPrice > currentPrice ? 'upgrade' : newPrice < currentPrice ? 'downgrade' : 'cycle_change';
+
+    const { error: logError } = await supabaseClient
+      .from('subscription_changes')
+      .insert({
+        user_id: user.id,
+        previous_plan_id: currentSub.plan_id,
+        new_plan_id: newPlanId,
+        previous_billing_cycle: currentSub.billing_cycle,
+        new_billing_cycle: billingCycle,
+        change_type: changeType,
+        metadata: {
+          previous_plan_name: currentPlan.name,
+          new_plan_name: newPlan.name,
+        },
+      });
+
+    if (logError) {
+      console.error('Error logging subscription change:', logError);
     }
 
     console.log('Subscription updated successfully');

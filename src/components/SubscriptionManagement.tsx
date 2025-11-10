@@ -241,6 +241,7 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
         currentPlanId={subscription?.plan_id || ''}
         currentPlanName={subscription?.plan_name || ''}
         currentBillingCycle={subscription?.billing_cycle || 'monthly'}
+        userId={userId}
         onSuccess={handleChangePlanSuccess}
       />
       

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Loader2, TrendingUp, TrendingDown, Check } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Check, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +23,7 @@ interface ChangePlanDialogProps {
   currentPlanId: string;
   currentPlanName: string;
   currentBillingCycle: string;
+  userId: string;
   onSuccess: () => void;
 }
 
@@ -45,12 +46,20 @@ interface ProrationPreview {
   nextBillingDate: string;
 }
 
+interface CooldownInfo {
+  canChange: boolean;
+  daysRemaining?: number;
+  nextChangeDate?: string;
+  lastChangeDate?: string;
+}
+
 export const ChangePlanDialog = ({
   open,
   onOpenChange,
   currentPlanId,
   currentPlanName,
   currentBillingCycle,
+  userId,
   onSuccess,
 }: ChangePlanDialogProps) => {
   const { toast } = useToast();
@@ -63,12 +72,54 @@ export const ChangePlanDialog = ({
     currentBillingCycle as 'monthly' | 'yearly'
   );
   const [preview, setPreview] = useState<ProrationPreview | null>(null);
+  const [cooldownInfo, setCooldownInfo] = useState<CooldownInfo>({ canChange: true });
 
   useEffect(() => {
     if (open) {
       fetchAvailablePlans();
+      checkCooldown();
     }
   }, [open, currentPlanName]);
+
+  const checkCooldown = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('subscription_changes')
+        .select('changed_at')
+        .eq('user_id', userId)
+        .order('changed_at', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const lastChangeDate = new Date(data[0].changed_at);
+        const daysSinceLastChange = Math.floor(
+          (Date.now() - lastChangeDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const cooldownDays = 30;
+
+        if (daysSinceLastChange < cooldownDays) {
+          const daysRemaining = cooldownDays - daysSinceLastChange;
+          const nextChangeDate = new Date(lastChangeDate);
+          nextChangeDate.setDate(nextChangeDate.getDate() + cooldownDays);
+
+          setCooldownInfo({
+            canChange: false,
+            daysRemaining,
+            nextChangeDate: nextChangeDate.toISOString(),
+            lastChangeDate: lastChangeDate.toISOString(),
+          });
+          return;
+        }
+      }
+
+      setCooldownInfo({ canChange: true });
+    } catch (error) {
+      console.error('Error checking cooldown:', error);
+      setCooldownInfo({ canChange: true });
+    }
+  };
 
   const fetchAvailablePlans = async () => {
     try {
@@ -181,7 +232,30 @@ export const ChangePlanDialog = ({
         },
       });
 
-      if (response.error) throw response.error;
+      if (response.error) {
+        // Handle cooldown error specifically
+        if (response.error.message?.includes('COOLDOWN_ACTIVE') || 
+            response.error.context?.body?.error === 'COOLDOWN_ACTIVE') {
+          const errorData = response.error.context?.body;
+          toast({
+            title: 'Cambio de plan no disponible',
+            description: errorData?.message || 'Debes esperar antes de cambiar de plan nuevamente',
+            variant: 'destructive',
+          });
+          
+          // Update cooldown info
+          if (errorData) {
+            setCooldownInfo({
+              canChange: false,
+              daysRemaining: errorData.daysRemaining,
+              nextChangeDate: errorData.nextChangeDate,
+              lastChangeDate: errorData.lastChangeDate,
+            });
+          }
+          return;
+        }
+        throw response.error;
+      }
 
       toast({
         title: '¡Plan actualizado!',
@@ -241,6 +315,29 @@ export const ChangePlanDialog = ({
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Cooldown Warning */}
+            {!cooldownInfo.canChange && cooldownInfo.daysRemaining && (
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-500 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-amber-900 dark:text-amber-100">
+                      Cambio de plan no disponible
+                    </p>
+                    <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
+                      Debes esperar <strong>{cooldownInfo.daysRemaining} día{cooldownInfo.daysRemaining > 1 ? 's' : ''}</strong> antes 
+                      de cambiar de plan nuevamente. Próximo cambio disponible el{' '}
+                      <strong>
+                        {format(new Date(cooldownInfo.nextChangeDate!), "d 'de' MMMM, yyyy", { locale: es })}
+                      </strong>.
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
+                      Esta restricción previene cambios frecuentes y abuso del sistema de prorrateo.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Billing Cycle Toggle */}
             <div className="flex items-center justify-center gap-4 p-4 bg-muted rounded-lg">
               <Label className="text-sm font-medium">Ciclo de facturación:</Label>
@@ -407,7 +504,7 @@ export const ChangePlanDialog = ({
           </Button>
           <Button
             onClick={handleChangePlan}
-            disabled={processing || !selectedPlanId || loading}
+            disabled={processing || !selectedPlanId || loading || !cooldownInfo.canChange}
           >
             {processing ? (
               <>

@@ -811,6 +811,60 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_changes: {
+        Row: {
+          change_type: string
+          changed_at: string
+          id: string
+          metadata: Json | null
+          new_billing_cycle: string
+          new_plan_id: string
+          previous_billing_cycle: string | null
+          previous_plan_id: string | null
+          prorated_amount: number | null
+          user_id: string
+        }
+        Insert: {
+          change_type: string
+          changed_at?: string
+          id?: string
+          metadata?: Json | null
+          new_billing_cycle: string
+          new_plan_id: string
+          previous_billing_cycle?: string | null
+          previous_plan_id?: string | null
+          prorated_amount?: number | null
+          user_id: string
+        }
+        Update: {
+          change_type?: string
+          changed_at?: string
+          id?: string
+          metadata?: Json | null
+          new_billing_cycle?: string
+          new_plan_id?: string
+          previous_billing_cycle?: string | null
+          previous_plan_id?: string | null
+          prorated_amount?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_changes_new_plan_id_fkey"
+            columns: ["new_plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_changes_previous_plan_id_fkey"
+            columns: ["previous_plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           created_at: string | null
