@@ -86,12 +86,7 @@ const Navbar = () => {
                 Buscar Inmobiliarias
               </Button>
             </Link>
-            <Link to="/leaderboard">
-              <Button variant="ghost" size="sm">
-                Leaderboard
-              </Button>
-            </Link>
-            <Button 
+            <Button
               size="sm" 
               className="shadow-sm"
               onClick={() => navigate('/publicar')}
@@ -163,17 +158,10 @@ const Navbar = () => {
                       <DropdownMenuItem className="cursor-pointer">
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Mis Propiedades
-                      </DropdownMenuItem>
-                    </Link>
-                    <DropdownMenuSeparator />
-                    <div className="px-2 py-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">Tema</span>
-                        <ThemeToggle />
-                      </div>
-                    </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={signOut} className="cursor-pointer text-destructive">
+                    </DropdownMenuItem>
+                  </Link>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut} className="cursor-pointer text-destructive">
                       <LogOut className="mr-2 h-4 w-4" />
                       Cerrar Sesión
                     </DropdownMenuItem>
@@ -182,8 +170,6 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <SocialLinks className="hidden lg:flex" />
-                <ThemeToggle />
                 <Link to="/auth">
                   <Button size="sm">Iniciar Sesión</Button>
                 </Link>
