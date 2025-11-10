@@ -28,6 +28,7 @@ import PricingInmobiliaria from "./pages/PricingInmobiliaria";
 import PricingDesarrolladora from "./pages/PricingDesarrolladora";
 import DirectorioAgentes from "./pages/DirectorioAgentes";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import AdminSubscriptionChanges from "./pages/AdminSubscriptionChanges";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const App = () => (
               <Route path="/pricing-desarrolladora" element={<PricingDesarrolladora />} />
               <Route path="/agentes" element={<DirectorioAgentes />} />
               <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/admin/subscription-changes" element={<AdminSubscriptionChanges />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
