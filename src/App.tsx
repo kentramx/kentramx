@@ -22,7 +22,6 @@ import InstallPWA from "./pages/InstallPWA";
 import SetupDemo from "./pages/SetupDemo";
 import NotFound from "./pages/NotFound";
 import MapPreloader from "@/components/MapPreloader";
-import EligeRolPublicacion from "./pages/EligeRolPublicacion";
 import Publicar from "./pages/Publicar";
 import PricingAgente from "./pages/PricingAgente";
 import PricingInmobiliaria from "./pages/PricingInmobiliaria";
@@ -56,7 +55,6 @@ const App = () => (
               <Route path="/instalar" element={<InstallPWA />} />
               <Route path="/setup-demo" element={<SetupDemo />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/elige-rol-publicacion" element={<EligeRolPublicacion />} />
               <Route path="/publicar" element={<Publicar />} />
               <Route path="/pricing-agente" element={<PricingAgente />} />
               <Route path="/pricing-inmobiliaria" element={<PricingInmobiliaria />} />
