@@ -28,9 +28,10 @@ import { useNavigate } from 'react-router-dom';
 
 interface AgentPropertyListProps {
   onEdit: (property: any) => void;
+  subscriptionInfo?: any;
 }
 
-const AgentPropertyList = ({ onEdit }: AgentPropertyListProps) => {
+const AgentPropertyList = ({ onEdit, subscriptionInfo }: AgentPropertyListProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ const AgentPropertyList = ({ onEdit }: AgentPropertyListProps) => {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [featuredProperties, setFeaturedProperties] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchProperties();
@@ -61,6 +63,18 @@ const AgentPropertyList = ({ onEdit }: AgentPropertyListProps) => {
       if (error) throw error;
 
       setProperties(data || []);
+
+      // Fetch featured properties
+      const { data: featuredData } = await supabase
+        .from('featured_properties')
+        .select('property_id')
+        .eq('agent_id', user?.id)
+        .eq('status', 'active')
+        .gt('end_date', new Date().toISOString());
+
+      if (featuredData) {
+        setFeaturedProperties(new Set(featuredData.map(f => f.property_id)));
+      }
     } catch (error) {
       console.error('Error fetching properties:', error);
       toast({
@@ -213,7 +227,14 @@ const AgentPropertyList = ({ onEdit }: AgentPropertyListProps) => {
                       />
                     )}
                     <div>
-                      <p className="font-medium">{property.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{property.title}</p>
+                        {featuredProperties.has(property.id) && (
+                          <Badge variant="default" className="text-xs">
+                            Destacada
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {property.municipality}, {property.state}
                       </p>

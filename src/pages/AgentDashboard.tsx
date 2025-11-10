@@ -6,12 +6,13 @@ import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Plus, Info } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import PropertyForm from '@/components/PropertyForm';
 import AgentPropertyList from '@/components/AgentPropertyList';
 import { AgentAnalytics } from '@/components/AgentAnalytics';
 import { DynamicBreadcrumbs } from '@/components/DynamicBreadcrumbs';
+import { PlanStatusCard } from '@/components/PlanStatusCard';
 
 const AgentDashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -21,6 +22,8 @@ const AgentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('list');
   const [editingProperty, setEditingProperty] = useState<any>(null);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string>('');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -53,6 +56,8 @@ const AgentDashboard = () => {
         return;
       }
 
+      setUserRole(roleData.role);
+
       // Get profile data
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -63,6 +68,15 @@ const AgentDashboard = () => {
       if (profileError) throw profileError;
 
       setProfile(profileData);
+
+      // Get subscription info
+      const { data: subInfo, error: subError } = await supabase.rpc('get_user_subscription_info', {
+        user_uuid: user?.id,
+      });
+
+      if (!subError && subInfo && subInfo.length > 0) {
+        setSubscriptionInfo(subInfo[0]);
+      }
     } catch (error) {
       console.error('Error checking agent status:', error);
       navigate('/');
@@ -106,10 +120,34 @@ const AgentDashboard = () => {
       if (error) throw error;
 
       if (!validation || !validation[0]?.can_create) {
+        const reason = validation?.[0]?.reason || 'No puedes publicar más propiedades';
+        const currentCount = validation?.[0]?.current_count || 0;
+        const maxAllowed = validation?.[0]?.max_allowed || 0;
+        
+        // Mensaje personalizado según el plan
+        let upgradeMessage = '';
+        if (subscriptionInfo) {
+          const planName = subscriptionInfo.plan_name;
+          if (planName === 'basico') {
+            upgradeMessage = ' Mejora a Pro para 10 propiedades.';
+          } else if (planName === 'pro') {
+            upgradeMessage = ' Mejora a Elite para 20 propiedades.';
+          }
+        }
+
         toast({
           title: 'Límite alcanzado',
-          description: validation?.[0]?.reason || 'No puedes publicar más propiedades',
+          description: `${reason}${upgradeMessage}`,
           variant: 'destructive',
+          action: subscriptionInfo ? (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate(userRole === 'agency' ? '/pricing-inmobiliaria' : '/pricing-agente')}
+            >
+              Ver Planes
+            </Button>
+          ) : undefined,
         });
         return;
       }
@@ -155,11 +193,16 @@ const AgentDashboard = () => {
 
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">
-            Panel de Agente
+            Panel de {userRole === 'agency' ? 'Inmobiliaria' : 'Agente'}
           </h1>
           <p className="text-muted-foreground">
             Gestiona tus propiedades en venta o renta
           </p>
+        </div>
+
+        {/* Plan Status Card */}
+        <div className="mb-6">
+          <PlanStatusCard subscriptionInfo={subscriptionInfo} userRole={userRole} />
         </div>
 
         <Card>
@@ -187,7 +230,7 @@ const AgentDashboard = () => {
               </TabsList>
 
               <TabsContent value="list" className="mt-6">
-                <AgentPropertyList onEdit={handleEditProperty} />
+                <AgentPropertyList onEdit={handleEditProperty} subscriptionInfo={subscriptionInfo} />
               </TabsContent>
 
               <TabsContent value="analytics" className="mt-6">
