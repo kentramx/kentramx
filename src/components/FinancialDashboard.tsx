@@ -248,36 +248,29 @@ export function FinancialDashboard() {
           <h2 className="text-3xl font-bold">Panel Financiero</h2>
           <p className="text-muted-foreground">Análisis completo de ingresos y transacciones</p>
         </div>
-        <div className="space-y-3">
-          {/* Period Select Row */}
-          <div className="flex gap-2 items-center">
-            <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PERIOD_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Button onClick={exportToCSV} variant="outline" size="icon">
-              <Download className="h-4 w-4" />
-            </Button>
-          </div>
+        <div className="flex gap-2 flex-wrap">
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PERIOD_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          {/* Date Range Picker - Separate Row */}
+          {/* Date Range Picker */}
           {period === 'custom' && (
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex gap-2">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full sm:w-[200px] justify-start text-left font-normal",
+                      "w-[160px] justify-start text-left font-normal",
                       !customStartDate && "text-muted-foreground"
                     )}
                   >
@@ -285,7 +278,7 @@ export function FinancialDashboard() {
                     {customStartDate ? format(customStartDate, "dd/MM/yyyy", { locale: es }) : "Fecha inicio"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="center" side="bottom">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={customStartDate}
@@ -302,7 +295,7 @@ export function FinancialDashboard() {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full sm:w-[200px] justify-start text-left font-normal",
+                      "w-[160px] justify-start text-left font-normal",
                       !customEndDate && "text-muted-foreground"
                     )}
                   >
@@ -310,7 +303,7 @@ export function FinancialDashboard() {
                     {customEndDate ? format(customEndDate, "dd/MM/yyyy", { locale: es }) : "Fecha fin"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="center" side="bottom">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={customEndDate}
@@ -323,6 +316,10 @@ export function FinancialDashboard() {
               </Popover>
             </div>
           )}
+
+          <Button onClick={exportToCSV} variant="outline" size="icon">
+            <Download className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
