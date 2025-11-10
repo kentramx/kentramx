@@ -94,11 +94,8 @@ const EligeRolPublicacion = () => {
             setShowLimitModal(true);
           }
         } else {
-          // NO tiene suscripción - ir a pricing específico
-          const pricingPath = targetRole === 'agent' 
-            ? '/pricing/agentes?action=new_property'
-            : '/pricing/inmobiliarias?action=new_property';
-          navigate(pricingPath);
+          // NO tiene suscripción - ir a pricing
+          navigate(`/pricing?role=${targetRole}&action=new_property`);
         }
       }
     } catch (error) {
@@ -238,7 +235,7 @@ const EligeRolPublicacion = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => navigate('/pricing/agentes')}>
+            <AlertDialogAction onClick={() => navigate('/pricing?role=agent')}>
               Ver Planes de Agente
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -259,19 +256,7 @@ const EligeRolPublicacion = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={async () => {
-              // Detectar rol actual y redirigir a su página
-              const { data: currentRoleData } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', user?.id)
-                .single();
-              
-              const pricingPath = currentRoleData?.role === 'agent'
-                ? '/pricing/agentes'
-                : '/pricing/inmobiliarias';
-              navigate(pricingPath);
-            }}>
+            <AlertDialogAction onClick={() => navigate('/pricing')}>
               Ver Planes
             </AlertDialogAction>
           </AlertDialogFooter>
