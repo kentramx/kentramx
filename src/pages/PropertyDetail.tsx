@@ -50,6 +50,7 @@ import { PropertyInvestmentMetrics } from "@/components/PropertyInvestmentMetric
 import { PropertyExportPDF } from "@/components/PropertyExportPDF";
 import { ContactPropertyDialog } from "@/components/ContactPropertyDialog";
 import { usePropertyCompare } from "@/hooks/usePropertyCompare";
+import { getWhatsAppUrl, WhatsAppTemplates } from "@/utils/whatsapp";
 
 const PropertyDetail = () => {
   const { id } = useParams();
@@ -709,14 +710,21 @@ const PropertyDetail = () => {
                       </div>
                     )}
 
-                    {agent.phone && (
+                    {agent.whatsapp_enabled && agent.whatsapp_number && (
                       <Button 
                         className="w-full" 
                         variant="outline"
-                        onClick={() => window.open(`https://wa.me/${agent.phone.replace(/\D/g, '')}`, '_blank')}
+                        onClick={() => {
+                          const message = WhatsAppTemplates.property(
+                            property.title,
+                            `${property.municipality}, ${property.state}`
+                          );
+                          const url = getWhatsAppUrl(agent.whatsapp_number, message);
+                          window.open(url, '_blank');
+                        }}
                       >
                         <MessageCircle className="mr-2 h-4 w-4" />
-                        WhatsApp
+                        Contactar por WhatsApp
                       </Button>
                     )}
 
