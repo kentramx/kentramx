@@ -321,36 +321,39 @@ const PropertyDetail = () => {
             description: 'El enlace ha sido copiado al portapapeles',
           });
           break;
-        case 'whatsapp':
+        case 'whatsapp': {
           const whatsappMessage = `🏡 *${property.title}*\n\n💰 ${text}\n📍 ${property.municipality}, ${property.state}\n\n🔗 Ver más: ${url}`;
           const encoded = encodeURIComponent(whatsappMessage);
           const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
-          
-          if (isMobile) {
-            // En móvil: usa deep link que siempre abre la app o la tienda
-            window.location.href = `whatsapp://send?text=${encoded}`;
-          } else {
-            // En desktop: abre Web WhatsApp directamente (funciona sin app instalada)
-            const webWhatsapp = window.open(`https://web.whatsapp.com/send?text=${encoded}`, '_blank');
-            
-            // Si el popup fue bloqueado, muestra mensaje con instrucciones
-            if (!webWhatsapp || webWhatsapp.closed || typeof webWhatsapp.closed == 'undefined') {
-              try {
-                await navigator.clipboard.writeText(whatsappMessage);
-                toast({
-                  title: 'Mensaje copiado',
-                  description: 'Tu navegador bloqueó el popup. Abre WhatsApp Web y pega el mensaje.',
-                });
-              } catch {
-                toast({
-                  title: 'Popup bloqueado',
-                  description: 'Por favor permite popups para compartir en WhatsApp.',
-                  variant: 'destructive',
-                });
-              }
+
+          // 1) Intento con Web Share API (cuando esté disponible)
+          if (navigator.share) {
+            try {
+              await navigator.share({
+                title: property.title,
+                text: whatsappMessage,
+                url,
+              });
+              break; // Compartido exitosamente
+            } catch (e) {
+              // Si el usuario cancela o falla, seguimos a los fallbacks
             }
           }
+
+          // 2) Fallback según plataforma
+          if (isMobile) {
+            // Deep link a la app y fallback a wa.me si no abre
+            window.location.href = `whatsapp://send?text=${encoded}`;
+            setTimeout(() => {
+              // Si la app no abrió, usamos wa.me
+              window.location.href = `https://wa.me/?text=${encoded}`;
+            }, 600);
+          } else {
+            // Escritorio: redirigir en la misma pestaña para evitar pop-up blockers
+            window.location.assign(`https://api.whatsapp.com/send?text=${encoded}`);
+          }
           break;
+        }
         case 'facebook':
           window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
           break;
