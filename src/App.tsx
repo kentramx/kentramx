@@ -22,6 +22,7 @@ import SetupDemo from "./pages/SetupDemo";
 import NotFound from "./pages/NotFound";
 import MapPreloader from "@/components/MapPreloader";
 import EligeRolPublicacion from "./pages/EligeRolPublicacion";
+import Publicar from "./pages/Publicar";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/setup-demo" element={<SetupDemo />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/elige-rol-publicacion" element={<EligeRolPublicacion />} />
+              <Route path="/publicar" element={<Publicar />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
