@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.79.0';
-import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno';
+// @deno-types="https://esm.sh/stripe@11.16.0/types/index.d.ts"
+import Stripe from 'https://esm.sh/stripe@11.16.0?target=deno';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,7 +38,8 @@ Deno.serve(async (req) => {
         Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? ''
       );
     } catch (err) {
-      console.error('Webhook signature verification failed:', err.message);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Webhook signature verification failed:', errorMessage);
       return new Response(
         JSON.stringify({ error: 'Invalid signature' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -214,7 +216,10 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error processing webhook:', error);
     return new Response(
-      JSON.stringify({ error: 'Webhook processing error', details: error.message }),
+      JSON.stringify({ 
+        error: 'Webhook processing error', 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
