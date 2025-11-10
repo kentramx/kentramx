@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { DynamicBreadcrumbs } from "@/components/DynamicBreadcrumbs";
 import { WhatsAppConfigSection } from "@/components/WhatsAppConfigSection";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 import {
   Loader2,
   User,
@@ -23,6 +24,8 @@ import {
   MapPin,
   Settings,
   Mail,
+  Shield,
+  BarChart3,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -53,7 +56,9 @@ interface SavedSearch {
 const UserProfile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isAdmin, isSuperAdmin, adminRole, loading: adminLoading } = useAdminCheck();
   const [profile, setProfile] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -97,6 +102,19 @@ const UserProfile = () => {
         name: profileData.name || "",
         phone: profileData.phone || "",
       });
+
+      // Obtener el rol real desde user_roles
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user?.id)
+        .order("granted_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (roleData) {
+        setUserRole(roleData.role);
+      }
 
       const { data: searchesData, error: searchesError } = await supabase
         .from("saved_searches")
@@ -297,19 +315,91 @@ const UserProfile = () => {
                     <div>
                       <Label>Rol</Label>
                       <div className="mt-2 flex items-center gap-3">
-                        <Badge>{profile?.role === "agent" ? "Agente" : "Comprador"}</Badge>
-                        {profile?.role !== "agent" && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate("/setup-demo")}
-                          >
-                            Convertirse en Agente
-                          </Button>
+                        {userRole === 'super_admin' && (
+                          <Badge className="bg-purple-600 hover:bg-purple-700">
+                            <Shield className="w-3 h-3 mr-1" />
+                            Super Admin
+                          </Badge>
+                        )}
+                        {userRole === 'moderator' && (
+                          <Badge className="bg-blue-600 hover:bg-blue-700">
+                            <Shield className="w-3 h-3 mr-1" />
+                            Moderador
+                          </Badge>
+                        )}
+                        {userRole === 'admin' && (
+                          <Badge className="bg-indigo-600 hover:bg-indigo-700">
+                            <Shield className="w-3 h-3 mr-1" />
+                            Administrador
+                          </Badge>
+                        )}
+                        {userRole === 'agency' && (
+                          <Badge variant="secondary">Inmobiliaria</Badge>
+                        )}
+                        {userRole === 'agent' && (
+                          <Badge variant="secondary">Agente</Badge>
+                        )}
+                        {userRole === 'buyer' && (
+                          <>
+                            <Badge variant="outline">Comprador</Badge>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate("/setup-demo")}
+                            >
+                              Convertirse en Agente
+                            </Button>
+                          </>
                         )}
                       </div>
-                      {profile?.role !== "agent" && (
+                      
+                      {/* Admin functionalities access */}
+                      {(isSuperAdmin || isAdmin) && (
+                        <div className="mt-4 p-4 bg-muted rounded-lg space-y-3">
+                          <h4 className="font-semibold flex items-center gap-2">
+                            <Shield className="w-4 h-4" />
+                            Funcionalidades Administrativas
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate("/admin/dashboard")}
+                            >
+                              <Settings className="w-4 h-4 mr-2" />
+                              Panel de Moderación
+                            </Button>
+                            {isSuperAdmin && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate("/admin/dashboard?tab=kpis")}
+                                >
+                                  <BarChart3 className="w-4 h-4 mr-2" />
+                                  KPIs de Negocio
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate("/admin/dashboard?tab=roles")}
+                                >
+                                  <Shield className="w-4 h-4 mr-2" />
+                                  Gestión de Roles
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {isSuperAdmin 
+                              ? "Tienes acceso completo al sistema: moderación, métricas de negocio, gestión de usuarios y roles."
+                              : "Tienes acceso a funciones de moderación de contenido y soporte al cliente."}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {userRole === 'buyer' && (
                         <p className="text-sm text-muted-foreground mt-2">
                           Conviértete en agente inmobiliario y crea 20 propiedades de demostración
                         </p>
