@@ -15,6 +15,7 @@ import AgencyDashboard from "./pages/AgencyDashboard";
 import AgentProfile from "./pages/AgentProfile";
 import UserProfile from "./pages/UserProfile";
 import NotificationSettings from "./pages/NotificationSettings";
+import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Buscar from "./pages/Buscar";
 import MessagesPage from "./pages/MessagesPage";
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/agente/:id" element={<AgentProfile />} />
               <Route path="/perfil" element={<UserProfile />} />
               <Route path="/notificaciones" element={<NotificationSettings />} />
+              <Route path="/configuracion" element={<Settings />} />
               <Route path="/buscar" element={<Buscar />} />
               <Route path="/favoritos" element={<Favorites />} />
               <Route path="/comparar" element={<ComparePage />} />

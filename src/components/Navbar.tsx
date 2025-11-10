@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Home, Heart, User, PlusCircle, LogOut, Search, Building, GitCompare } from "lucide-react";
+import { Home, Heart, User, PlusCircle, LogOut, Search, Building, GitCompare, Settings } from "lucide-react";
 import { MessageBadge } from "./MessageBadge";
 import { MobileMenu } from "./MobileMenu";
 import { ThemeToggle } from "./ThemeToggle";
@@ -152,6 +152,12 @@ const Navbar = () => {
                       <DropdownMenuItem className="cursor-pointer">
                         <User className="mr-2 h-4 w-4" />
                         Mi Perfil
+                      </DropdownMenuItem>
+                    </Link>
+                    <Link to="/configuracion">
+                      <DropdownMenuItem className="cursor-pointer">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Configuración
                       </DropdownMenuItem>
                     </Link>
                     <Link to="/panel-agente">
