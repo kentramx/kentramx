@@ -14,6 +14,8 @@ import { Loader2, Bell, CheckCircle, AlertTriangle, Clock, TrendingUp, Timer, Ba
 import { format, differenceInHours, differenceInDays, startOfMonth, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 interface ExpiryReminder {
   id: string;
@@ -63,10 +65,90 @@ export const PropertyExpiryReminders = ({ agentId }: PropertyExpiryRemindersProp
   const [stats, setStats] = useState<ReminderStats | null>(null);
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [urgencyData, setUrgencyData] = useState<UrgencyData[]>([]);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchReminders();
-  }, [agentId]);
+    
+    // Configurar listener de realtime para nuevos recordatorios
+    const channel = supabase
+      .channel('property-expiry-reminders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'property_expiry_reminders',
+          filter: `agent_id=eq.${agentId}`,
+        },
+        async (payload) => {
+          console.log('🔔 Nuevo recordatorio recibido:', payload);
+          
+          // Obtener información completa del recordatorio con la propiedad
+          const { data: newReminder, error } = await supabase
+            .from('property_expiry_reminders')
+            .select(`
+              id,
+              property_id,
+              days_before,
+              sent_at,
+              properties:property_id (
+                title,
+                status,
+                expires_at,
+                last_renewed_at
+              )
+            `)
+            .eq('id', payload.new.id)
+            .single();
+
+          if (!error && newReminder) {
+            const formattedReminder = {
+              ...newReminder,
+              property: Array.isArray(newReminder.properties) 
+                ? newReminder.properties[0] 
+                : newReminder.properties,
+            };
+
+            // Actualizar lista de recordatorios
+            setReminders(prev => [formattedReminder, ...prev]);
+
+            // Obtener información de la propiedad
+            const propertyTitle = formattedReminder.property?.title || 'tu propiedad';
+            const daysLabel = payload.new.days_before === 1 
+              ? '1 día' 
+              : `${payload.new.days_before} días`;
+
+            // Mostrar notificación toast
+            toast({
+              title: '🔔 Recordatorio de Expiración',
+              description: `La propiedad "${propertyTitle}" expira en ${daysLabel}. Recuerda renovarla.`,
+              action: (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.location.href = `/property/${formattedReminder.property_id}`}
+                >
+                  Ver Propiedad
+                </Button>
+              ),
+            });
+
+            // Recalcular estadísticas
+            const updatedReminders = [formattedReminder, ...reminders];
+            calculateStats(updatedReminders);
+            calculateMonthlyData(updatedReminders);
+            calculateUrgencyData(updatedReminders);
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup al desmontar
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [agentId, toast]);
 
   const fetchReminders = async () => {
     try {
