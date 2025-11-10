@@ -324,23 +324,26 @@ const PropertyDetail = () => {
         case 'whatsapp':
           const whatsappMessage = `🏡 *${property.title}*\n\n💰 ${text}\n📍 ${property.municipality}, ${property.state}\n\n🔗 Ver más: ${url}`;
           const encoded = encodeURIComponent(whatsappMessage);
-          const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
-          const deepLink = `whatsapp://send?text=${encoded}`;
-          const waLink = `https://wa.me/?text=${encoded}`;
-          const webLink = `https://web.whatsapp.com/send?text=${encoded}`;
-
+          const deep = `whatsapp://send?text=${encoded}`;
+          const web = `https://web.whatsapp.com/send?text=${encoded}`;
+          const wa = `https://wa.me/?text=${encoded}`;
           try {
-            if (isMobile) {
-              // Intenta abrir la app; si falla, cae a wa.me
-              window.location.href = deepLink;
-              setTimeout(() => window.open(waLink, '_blank'), 500);
-            } else {
-              // En desktop intenta Web WhatsApp; si está bloqueado, usa wa.me
-              const win = window.open(webLink, '_blank');
-              if (!win) window.location.href = waLink;
-            }
+            // Intenta abrir la app (desktop o móvil)
+            window.location.href = deep;
+            setTimeout(async () => {
+              const opened = window.open(web, '_blank') || window.open(wa, '_blank');
+              if (!opened) {
+                try {
+                  await navigator.clipboard.writeText(`${whatsappMessage}`);
+                  toast({
+                    title: 'Mensaje copiado',
+                    description: 'WhatsApp Web parece bloqueado. Pega el mensaje en tu WhatsApp.',
+                  });
+                } catch {}
+              }
+            }, 600);
           } catch {
-            window.open(waLink, '_blank');
+            window.open(web, '_blank') || window.open(wa, '_blank');
           }
           break;
         case 'facebook':
