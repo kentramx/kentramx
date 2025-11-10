@@ -28,6 +28,7 @@ import { Calendar, CreditCard, TrendingUp, AlertCircle, CheckCircle2, Loader2 } 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { ChangePlanDialog } from './ChangePlanDialog';
 
 interface SubscriptionManagementProps {
   userId: string;
@@ -64,6 +65,7 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
   const [canceling, setCanceling] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionDetails | null>(null);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [showChangePlanDialog, setShowChangePlanDialog] = useState(false);
 
   useEffect(() => {
     fetchSubscriptionData();
@@ -167,12 +169,11 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
   };
 
   const handleChangePlan = () => {
-    // Redirigir a la página de pricing según el tipo de plan actual
-    if (subscription?.plan_name.includes('inmobiliaria')) {
-      navigate('/pricing-inmobiliaria');
-    } else {
-      navigate('/pricing-agente');
-    }
+    setShowChangePlanDialog(true);
+  };
+
+  const handleChangePlanSuccess = () => {
+    fetchSubscriptionData();
   };
 
   const getStatusBadge = (status: string) => {
@@ -233,9 +234,19 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
     : subscription.price_monthly;
 
   return (
-    <div className="space-y-6">
-      {/* Current Subscription Card */}
-      <Card>
+    <>
+      <ChangePlanDialog
+        open={showChangePlanDialog}
+        onOpenChange={setShowChangePlanDialog}
+        currentPlanId={subscription?.plan_id || ''}
+        currentPlanName={subscription?.plan_name || ''}
+        currentBillingCycle={subscription?.billing_cycle || 'monthly'}
+        onSuccess={handleChangePlanSuccess}
+      />
+      
+      <div className="space-y-6">
+        {/* Current Subscription Card */}
+        <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -409,6 +420,7 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 };
