@@ -616,7 +616,6 @@ export type Database = {
           is_verified: boolean | null
           name: string
           phone: string | null
-          role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string | null
           whatsapp_business_hours: string | null
           whatsapp_enabled: boolean | null
@@ -629,7 +628,6 @@ export type Database = {
           is_verified?: boolean | null
           name: string
           phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
           whatsapp_business_hours?: string | null
           whatsapp_enabled?: boolean | null
@@ -642,7 +640,6 @@ export type Database = {
           is_verified?: boolean | null
           name?: string
           phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
           whatsapp_business_hours?: string | null
           whatsapp_enabled?: boolean | null
@@ -1244,7 +1241,6 @@ export type Database = {
         | "bodega"
         | "edificio"
         | "rancho"
-      user_role: "buyer" | "agent" | "admin" | "agency"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1392,7 +1388,6 @@ export const Constants = {
         "edificio",
         "rancho",
       ],
-      user_role: ["buyer", "agent", "admin", "agency"],
     },
   },
 } as const
