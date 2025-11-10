@@ -44,6 +44,19 @@ export function MobileMenu() {
             </Button>
           </Link>
 
+          <Link to="/agentes">
+            <Button variant="ghost" className="w-full justify-start">
+              <Search className="mr-2 h-4 w-4" />
+              Buscar Inmobiliarias
+            </Button>
+          </Link>
+
+          <Link to="/leaderboard">
+            <Button variant="ghost" className="w-full justify-start">
+              Leaderboard
+            </Button>
+          </Link>
+
           {user ? (
             <>
               <Link to="/favoritos">

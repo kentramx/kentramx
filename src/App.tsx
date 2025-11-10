@@ -27,6 +27,7 @@ import PricingAgente from "./pages/PricingAgente";
 import PricingInmobiliaria from "./pages/PricingInmobiliaria";
 import PricingDesarrolladora from "./pages/PricingDesarrolladora";
 import DirectorioAgentes from "./pages/DirectorioAgentes";
+import Leaderboard from "./pages/Leaderboard";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import AdminSubscriptionChanges from "./pages/AdminSubscriptionChanges";
 import AdminNotificationSettings from "./pages/AdminNotificationSettings";
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/pricing-inmobiliaria" element={<PricingInmobiliaria />} />
               <Route path="/pricing-desarrolladora" element={<PricingDesarrolladora />} />
               <Route path="/agentes" element={<DirectorioAgentes />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/admin/subscription-changes" element={<AdminSubscriptionChanges />} />
               <Route path="/admin/notification-settings" element={<AdminNotificationSettings />} />
