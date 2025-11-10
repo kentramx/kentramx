@@ -20,7 +20,7 @@ const PricingAgente = () => {
 
   const plans = [
     {
-      id: 'agente-basico',
+      id: '49d3847c-3dda-4f35-80a2-b4a66018100b',
       name: 'Agente Básico',
       monthlyPrice: 299,
       annualPrice: 3150,
@@ -34,7 +34,7 @@ const PricingAgente = () => {
       popular: false,
     },
     {
-      id: 'agente-pro',
+      id: 'de96952c-ea83-4afb-a310-27f1f2db8f4e',
       name: 'Agente Pro',
       monthlyPrice: 799,
       annualPrice: 8430,
@@ -49,7 +49,7 @@ const PricingAgente = () => {
       popular: true,
     },
     {
-      id: 'agente-elite',
+      id: 'd4529d5f-725e-4513-9b29-1fecfc681708',
       name: 'Agente Elite',
       monthlyPrice: 1350,
       annualPrice: 14256,
@@ -83,7 +83,7 @@ const PricingAgente = () => {
         body: {
           planId,
           billingCycle: isAnnual ? 'yearly' : 'monthly',
-          successUrl: `${window.location.origin}/agent-dashboard?payment=success`,
+          successUrl: `${window.location.origin}/payment-success?payment=success`,
           cancelUrl: `${window.location.origin}/pricing-agente?payment=canceled`,
         },
       });

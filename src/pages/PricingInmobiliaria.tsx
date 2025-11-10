@@ -20,7 +20,7 @@ const PricingInmobiliaria = () => {
 
   const plans = [
     {
-      id: 'inmobiliaria-start',
+      id: 'dcdc3a80-6203-4346-9144-a27935c1d3ed',
       name: 'Inmobiliaria Start',
       monthlyPrice: 5900,
       annualPrice: 62352,
@@ -35,7 +35,7 @@ const PricingInmobiliaria = () => {
       popular: false,
     },
     {
-      id: 'inmobiliaria-grow',
+      id: '3da21adc-8248-48b2-bbc2-b7a69d886646',
       name: 'Inmobiliaria Grow',
       monthlyPrice: 9900,
       annualPrice: 104544,
@@ -50,7 +50,7 @@ const PricingInmobiliaria = () => {
       popular: true,
     },
     {
-      id: 'inmobiliaria-pro',
+      id: '2c1e2283-e9b6-439e-8cc5-37af2d669458',
       name: 'Inmobiliaria Pro',
       monthlyPrice: 15900,
       annualPrice: 167616,
@@ -85,7 +85,7 @@ const PricingInmobiliaria = () => {
         body: {
           planId,
           billingCycle: isAnnual ? 'yearly' : 'monthly',
-          successUrl: `${window.location.origin}/agency-dashboard?payment=success`,
+          successUrl: `${window.location.origin}/payment-success?payment=success`,
           cancelUrl: `${window.location.origin}/pricing-inmobiliaria?payment=canceled`,
         },
       });
