@@ -322,7 +322,11 @@ const PropertyDetail = () => {
           });
           break;
         case 'whatsapp':
-          window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, '_blank');
+          const whatsappMessage = `🏡 *${property.title}*\n\n💰 ${text}\n📍 ${property.municipality}, ${property.state}\n\n🔗 Ver más: ${url}`;
+          window.open(
+            `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappMessage)}`, 
+            '_blank'
+          );
           break;
         case 'facebook':
           window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
