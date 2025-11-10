@@ -8,8 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, X, Plus, Trash2, Video } from 'lucide-react';
+import { Loader2, Upload, X, Plus, Trash2, Video, AlertTriangle } from 'lucide-react';
 import { z } from 'zod';
 import { LocationSearch } from '@/components/LocationSearch';
 
@@ -250,9 +251,17 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
 
         if (error) throw error;
       } else {
+        const propertyData: any = {
+          ...validatedData,
+          title: autoTitle,
+          agent_id: user?.id,
+          status: 'pendiente_aprobacion', // Nueva propiedad = pendiente
+          last_renewed_at: new Date().toISOString(),
+        };
+
         const { data, error } = await supabase
           .from('properties')
-          .insert([{ ...validatedData, title: autoTitle, agent_id: user?.id } as any])
+          .insert([propertyData])
           .select()
           .single();
 
@@ -289,6 +298,18 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
         }
       }
 
+      if (!property) {
+        toast({
+          title: '✅ Propiedad enviada',
+          description: 'Tu propiedad ha sido enviada para revisión. Un administrador la aprobará pronto.',
+        });
+      } else {
+        toast({
+          title: '✅ Guardado',
+          description: 'Los cambios han sido guardados correctamente',
+        });
+      }
+
       onSuccess();
     } catch (error: any) {
       console.error('Error saving property:', error);
@@ -317,6 +338,27 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {property?.status === 'pausada' && property?.rejection_reason && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Propiedad Rechazada</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>
+              <strong>Motivo:</strong> {property.rejection_reason.label}
+            </p>
+            {property.rejection_reason.details && (
+              <p className="text-sm">{property.rejection_reason.details}</p>
+            )}
+            <p className="text-sm font-medium mt-2">
+              Por favor corrige los problemas mencionados y reenvía la propiedad para una nueva revisión.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Reenvíos: {property.resubmission_count || 0}/3
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="listing_type">Tipo de Listado*</Label>

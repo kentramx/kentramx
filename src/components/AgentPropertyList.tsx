@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { RefreshCw, Star } from 'lucide-react';
 import { FeaturePropertyDialog } from './FeaturePropertyDialog';
 import {
@@ -123,6 +124,63 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo }: AgentPropertyListProps)
       toast({
         title: 'Error',
         description: 'No se pudo renovar la propiedad',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleResubmitProperty = async (propertyId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('resubmit_property', {
+        property_id: propertyId
+      });
+      
+      if (error) throw error;
+      
+      if (!data.success) {
+        toast({
+          title: 'Error',
+          description: data.error,
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      toast({
+        title: '✅ Reenviada',
+        description: `Propiedad reenviada para revisión. Te quedan ${data.remaining_attempts} intentos.`,
+      });
+      
+      fetchProperties();
+    } catch (error) {
+      console.error('Error resubmitting property:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo reenviar la propiedad',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleReactivateProperty = async (propertyId: string) => {
+    try {
+      const { error } = await supabase.rpc('reactivate_property', {
+        property_id: propertyId
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: '✅ Reactivada',
+        description: 'Tu propiedad ha sido reactivada exitosamente',
+      });
+      
+      fetchProperties();
+    } catch (error) {
+      console.error('Error reactivating property:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo reactivar la propiedad',
         variant: 'destructive',
       });
     }
@@ -251,11 +309,39 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo }: AgentPropertyListProps)
                   {formatPrice(property.price)}
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    variant={property.status === 'activa' ? 'default' : 'secondary'}
-                  >
-                    {property.status}
-                  </Badge>
+                  {property.status === 'pendiente_aprobacion' ? (
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                          ⏳ Pendiente
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Tu propiedad está siendo revisada por un administrador
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : property.status === 'pausada' && property.rejection_reason ? (
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Badge variant="destructive">
+                          ❌ Rechazada
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="font-semibold">{property.rejection_reason.label}</p>
+                        {property.rejection_reason.details && (
+                          <p className="text-xs mt-1">{property.rejection_reason.details}</p>
+                        )}
+                        <p className="text-xs mt-2 text-muted-foreground">
+                          Reenvíos: {property.resubmission_count || 0}/3
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Badge variant={property.status === 'activa' ? 'default' : 'secondary'}>
+                      {property.status}
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell>
                   {featuredProperties.has(property.id) ? (
@@ -311,6 +397,7 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo }: AgentPropertyListProps)
                       variant="ghost"
                       size="icon"
                       onClick={() => onEdit(property)}
+                      disabled={property.status === 'pendiente_aprobacion'}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -318,9 +405,32 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo }: AgentPropertyListProps)
                       variant="ghost"
                       size="icon"
                       onClick={() => setDeleteId(property.id)}
+                      disabled={property.status === 'pendiente_aprobacion'}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
+                    
+                    {property.status === 'pausada' && property.rejection_reason && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleResubmitProperty(property.id)}
+                        disabled={property.resubmission_count >= 3}
+                      >
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        Reenviar ({3 - (property.resubmission_count || 0)})
+                      </Button>
+                    )}
+                    
+                    {property.status === 'pausada' && !property.rejection_reason && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleReactivateProperty(property.id)}
+                      >
+                        Reactivar
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

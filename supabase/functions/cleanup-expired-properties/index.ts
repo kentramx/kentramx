@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ 
           success: true,
           message: 'No expired properties found',
-          deletedCount: 0 
+          pausedCount: 0 
         }),
         { 
           status: 200,
@@ -50,13 +50,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Found ${expiredProperties.length} expired properties to delete`);
+    console.log(`Found ${expiredProperties.length} expired properties to pause`);
 
-    // 2. Guardar log y eliminar propiedades
-    let deletedCount = 0;
+    // 2. Guardar log y pausar propiedades (NO eliminar)
+    let pausedCount = 0;
     for (const property of expiredProperties) {
       try {
-        // Guardar log antes de eliminar
+        // Guardar log antes de pausar
         const { error: logError } = await supabaseAdmin
           .from('property_expiration_log')
           .insert({
@@ -71,46 +71,33 @@ Deno.serve(async (req) => {
           console.error(`Error logging property ${property.id}:`, logError);
         }
 
-        // Eliminar imágenes del storage
-        if (property.images && property.images.length > 0) {
-          const filesToDelete = property.images.map((img: any) => {
-            const fileName = img.url.split('/').pop();
-            return `${property.id}/${fileName}`;
-          });
-          
-          const { error: storageError } = await supabaseAdmin.storage
-            .from('property-images')
-            .remove(filesToDelete);
-
-          if (storageError) {
-            console.error(`Error deleting images for property ${property.id}:`, storageError);
-          }
-        }
-
-        // Eliminar propiedad (las imágenes en DB se eliminan por cascade)
-        const { error: deleteError } = await supabaseAdmin
+        // Pausar propiedad en lugar de eliminarla
+        const { error: pauseError } = await supabaseAdmin
           .from('properties')
-          .delete()
+          .update({ 
+            status: 'pausada',
+            rejection_reason: null // No es rechazo, es pausa por expiración
+          })
           .eq('id', property.id);
 
-        if (deleteError) {
-          console.error(`Error deleting property ${property.id}:`, deleteError);
+        if (pauseError) {
+          console.error(`Error pausing property ${property.id}:`, pauseError);
         } else {
-          deletedCount++;
-          console.log(`✓ Deleted expired property: ${property.title} (${property.id})`);
+          pausedCount++;
+          console.log(`✓ Paused expired property: ${property.title} (${property.id})`);
         }
       } catch (err) {
         console.error(`Error processing property ${property.id}:`, err);
       }
     }
 
-    console.log(`Cleanup completed. Deleted ${deletedCount} properties.`);
+    console.log(`Cleanup completed. Paused ${pausedCount} properties.`);
 
     return new Response(
       JSON.stringify({ 
         success: true,
         message: 'Cleanup completed successfully',
-        deletedCount 
+        pausedCount 
       }),
       { 
         status: 200,

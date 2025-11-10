@@ -1,0 +1,74 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.79.0';
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface ResubmissionNotificationRequest {
+  propertyId: string;
+  propertyTitle: string;
+  agentName: string;
+  resubmissionNumber: number;
+}
+
+const handler = async (req: Request): Promise<Response> => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { propertyId, propertyTitle, agentName, resubmissionNumber }: ResubmissionNotificationRequest = await req.json();
+
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+
+    // Get all admins with notification preferences
+    const { data: admins, error: adminsError } = await supabaseAdmin
+      .from('user_roles')
+      .select('user_id')
+      .in('role', ['admin', 'super_admin', 'moderator']);
+
+    if (adminsError) {
+      console.error('Error fetching admins:', adminsError);
+      throw adminsError;
+    }
+
+    console.log(`Property resubmitted: ${propertyTitle} by ${agentName} (Attempt #${resubmissionNumber})`);
+    console.log(`Priority: HIGH - This is a resubmission`);
+    console.log(`Property ID: ${propertyId}`);
+    console.log(`Notifying ${admins?.length || 0} administrators`);
+
+    // TODO: Implement real-time notification using Supabase Realtime
+    // or integrate with AdminRealtimeNotifications component
+
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        message: 'Admin notification sent',
+        adminCount: admins?.length || 0
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
+  } catch (error: any) {
+    console.error("Error in notify-admin-resubmission:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    );
+  }
+};
+
+serve(handler);

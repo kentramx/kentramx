@@ -133,6 +133,12 @@ const Navbar = () => {
                     <DropdownMenuSeparator />
                     {isAdmin && (
                       <>
+                        <Link to="/admin/dashboard">
+                          <DropdownMenuItem className="cursor-pointer">
+                            <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                            Panel de Moderación
+                          </DropdownMenuItem>
+                        </Link>
                         <Link to="/admin/subscription-changes">
                           <DropdownMenuItem className="cursor-pointer">
                             <Badge className="mr-2 bg-purple-600">Admin</Badge>
