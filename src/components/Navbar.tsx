@@ -16,6 +16,8 @@ import { MessageBadge } from "./MessageBadge";
 import { MobileMenu } from "./MobileMenu";
 import { ThemeToggle } from "./ThemeToggle";
 import { usePropertyCompare } from "@/hooks/usePropertyCompare";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
+import { AdminRealtimeNotifications } from "./AdminRealtimeNotifications";
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
@@ -23,6 +25,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const listingType = searchParams.get("listingType");
   const { compareList } = usePropertyCompare();
+  const { isAdmin } = useAdminCheck();
 
   const getUserInitials = () => {
     if (!user?.email) return "U";
@@ -121,9 +124,20 @@ const Navbar = () => {
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    {isAdmin && (
+                      <>
+                        <Link to="/admin/subscription-changes">
+                          <DropdownMenuItem className="cursor-pointer">
+                            <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                            Panel de Auditoría
+                          </DropdownMenuItem>
+                        </Link>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
                     <Link to="/perfil">
                       <DropdownMenuItem className="cursor-pointer">
                         <User className="mr-2 h-4 w-4" />
@@ -175,6 +189,9 @@ const Navbar = () => {
             {user ? (
               <>
                 <MessageBadge />
+                {isAdmin && (
+                  <AdminRealtimeNotifications userId={user.id} isAdmin={isAdmin} />
+                )}
                 <Link to="/comparar">
                   <Button variant="ghost" size="icon" className="h-9 w-9 relative">
                     <GitCompare className="h-5 w-5" />
@@ -201,6 +218,17 @@ const Navbar = () => {
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    {isAdmin && (
+                      <>
+                        <Link to="/admin/subscription-changes">
+                          <DropdownMenuItem className="cursor-pointer">
+                            <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                            Panel de Auditoría
+                          </DropdownMenuItem>
+                        </Link>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
                     <Link to="/perfil">
                       <DropdownMenuItem className="cursor-pointer">
                         <User className="mr-2 h-4 w-4" />
