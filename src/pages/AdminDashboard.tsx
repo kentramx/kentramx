@@ -18,6 +18,7 @@ import { useAdminCheck } from '@/hooks/useAdminCheck';
 import QualityChecklist from '@/components/QualityChecklist';
 import PropertyDiff from '@/components/PropertyDiff';
 import AdminModerationMetrics from '@/components/AdminModerationMetrics';
+import { AdminRoleManagement } from '@/components/AdminRoleManagement';
 
 const REJECTION_REASONS = [
   { code: 'incomplete_info', label: 'Información incompleta' },
@@ -35,7 +36,7 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isAdmin, loading: adminLoading } = useAdminCheck();
+  const { isAdmin, isSuperAdmin, adminRole, loading: adminLoading } = useAdminCheck();
   
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -354,7 +355,14 @@ const AdminDashboard = () => {
       <Navbar />
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Panel de Moderación</h1>
+          <div>
+            <h1 className="text-3xl font-bold">Panel de Moderación</h1>
+            {adminRole && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Rol: <strong className="text-primary">{adminRole === 'super_admin' ? 'Super Admin' : adminRole === 'moderator' ? 'Moderador' : 'Admin'}</strong>
+              </p>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -416,6 +424,11 @@ const AdminDashboard = () => {
             <TabsTrigger value="metrics">
               Métricas y Tendencias
             </TabsTrigger>
+            {isSuperAdmin && (
+              <TabsTrigger value="roles">
+                Gestión de Roles
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value={activeTab} className="space-y-4">
@@ -506,6 +519,15 @@ const AdminDashboard = () => {
           <TabsContent value="metrics">
             <AdminModerationMetrics />
           </TabsContent>
+
+          {isSuperAdmin && (
+            <TabsContent value="roles">
+              <AdminRoleManagement 
+                currentUserId={user?.id || ''} 
+                isSuperAdmin={isSuperAdmin} 
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
