@@ -62,7 +62,7 @@ interface SavedSearch {
 const UserProfile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isAdmin, isSuperAdmin, adminRole, loading: adminLoading } = useAdminCheck();
   const [profile, setProfile] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -252,7 +252,11 @@ const UserProfile = () => {
 
         <h1 className="text-3xl font-bold mb-8">Mi Perfil</h1>
 
-        <Tabs value={activeTab} className="w-full">
+        <Tabs 
+          value={activeTab} 
+          onValueChange={(value) => setSearchParams({ tab: value })}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="profile">
               <User className="mr-2 h-4 w-4" />
