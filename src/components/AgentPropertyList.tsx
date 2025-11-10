@@ -3,7 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Star } from 'lucide-react';
+import { FeaturePropertyDialog } from './FeaturePropertyDialog';
 import {
   Table,
   TableBody,
@@ -40,6 +41,7 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo }: AgentPropertyListProps)
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [featuredProperties, setFeaturedProperties] = useState<Set<string>>(new Set());
+  const [featureProperty, setFeatureProperty] = useState<any>(null);
 
   useEffect(() => {
     fetchProperties();
@@ -210,6 +212,7 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo }: AgentPropertyListProps)
               <TableHead>Tipo</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Destacada</TableHead>
               <TableHead>Renovación</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
@@ -253,6 +256,25 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo }: AgentPropertyListProps)
                   >
                     {property.status}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {featuredProperties.has(property.id) ? (
+                    <Badge variant="default" className="gap-1">
+                      <Star className="h-3 w-3 fill-current" />
+                      Destacada
+                    </Badge>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFeatureProperty(property)}
+                      disabled={!subscriptionInfo || subscriptionInfo.featured_used >= subscriptionInfo.featured_limit}
+                      className="gap-1"
+                    >
+                      <Star className="h-3 w-3" />
+                      Destacar
+                    </Button>
+                  )}
                 </TableCell>
                 <TableCell>
                   {(() => {
@@ -306,6 +328,14 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo }: AgentPropertyListProps)
           </TableBody>
         </Table>
       </div>
+
+      <FeaturePropertyDialog
+        property={featureProperty}
+        open={!!featureProperty}
+        onOpenChange={(open) => !open && setFeatureProperty(null)}
+        onSuccess={fetchProperties}
+        subscriptionInfo={subscriptionInfo}
+      />
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
