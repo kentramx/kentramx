@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.79.0';
+import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,6 +30,7 @@ Deno.serve(async (req) => {
     } = await supabaseClient.auth.getUser();
 
     if (authError || !user) {
+      console.error('Auth error:', authError);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -36,6 +38,12 @@ Deno.serve(async (req) => {
     }
 
     const { planId, billingCycle, successUrl, cancelUrl } = await req.json();
+
+    console.log('Creating checkout session for:', {
+      userId: user.id,
+      planId,
+      billingCycle,
+    });
 
     // Get plan details
     const { data: plan, error: planError } = await supabaseClient
@@ -45,27 +53,58 @@ Deno.serve(async (req) => {
       .single();
 
     if (planError || !plan) {
+      console.error('Plan error:', planError);
       return new Response(JSON.stringify({ error: 'Plan not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // TODO: Integrate with Stripe
-    // This is a placeholder for Stripe integration
-    // When ready, uncomment and configure:
-    /*
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
+    // Initialize Stripe
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
       apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
     });
 
+    // Determine price ID based on billing cycle
     const priceId = billingCycle === 'yearly' 
       ? plan.stripe_price_id_yearly 
       : plan.stripe_price_id_monthly;
 
+    if (!priceId) {
+      console.error('Missing price ID for billing cycle:', billingCycle);
+      return new Response(
+        JSON.stringify({ error: 'Price configuration missing for this billing cycle' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if customer already exists
+    const { data: existingSubscription } = await supabaseClient
+      .from('user_subscriptions')
+      .select('stripe_customer_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    let customerId = existingSubscription?.stripe_customer_id;
+
+    // Create or retrieve customer
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          user_id: user.id,
+        },
+      });
+      customerId = customer.id;
+      console.log('Created new Stripe customer:', customerId);
+    }
+
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
+      customer: customerId,
       line_items: [{
         price: priceId,
         quantity: 1,
@@ -73,39 +112,35 @@ Deno.serve(async (req) => {
       success_url: successUrl,
       cancel_url: cancelUrl,
       client_reference_id: user.id,
-      customer_email: user.email,
       metadata: {
         plan_id: planId,
         user_id: user.id,
         billing_cycle: billingCycle,
       },
+      subscription_data: {
+        metadata: {
+          plan_id: planId,
+          user_id: user.id,
+        },
+      },
     });
 
-    return new Response(
-      JSON.stringify({ checkoutUrl: session.url }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-    */
-
-    // For now, return a placeholder response
-    console.log('Checkout session requested for:', {
-      userId: user.id,
-      planId,
-      billingCycle,
-    });
+    console.log('Checkout session created:', session.id);
 
     return new Response(
-      JSON.stringify({
-        message: 'Stripe integration pending',
-        planId,
-        billingCycle,
+      JSON.stringify({ 
+        checkoutUrl: session.url,
+        sessionId: session.id,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error creating checkout session:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        error: 'Internal server error',
+        details: error.message,
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

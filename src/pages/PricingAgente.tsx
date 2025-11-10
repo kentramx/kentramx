@@ -65,16 +65,50 @@ const PricingAgente = () => {
     },
   ];
 
-  const handleSelectPlan = (planId: string) => {
+  const handleSelectPlan = async (planId: string) => {
     if (!user) {
       navigate('/auth?redirect=/pricing-agente');
       return;
     }
 
-    toast({
-      title: 'Plan seleccionado',
-      description: 'Contacta con nosotros para activar tu suscripción.',
-    });
+    try {
+      toast({
+        title: 'Procesando...',
+        description: 'Redirigiendo a la página de pago segura.',
+      });
+
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: {
+          planId,
+          billingCycle: isAnnual ? 'yearly' : 'monthly',
+          successUrl: `${window.location.origin}/agent-dashboard?payment=success`,
+          cancelUrl: `${window.location.origin}/pricing-agente?payment=canceled`,
+        },
+      });
+
+      if (error) {
+        console.error('Error creating checkout session:', error);
+        toast({
+          title: 'Error',
+          description: 'No se pudo crear la sesión de pago. Intenta de nuevo.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (data?.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: 'Error',
+        description: 'Ocurrió un error inesperado. Intenta de nuevo.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (

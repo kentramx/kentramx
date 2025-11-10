@@ -22,16 +22,36 @@ const PricingDesarrolladora = () => {
     'Personalización de marca completa',
   ];
 
-  const handleContact = () => {
+  const handleContact = async () => {
     if (!user) {
       navigate('/auth?redirect=/pricing-desarrolladora');
       return;
     }
 
-    toast({
-      title: 'Contactar ventas',
-      description: 'Te contactaremos pronto para discutir tu proyecto.',
-    });
+    try {
+      toast({
+        title: 'Procesando...',
+        description: 'Redirigiendo a contacto con ventas.',
+      });
+
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // For developer plan, we create a special contact request
+      // You can implement a custom flow here or use a specific plan ID
+      // For now, we'll show a contact form or redirect
+      
+      toast({
+        title: 'Contactar ventas',
+        description: 'Te contactaremos pronto para discutir tu proyecto.',
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: 'Error',
+        description: 'Ocurrió un error inesperado. Intenta de nuevo.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
