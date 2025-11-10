@@ -26,6 +26,9 @@ import {
   Mail,
   Shield,
   BarChart3,
+  DollarSign,
+  FileText,
+  ScrollText,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -361,7 +364,8 @@ const UserProfile = () => {
                             <Shield className="w-4 h-4" />
                             Funcionalidades Administrativas
                           </h4>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {/* Disponible para todos los admins */}
                             <Button
                               variant="outline"
                               size="sm"
@@ -370,12 +374,30 @@ const UserProfile = () => {
                               <Settings className="w-4 h-4 mr-2" />
                               Panel de Moderación
                             </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate("/admin/notification-settings")}
+                            >
+                              <Bell className="w-4 h-4 mr-2" />
+                              Notificaciones
+                            </Button>
+                            
+                            {/* Exclusivo para super_admin */}
                             {isSuperAdmin && (
                               <>
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => navigate("/admin/dashboard?tab=kpis")}
+                                  onClick={() => navigate("/admin/financiero")}
+                                >
+                                  <DollarSign className="w-4 h-4 mr-2" />
+                                  Panel Financiero
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate("/admin/kpis")}
                                 >
                                   <BarChart3 className="w-4 h-4 mr-2" />
                                   KPIs de Negocio
@@ -383,18 +405,34 @@ const UserProfile = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => navigate("/admin/dashboard?tab=roles")}
+                                  onClick={() => navigate("/admin/roles")}
                                 >
                                   <Shield className="w-4 h-4 mr-2" />
                                   Gestión de Roles
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate("/admin/subscription-changes")}
+                                >
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  Panel de Auditoría
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate("/admin/role-audit")}
+                                >
+                                  <ScrollText className="w-4 h-4 mr-2" />
+                                  Auditoría de Roles
                                 </Button>
                               </>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">
                             {isSuperAdmin 
-                              ? "Tienes acceso completo al sistema: moderación, métricas de negocio, gestión de usuarios y roles."
-                              : "Tienes acceso a funciones de moderación de contenido y soporte al cliente."}
+                              ? "Tienes acceso completo al sistema: moderación, finanzas, KPIs, gestión de usuarios, roles y auditoría."
+                              : "Tienes acceso a funciones de moderación de contenido, soporte al cliente y notificaciones."}
                           </p>
                         </div>
                       )}
