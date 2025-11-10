@@ -27,6 +27,7 @@ import Publicar from "./pages/Publicar";
 import PricingAgente from "./pages/PricingAgente";
 import PricingInmobiliaria from "./pages/PricingInmobiliaria";
 import PricingDesarrolladora from "./pages/PricingDesarrolladora";
+import DirectorioAgentes from "./pages/DirectorioAgentes";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
               <Route path="/pricing-agente" element={<PricingAgente />} />
               <Route path="/pricing-inmobiliaria" element={<PricingInmobiliaria />} />
               <Route path="/pricing-desarrolladora" element={<PricingDesarrolladora />} />
+              <Route path="/agentes" element={<DirectorioAgentes />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

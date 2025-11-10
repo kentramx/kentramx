@@ -76,12 +76,12 @@ const Navbar = () => {
 
           {/* Right Navigation - Desktop */}
           <div className="hidden md:flex items-center gap-1">
-            <Link to="/buscar">
-              <Button variant="ghost" size="sm">
-                <Search className="h-4 w-4 mr-2" />
-                Buscar Inmobiliarias
-              </Button>
-            </Link>
+              <Link to="/agentes">
+                <Button variant="ghost" size="sm">
+                  <Search className="h-4 w-4 mr-2" />
+                  Buscar Inmobiliarias
+                </Button>
+              </Link>
             <Button 
               size="sm" 
               className="shadow-sm"
