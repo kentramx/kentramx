@@ -112,6 +112,51 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
     audio.play().catch(e => console.log('Could not play sound:', e));
   };
 
+  const sendEmailNotification = async (
+    notificationType: 'bypass' | 'upgrade' | 'downgrade',
+    userName: string,
+    planName: string,
+    timestamp: string,
+    isAdminChange: boolean = false
+  ) => {
+    try {
+      // Get admin user email from auth
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user?.email) {
+        console.log('No email found for admin user');
+        return;
+      }
+
+      // Get admin name from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', userId)
+        .single();
+
+      const { error } = await supabase.functions.invoke('send-admin-notification-email', {
+        body: {
+          adminEmail: user.email,
+          adminName: profile?.name || 'Administrador',
+          notificationType,
+          userName,
+          planName,
+          timestamp,
+          isAdminChange,
+        },
+      });
+
+      if (error) {
+        console.error('Error sending email notification:', error);
+      } else {
+        console.log('Email notification sent successfully');
+      }
+    } catch (error) {
+      console.error('Error in sendEmailNotification:', error);
+    }
+  };
+
   const handleNewChange = async (change: any) => {
     const metadata = change.metadata || {};
     
@@ -195,6 +240,17 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
       // Reproducir sonido si está habilitado
       if (preferences.use_sound) {
         playNotificationSound();
+      }
+
+      // Enviar email si está habilitado (solo para bypass, upgrade, downgrade)
+      if (preferences.use_email && notification.type !== 'unusual') {
+        sendEmailNotification(
+          notification.type as 'bypass' | 'upgrade' | 'downgrade',
+          userName,
+          planName,
+          notification.timestamp,
+          isAdminChange
+        );
       }
     }
   };
