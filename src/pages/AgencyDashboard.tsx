@@ -13,6 +13,7 @@ import { AgencyTeamManagement } from '@/components/AgencyTeamManagement';
 import { AgencyInventory } from '@/components/AgencyInventory';
 import { AgencyAnalytics } from '@/components/AgencyAnalytics';
 import { PropertyAssignmentHistory } from '@/components/PropertyAssignmentHistory';
+import { SubscriptionManagement } from '@/components/SubscriptionManagement';
 
 const AgencyDashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -132,15 +133,17 @@ const AgencyDashboard = () => {
               {activeTab === 'inventory' && 'Inventario Compartido'}
               {activeTab === 'analytics' && 'Reportes Consolidados'}
               {activeTab === 'history' && 'Historial de Asignaciones'}
+              {activeTab === 'subscription' && 'Gestión de Suscripción'}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="inventory">Inventario</TabsTrigger>
                 <TabsTrigger value="team">Equipo</TabsTrigger>
                 <TabsTrigger value="analytics">Reportes</TabsTrigger>
                 <TabsTrigger value="history">Historial</TabsTrigger>
+                <TabsTrigger value="subscription">Suscripción</TabsTrigger>
               </TabsList>
 
               <TabsContent value="inventory" className="mt-6">
@@ -160,6 +163,10 @@ const AgencyDashboard = () => {
 
               <TabsContent value="history" className="mt-6">
                 <PropertyAssignmentHistory agencyId={agency.id} />
+              </TabsContent>
+
+              <TabsContent value="subscription" className="mt-6">
+                <SubscriptionManagement userId={user?.id || ''} />
               </TabsContent>
             </Tabs>
           </CardContent>

@@ -1,0 +1,414 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Calendar, CreditCard, TrendingUp, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
+
+interface SubscriptionManagementProps {
+  userId: string;
+}
+
+interface SubscriptionDetails {
+  plan_id: string;
+  plan_name: string;
+  plan_display_name: string;
+  status: string;
+  billing_cycle: string;
+  price_monthly: number;
+  price_yearly: number;
+  current_period_start: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  features: any;
+}
+
+interface PaymentRecord {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  payment_type: string;
+  created_at: string;
+  metadata: any;
+}
+
+export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [canceling, setCanceling] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriptionDetails | null>(null);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+
+  useEffect(() => {
+    fetchSubscriptionData();
+  }, [userId]);
+
+  const fetchSubscriptionData = async () => {
+    try {
+      // Obtener suscripción actual
+      const { data: subData, error: subError } = await supabase
+        .from('user_subscriptions')
+        .select(`
+          plan_id,
+          status,
+          billing_cycle,
+          current_period_start,
+          current_period_end,
+          cancel_at_period_end,
+          subscription_plans (
+            name,
+            display_name,
+            price_monthly,
+            price_yearly,
+            features
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (subError) throw subError;
+
+      if (subData && subData.subscription_plans) {
+        setSubscription({
+          plan_id: subData.plan_id,
+          plan_name: subData.subscription_plans.name,
+          plan_display_name: subData.subscription_plans.display_name,
+          status: subData.status,
+          billing_cycle: subData.billing_cycle,
+          price_monthly: Number(subData.subscription_plans.price_monthly),
+          price_yearly: Number(subData.subscription_plans.price_yearly),
+          current_period_start: subData.current_period_start,
+          current_period_end: subData.current_period_end,
+          cancel_at_period_end: subData.cancel_at_period_end,
+          features: subData.subscription_plans.features,
+        });
+      }
+
+      // Obtener historial de pagos
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('payment_history')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (paymentsError) throw paymentsError;
+
+      setPayments(paymentsData || []);
+    } catch (error) {
+      console.error('Error fetching subscription data:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo cargar la información de la suscripción',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setCanceling(true);
+    try {
+      // TODO: Llamar a edge function o API de Stripe para cancelar
+      // Por ahora, solo actualizamos el flag local
+      const { error } = await supabase
+        .from('user_subscriptions')
+        .update({ cancel_at_period_end: true })
+        .eq('user_id', userId)
+        .eq('status', 'active');
+
+      if (error) throw error;
+
+      toast({
+        title: 'Suscripción cancelada',
+        description: 'Tu suscripción se cancelará al final del período actual',
+      });
+
+      // Recargar datos
+      await fetchSubscriptionData();
+    } catch (error) {
+      console.error('Error canceling subscription:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo cancelar la suscripción. Intenta de nuevo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCanceling(false);
+    }
+  };
+
+  const handleChangePlan = () => {
+    // Redirigir a la página de pricing según el tipo de plan actual
+    if (subscription?.plan_name.includes('inmobiliaria')) {
+      navigate('/pricing-inmobiliaria');
+    } else {
+      navigate('/pricing-agente');
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-600">Activo</Badge>;
+      case 'canceled':
+        return <Badge variant="destructive">Cancelado</Badge>;
+      case 'past_due':
+        return <Badge variant="outline" className="border-amber-500 text-amber-600">Pago Pendiente</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const getPaymentStatusIcon = (status: string) => {
+    switch (status) {
+      case 'succeeded':
+        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+      case 'pending':
+        return <Loader2 className="h-4 w-4 text-amber-600 animate-spin" />;
+      case 'failed':
+        return <AlertCircle className="h-4 w-4 text-red-600" />;
+      default:
+        return null;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!subscription) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-center py-8">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No tienes una suscripción activa</h3>
+            <p className="text-muted-foreground mb-4">
+              Suscríbete a un plan para comenzar a publicar tus propiedades
+            </p>
+            <Button onClick={() => navigate('/pricing-agente')}>
+              Ver Planes
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const currentPrice = subscription.billing_cycle === 'yearly' 
+    ? subscription.price_yearly 
+    : subscription.price_monthly;
+
+  return (
+    <div className="space-y-6">
+      {/* Current Subscription Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl">{subscription.plan_display_name}</CardTitle>
+              <CardDescription className="mt-2">
+                Plan {subscription.billing_cycle === 'yearly' ? 'Anual' : 'Mensual'}
+              </CardDescription>
+            </div>
+            {getStatusBadge(subscription.status)}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Price */}
+          <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+            <CreditCard className="h-5 w-5 text-primary" />
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground">Precio actual</p>
+              <p className="text-2xl font-bold">
+                ${currentPrice.toLocaleString('es-MX')} MXN
+                <span className="text-sm font-normal text-muted-foreground">
+                  /{subscription.billing_cycle === 'yearly' ? 'año' : 'mes'}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          {/* Period Dates */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Inicio del período</p>
+                <p className="font-semibold">
+                  {format(new Date(subscription.current_period_start), "d 'de' MMMM, yyyy", { locale: es })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {subscription.cancel_at_period_end ? 'Finaliza el' : 'Próxima renovación'}
+                </p>
+                <p className="font-semibold">
+                  {format(new Date(subscription.current_period_end), "d 'de' MMMM, yyyy", { locale: es })}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Cancelation Warning */}
+          {subscription.cancel_at_period_end && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-amber-900 dark:text-amber-100">
+                    Cancelación programada
+                  </p>
+                  <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
+                    Tu suscripción se cancelará al final del período actual. 
+                    Podrás seguir usando el servicio hasta el{' '}
+                    {format(new Date(subscription.current_period_end), "d 'de' MMMM, yyyy", { locale: es })}.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Separator />
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button onClick={handleChangePlan} className="flex-1 gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Cambiar de Plan
+            </Button>
+            {!subscription.cancel_at_period_end && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="flex-1">
+                    Cancelar Suscripción
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Cancelar suscripción?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tu suscripción se cancelará al final del período de facturación actual el{' '}
+                      {format(new Date(subscription.current_period_end), "d 'de' MMMM, yyyy", { locale: es })}.
+                      Podrás seguir usando todas las funciones hasta esa fecha.
+                      <br /><br />
+                      Esta acción no se puede deshacer, pero podrás suscribirte nuevamente en cualquier momento.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>No, mantener suscripción</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleCancelSubscription}
+                      disabled={canceling}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {canceling ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Cancelando...
+                        </>
+                      ) : (
+                        'Sí, cancelar'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment History */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Historial de Pagos</CardTitle>
+          <CardDescription>
+            Últimos {payments.length} pagos realizados
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {payments.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No hay pagos registrados</p>
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Concepto</TableHead>
+                    <TableHead>Monto</TableHead>
+                    <TableHead>Estado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payments.map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell>
+                        {format(new Date(payment.created_at), "d MMM yyyy, HH:mm", { locale: es })}
+                      </TableCell>
+                      <TableCell className="capitalize">
+                        {payment.payment_type === 'subscription' ? 'Suscripción' : payment.payment_type}
+                      </TableCell>
+                      <TableCell className="font-semibold">
+                        ${payment.amount.toLocaleString('es-MX')} {payment.currency}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getPaymentStatusIcon(payment.status)}
+                          <span className="capitalize text-sm">
+                            {payment.status === 'succeeded' && 'Exitoso'}
+                            {payment.status === 'pending' && 'Pendiente'}
+                            {payment.status === 'failed' && 'Fallido'}
+                          </span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
