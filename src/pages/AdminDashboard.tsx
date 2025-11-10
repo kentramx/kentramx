@@ -18,8 +18,9 @@ import { useAdminCheck } from '@/hooks/useAdminCheck';
 import QualityChecklist from '@/components/QualityChecklist';
 import PropertyDiff from '@/components/PropertyDiff';
 import AdminModerationMetrics from '@/components/AdminModerationMetrics';
-import { AdminRoleManagement } from '@/components/AdminRoleManagement';
 import { SuperAdminMetrics } from '@/components/SuperAdminMetrics';
+import { AdminRoleManagement } from '@/components/AdminRoleManagement';
+import { FinancialDashboard } from '@/components/FinancialDashboard';
 import AIPreModerationBadge from '@/components/AIPreModerationBadge';
 import AutoApprovalStats from '@/components/AutoApprovalStats';
 import ImageQualityBadge from '@/components/ImageQualityBadge';
@@ -437,13 +438,18 @@ const AdminDashboard = () => {
               Métricas y Tendencias
             </TabsTrigger>
             {isSuperAdmin && (
+              <TabsTrigger value="financiero">
+                💰 Panel Financiero
+              </TabsTrigger>
+            )}
+            {isSuperAdmin && (
               <TabsTrigger value="kpis">
-                KPIs de Negocio
+                📊 KPIs de Negocio
               </TabsTrigger>
             )}
             {isSuperAdmin && (
               <TabsTrigger value="roles">
-                Gestión de Roles
+                👥 Gestión de Roles
               </TabsTrigger>
             )}
           </TabsList>
@@ -742,6 +748,12 @@ const AdminDashboard = () => {
           <TabsContent value="metrics">
             <AdminModerationMetrics />
           </TabsContent>
+
+          {isSuperAdmin && (
+            <TabsContent value="financiero">
+              <FinancialDashboard />
+            </TabsContent>
+          )}
 
           {isSuperAdmin && (
             <TabsContent value="kpis">

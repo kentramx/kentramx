@@ -1346,6 +1346,10 @@ export type Database = {
           total_auto_approved: number
         }[]
       }
+      get_financial_metrics: {
+        Args: { end_date?: string; start_date?: string }
+        Returns: Json
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
