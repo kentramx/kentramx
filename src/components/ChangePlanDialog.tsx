@@ -53,6 +53,11 @@ interface CooldownInfo {
   lastChangeDate?: string;
 }
 
+interface UserRole {
+  isAdmin: boolean;
+  role: string;
+}
+
 export const ChangePlanDialog = ({
   open,
   onOpenChange,
@@ -73,13 +78,35 @@ export const ChangePlanDialog = ({
   );
   const [preview, setPreview] = useState<ProrationPreview | null>(null);
   const [cooldownInfo, setCooldownInfo] = useState<CooldownInfo>({ canChange: true });
+  const [userRole, setUserRole] = useState<UserRole>({ isAdmin: false, role: 'buyer' });
 
   useEffect(() => {
     if (open) {
       fetchAvailablePlans();
+      checkUserRole();
       checkCooldown();
     }
   }, [open, currentPlanName]);
+
+  const checkUserRole = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) throw error;
+
+      setUserRole({
+        isAdmin: data.role === 'admin',
+        role: data.role,
+      });
+    } catch (error) {
+      console.error('Error checking user role:', error);
+      setUserRole({ isAdmin: false, role: 'buyer' });
+    }
+  };
 
   const checkCooldown = async () => {
     try {
@@ -226,6 +253,7 @@ export const ChangePlanDialog = ({
           newPlanId: selectedPlanId,
           billingCycle: billingCycle,
           previewOnly: false,
+          bypassCooldown: userRole.isAdmin && !cooldownInfo.canChange, // Admin can force change
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -315,8 +343,22 @@ export const ChangePlanDialog = ({
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Admin Badge */}
+            {userRole.isAdmin && (
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-purple-600">
+                    👑 Administrador
+                  </Badge>
+                  <span className="text-sm text-purple-900 dark:text-purple-100">
+                    Puedes cambiar de plan sin restricciones
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Cooldown Warning */}
-            {!cooldownInfo.canChange && cooldownInfo.daysRemaining && (
+            {!cooldownInfo.canChange && cooldownInfo.daysRemaining && !userRole.isAdmin && (
               <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-500 rounded-lg">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
@@ -333,6 +375,27 @@ export const ChangePlanDialog = ({
                     </p>
                     <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
                       Esta restricción previene cambios frecuentes y abuso del sistema de prorrateo.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Admin Override Notice */}
+            {!cooldownInfo.canChange && cooldownInfo.daysRemaining && userRole.isAdmin && (
+              <div className="p-4 bg-purple-50 dark:bg-purple-950/20 border-2 border-purple-300 dark:border-purple-700 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-purple-900 dark:text-purple-100">
+                      Período de cooldown detectado
+                    </p>
+                    <p className="text-sm text-purple-800 dark:text-purple-200 mt-1">
+                      El último cambio fue hace <strong>{30 - cooldownInfo.daysRemaining} días</strong>. 
+                      Como administrador, puedes forzar el cambio ahora saltando el período de espera.
+                    </p>
+                    <p className="text-xs text-purple-700 dark:text-purple-300 mt-2">
+                      ⚠️ Este cambio quedará registrado en el log de auditoría.
                     </p>
                   </div>
                 </div>
@@ -504,7 +567,7 @@ export const ChangePlanDialog = ({
           </Button>
           <Button
             onClick={handleChangePlan}
-            disabled={processing || !selectedPlanId || loading || !cooldownInfo.canChange}
+            disabled={processing || !selectedPlanId || loading || (!cooldownInfo.canChange && !userRole.isAdmin)}
           >
             {processing ? (
               <>

@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { newPlanId, billingCycle, previewOnly } = await req.json();
+    const { newPlanId, billingCycle, previewOnly, bypassCooldown } = await req.json();
 
     // Validate input
     if (!newPlanId || typeof newPlanId !== 'string') {
@@ -55,15 +55,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Check if user is admin (can bypass cooldown)
+    const { data: userRole, error: roleError } = await supabaseClient
+      .rpc('get_user_role', { _user_id: user.id });
+
+    const isAdmin = userRole === 'admin';
+
     console.log('Changing subscription plan:', {
       userId: user.id,
       newPlanId,
       billingCycle,
       previewOnly: previewOnly || false,
+      isAdmin,
+      bypassCooldown: bypassCooldown || false,
     });
 
     // Check cooldown period (30 days) - only for actual changes, not previews
-    if (!previewOnly) {
+    // Admins can bypass cooldown restriction
+    if (!previewOnly && !isAdmin && !bypassCooldown) {
       const { data: recentChanges, error: changesError } = await supabaseClient
         .from('subscription_changes')
         .select('changed_at')
@@ -108,6 +117,8 @@ Deno.serve(async (req) => {
           );
         }
       }
+    } else if (isAdmin && !previewOnly) {
+      console.log('Admin bypassing cooldown restriction');
     }
 
     // Get current subscription
@@ -266,6 +277,8 @@ Deno.serve(async (req) => {
         metadata: {
           previous_plan_name: currentPlan.name,
           new_plan_name: newPlan.name,
+          bypassed_cooldown: isAdmin || bypassCooldown,
+          changed_by_admin: isAdmin,
         },
       });
 
