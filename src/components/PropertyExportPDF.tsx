@@ -21,24 +21,52 @@ export const PropertyExportPDF = ({ property, agent }: PropertyExportPDFProps) =
     }).format(price);
   };
 
+  const getAbsoluteImageUrl = (url: string): string => {
+    // Si es una URL de Supabase storage, retornarla directamente
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // Si es una ruta relativa de assets, convertir a URL absoluta
+    if (url.startsWith('/src/')) {
+      // Remover /src/ y construir URL desde public
+      const assetPath = url.replace('/src/', '/');
+      return `${window.location.origin}${assetPath}`;
+    }
+    // Si ya tiene formato correcto, retornar
+    return url.startsWith('/') ? `${window.location.origin}${url}` : url;
+  };
+
   const loadImageAsBase64 = async (url: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
+      
       img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL("image/jpeg", 0.8));
-        } else {
-          reject(new Error("Could not get canvas context"));
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/jpeg", 0.8));
+          } else {
+            reject(new Error("Could not get canvas context"));
+          }
+        } catch (error) {
+          console.error("Error converting image to base64:", error);
+          reject(error);
         }
       };
-      img.onerror = () => reject(new Error("Could not load image"));
-      img.src = url;
+      
+      img.onerror = (error) => {
+        console.error("Error loading image:", url, error);
+        reject(new Error(`Could not load image: ${url}`));
+      };
+      
+      const absoluteUrl = getAbsoluteImageUrl(url);
+      console.log("Loading image from:", absoluteUrl);
+      img.src = absoluteUrl;
     });
   };
 
@@ -86,10 +114,14 @@ export const PropertyExportPDF = ({ property, agent }: PropertyExportPDFProps) =
         yPosition += 7;
 
         // Load and add up to 4 images
-        const imagesToInclude = property.images.slice(0, 4);
-        for (let i = 0; i < imagesToInclude.length; i++) {
+        const imageUrls = property.images.map((img: any) => 
+          typeof img === 'string' ? img : img.url
+        ).slice(0, 4);
+
+        for (let i = 0; i < imageUrls.length; i++) {
           try {
-            const imageUrl = imagesToInclude[i];
+            const imageUrl = imageUrls[i];
+            console.log(`Loading image ${i + 1}/${imageUrls.length}:`, imageUrl);
             const base64Image = await loadImageAsBase64(imageUrl);
             
             const imgWidth = pageWidth - 40;
@@ -103,8 +135,10 @@ export const PropertyExportPDF = ({ property, agent }: PropertyExportPDFProps) =
 
             doc.addImage(base64Image, "JPEG", 20, yPosition, imgWidth, imgHeight);
             yPosition += imgHeight + 10;
+            console.log(`Image ${i + 1} added successfully`);
           } catch (error) {
             console.error(`Error loading image ${i + 1}:`, error);
+            // Continue with next image even if one fails
           }
         }
       }
