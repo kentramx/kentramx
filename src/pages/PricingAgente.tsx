@@ -151,7 +151,7 @@ const PricingAgente = () => {
               Planes para Agentes
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Publica tus propiedades y recibe leads directo a WhatsApp. Diseñado para agentes en las 10 ciudades más grandes de México.
+              Publica tus propiedades y recibe leads directo a WhatsApp. Diseñado para agentes en todo México.
             </p>
 
             {/* Toggle */}
