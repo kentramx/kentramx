@@ -8,7 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { NotificationPermissionBanner } from "@/components/NotificationPermissionBanner";
-import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
+import { useTracking } from "@/hooks/useTracking";
 import Home from "./pages/Home";
 import PropertyDetail from "./pages/PropertyDetail";
 import Favorites from "./pages/Favorites";
@@ -59,11 +59,12 @@ const queryClient = new QueryClient({
 // Componente interno para trackear pageviews
 const AppContent = () => {
   const location = useLocation();
-  const { trackPageView } = useGoogleAnalytics();
+  const { trackPageView } = useTracking();
 
   useEffect(() => {
-    // Trackear pageview en cada cambio de ruta
+    // Trackear pageview en cada cambio de ruta usando GTM
     trackPageView(location.pathname + location.search);
+    console.log('📊 GTM Pageview tracked:', location.pathname);
   }, [location, trackPageView]);
 
   return (
