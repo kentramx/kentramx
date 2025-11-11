@@ -246,7 +246,7 @@ const PricingAgente = () => {
                     )}
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex flex-col flex-1">
                   <ul className="space-y-3 mb-6 flex-1">
                     {plan.features.map((feature, idx) => (
                       <li key={idx} className="flex items-start gap-3 text-sm">
