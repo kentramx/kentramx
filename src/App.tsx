@@ -37,6 +37,7 @@ import AdminSubscriptionChanges from "./pages/AdminSubscriptionChanges";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminFinancial from "./pages/AdminFinancial";
 import AdminKPIs from "./pages/AdminKPIs";
+import AdminMarketing from "./pages/AdminMarketing";
 import { Footer } from "@/components/Footer";
 
 const queryClient = new QueryClient({
@@ -88,6 +89,7 @@ const App = () => (
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/financiero" element={<AdminFinancial />} />
               <Route path="/admin/kpis" element={<AdminKPIs />} />
+              <Route path="/admin/marketing" element={<AdminMarketing />} />
               <Route path="/admin/roles" element={<AdminRoles />} />
               <Route path="/admin/role-audit" element={<AdminRoleAudit />} />
               <Route path="/admin/subscription-changes" element={<AdminSubscriptionChanges />} />

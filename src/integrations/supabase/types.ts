@@ -300,6 +300,63 @@ export type Database = {
           },
         ]
       }
+      conversion_events: {
+        Row: {
+          content_category: string | null
+          content_name: string | null
+          created_at: string
+          currency: string | null
+          event_source: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          referrer: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+          user_role: string | null
+          value: number | null
+        }
+        Insert: {
+          content_category?: string | null
+          content_name?: string | null
+          created_at?: string
+          currency?: string | null
+          event_source?: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_role?: string | null
+          value?: number | null
+        }
+        Update: {
+          content_category?: string | null
+          content_name?: string | null
+          created_at?: string
+          currency?: string | null
+          event_source?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_role?: string | null
+          value?: number | null
+        }
+        Relationships: []
+      }
       demo_setup_log: {
         Row: {
           created_at: string
@@ -1351,6 +1408,10 @@ export type Database = {
         }[]
       }
       get_financial_metrics: {
+        Args: { end_date?: string; start_date?: string }
+        Returns: Json
+      }
+      get_marketing_metrics: {
         Args: { end_date?: string; start_date?: string }
         Returns: Json
       }

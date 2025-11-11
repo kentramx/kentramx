@@ -32,6 +32,7 @@ import {
   FileText,
   ScrollText,
   Lock,
+  TrendingUp,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -440,6 +441,14 @@ const UserProfile = () => {
                                 >
                                   <ScrollText className="w-4 h-4 mr-2" />
                                   Auditoría de Roles
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate("/admin/marketing")}
+                                >
+                                  <TrendingUp className="w-4 h-4 mr-2" />
+                                  Dashboard de Marketing
                                 </Button>
                               </>
                             )}
