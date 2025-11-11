@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Check, Info } from 'lucide-react';
+import { Check, Info, Rocket, Zap, Crown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const PricingAgente = () => {
@@ -47,6 +47,7 @@ const PricingAgente = () => {
       ],
       popular: false,
       buttonText: 'Empezar con Start',
+      icon: Rocket,
     },
     {
       id: 'de96952c-ea83-4afb-a310-27f1f2db8f4e',
@@ -64,6 +65,7 @@ const PricingAgente = () => {
       ],
       popular: true,
       buttonText: 'Activar plan Pro',
+      icon: Zap,
     },
     {
       id: 'd4529d5f-725e-4513-9b29-1fecfc681708',
@@ -81,6 +83,7 @@ const PricingAgente = () => {
       ],
       popular: false,
       buttonText: 'Subir a Elite',
+      icon: Crown,
     },
   ];
 
@@ -260,6 +263,7 @@ const PricingAgente = () => {
                     variant={plan.popular ? 'default' : 'outline'}
                     onClick={() => handleSelectPlan(plan.id)}
                   >
+                    {plan.icon && <plan.icon className="mr-2 h-5 w-5" />}
                     {plan.buttonText}
                   </Button>
                 </CardContent>
