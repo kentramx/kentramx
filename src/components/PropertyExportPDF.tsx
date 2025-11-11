@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import QRCode from "qrcode";
 
 interface PropertyExportPDFProps {
   property: any;
@@ -19,6 +20,22 @@ export const PropertyExportPDF = ({ property, agent }: PropertyExportPDFProps) =
       currency: "MXN",
       minimumFractionDigits: 0,
     }).format(price);
+  };
+
+  const generateQRCode = async (text: string): Promise<string> => {
+    try {
+      return await QRCode.toDataURL(text, {
+        width: 150,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        }
+      });
+    } catch (error) {
+      console.error("Error generating QR code:", error);
+      throw error;
+    }
   };
 
   const getAbsoluteImageUrl = (url: string): string => {
@@ -220,6 +237,35 @@ export const PropertyExportPDF = ({ property, agent }: PropertyExportPDFProps) =
           doc.text(`Email: ${agent.email}`, 20, yPosition);
           yPosition += 6;
         }
+      }
+
+      // QR Code with property URL
+      try {
+        // Check if we need a new page for QR
+        if (yPosition + 60 > pageHeight - 30) {
+          doc.addPage();
+          yPosition = 20;
+        }
+
+        const propertyUrl = `${window.location.origin}/propiedad/${property.id}`;
+        const qrCodeDataUrl = await generateQRCode(propertyUrl);
+
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("Escanea para ver más detalles", 20, yPosition);
+        yPosition += 7;
+
+        // Add QR code (40x40mm square)
+        doc.addImage(qrCodeDataUrl, "PNG", 20, yPosition, 40, 40);
+        
+        // Add URL text below QR
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 100, 100);
+        const urlText = doc.splitTextToSize(propertyUrl, 80);
+        doc.text(urlText, 20, yPosition + 45);
+      } catch (error) {
+        console.error("Error generating QR code:", error);
       }
 
       // Footer
