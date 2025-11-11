@@ -51,8 +51,8 @@ const PricingAgente = () => {
       name: 'Agente Start',
       slug: 'basico',
       monthlyPrice: 249,
-      annualPrice: 2480,
-      annualMonthlyEquivalent: 206.67,
+      annualPrice: 2570,
+      annualMonthlyEquivalent: 214.17,
       features: [
         'Hasta 4 propiedades activas',
         'Perfil profesional básico',
@@ -68,8 +68,8 @@ const PricingAgente = () => {
       name: 'Agente Pro',
       slug: 'pro',
       monthlyPrice: 599,
-      annualPrice: 5966,
-      annualMonthlyEquivalent: 497.17,
+      annualPrice: 6182,
+      annualMonthlyEquivalent: 515.17,
       features: [
         'Hasta 12 propiedades activas',
         '2 propiedades destacadas al mes',
@@ -86,8 +86,8 @@ const PricingAgente = () => {
       name: 'Agente Elite',
       slug: 'elite',
       monthlyPrice: 999,
-      annualPrice: 9950,
-      annualMonthlyEquivalent: 829.17,
+      annualPrice: 10310,
+      annualMonthlyEquivalent: 859.17,
       features: [
         'Hasta 30 propiedades activas',
         '6 destacadas al mes + visibilidad prioritaria',
@@ -194,15 +194,15 @@ const PricingAgente = () => {
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      Anual -17%
+                      Anual -14%
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
                     <p className="font-semibold mb-2">Ahorro con pago anual:</p>
                     <ul className="space-y-1 text-sm">
-                      <li>• Start: ${((249 * 12) - 2480).toLocaleString('es-MX')} MXN</li>
-                      <li>• Pro: ${((599 * 12) - 5966).toLocaleString('es-MX')} MXN</li>
-                      <li>• Elite: ${((999 * 12) - 9950).toLocaleString('es-MX')} MXN</li>
+                      <li>• Start: ${((249 * 12) - 2570).toLocaleString('es-MX')} MXN</li>
+                      <li>• Pro: ${((599 * 12) - 6182).toLocaleString('es-MX')} MXN</li>
+                      <li>• Elite: ${((999 * 12) - 10310).toLocaleString('es-MX')} MXN</li>
                     </ul>
                   </TooltipContent>
                 </Tooltip>
