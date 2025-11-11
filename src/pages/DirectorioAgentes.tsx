@@ -75,11 +75,7 @@ const DirectorioAgentes = () => {
           name,
           is_verified,
           properties(id, status, state, municipality),
-          agent_reviews:agent_reviews!agent_id(rating),
-          user_badges(
-            badge_code,
-            badge_definitions(code, name, description, icon, color, priority, is_secret)
-          )
+          agent_reviews:agent_reviews!agent_id(rating)
         `)
         .in("id", agentIds);
 
@@ -116,6 +112,19 @@ const DirectorioAgentes = () => {
         agentSubscriptions?.map(sub => [sub.user_id, sub]) || []
       );
 
+      // Obtener badges de los agentes en una sola consulta
+      const { data: agentBadgesRows } = await supabase
+        .from("user_badges")
+        .select("user_id, badge_definitions(code, name, description, icon, color, priority, is_secret)")
+        .in("user_id", agentIds);
+
+      const badgesMap = new Map<string, BadgeData[]>();
+      (agentBadgesRows || []).forEach((row: any) => {
+        const list = badgesMap.get(row.user_id) || [];
+        if (row.badge_definitions) list.push(row.badge_definitions);
+        badgesMap.set(row.user_id, list);
+      });
+
       // Process agents
       const processedAgents: AgentData[] = (agentsResult.data || []).map((profile: any) => {
         const activeProperties = profile.properties?.filter((p: any) => p.status === 'activa') || [];
@@ -135,8 +144,8 @@ const DirectorioAgentes = () => {
         ).pop() : "";
 
         const subscription = subscriptionMap.get(profile.id);
-        const badges = profile.user_badges?.map((ub: any) => ub.badge_definitions).filter(Boolean) || [];
-
+        const badges = badgesMap.get(profile.id) || [];
+        
         return {
           id: profile.id,
           name: profile.name,
