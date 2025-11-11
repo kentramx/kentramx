@@ -33,7 +33,7 @@ import { AdminRealtimeNotifications } from "./AdminRealtimeNotifications";
 import { SocialLinks } from "./SocialLinks";
 import { RoleImpersonationSelector } from "./RoleImpersonationSelector";
 import { ImpersonationBanner } from "./ImpersonationBanner";
-
+import { useRoleImpersonation } from '@/hooks/useRoleImpersonation';
 const Navbar = () => {
   const { user, signOut } = useAuth();
   const [searchParams] = useSearchParams();
@@ -43,7 +43,8 @@ const Navbar = () => {
   const { isAdmin, isSuperAdmin } = useAdminCheck();
   const { userRole, loading: roleLoading } = useUserRole();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
-
+  const { impersonatedRole, isImpersonating } = useRoleImpersonation();
+  const effectiveRole = (isImpersonating && impersonatedRole) ? impersonatedRole : userRole;
   const getUserInitials = () => {
     if (!user?.email) return "U";
     return user.email.charAt(0).toUpperCase();
@@ -71,7 +72,7 @@ const Navbar = () => {
     }
     
     // Usuario autenticado - verificar rol y redirigir
-    switch(userRole) {
+    switch(effectiveRole) {
       case 'agent':
         navigate('/panel-agente?tab=form');
         break;
@@ -252,11 +253,11 @@ const Navbar = () => {
                         Configuración
                       </DropdownMenuItem>
                     </Link>
-                    {(userRole === 'agent' || userRole === 'agency') && (
-                      <Link to={userRole === 'agency' ? '/panel-inmobiliaria' : '/panel-agente'}>
+                    {(effectiveRole === 'agent' || effectiveRole === 'agency') && (
+                      <Link to={effectiveRole === 'agency' ? '/panel-inmobiliaria' : '/panel-agente'}>
                         <DropdownMenuItem className="cursor-pointer">
                           <PlusCircle className="mr-2 h-4 w-4" />
-                          {userRole === 'agency' ? 'Panel de Inmobiliaria' : 'Mis Propiedades'}
+                          {effectiveRole === 'agency' ? 'Panel de Inmobiliaria' : 'Mis Propiedades'}
                         </DropdownMenuItem>
                       </Link>
                     )}
@@ -406,11 +407,11 @@ const Navbar = () => {
                         Mi Perfil
                       </DropdownMenuItem>
                     </Link>
-                    {(userRole === 'agent' || userRole === 'agency') && (
-                      <Link to={userRole === 'agency' ? '/panel-inmobiliaria' : '/panel-agente'}>
+                    {(effectiveRole === 'agent' || effectiveRole === 'agency') && (
+                      <Link to={effectiveRole === 'agency' ? '/panel-inmobiliaria' : '/panel-agente'}>
                         <DropdownMenuItem className="cursor-pointer">
                           <PlusCircle className="mr-2 h-4 w-4" />
-                          {userRole === 'agency' ? 'Panel de Inmobiliaria' : 'Mis Propiedades'}
+                          {effectiveRole === 'agency' ? 'Panel de Inmobiliaria' : 'Mis Propiedades'}
                         </DropdownMenuItem>
                       </Link>
                     )}
