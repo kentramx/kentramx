@@ -16,6 +16,7 @@ import { es } from 'date-fns/locale';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 interface ExpiryReminder {
   id: string;
@@ -66,6 +67,7 @@ export const PropertyExpiryReminders = ({ agentId }: PropertyExpiryRemindersProp
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [urgencyData, setUrgencyData] = useState<UrgencyData[]>([]);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchReminders();
@@ -127,7 +129,7 @@ export const PropertyExpiryReminders = ({ agentId }: PropertyExpiryRemindersProp
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => window.location.href = `/property/${formattedReminder.property_id}`}
+                  onClick={() => navigate(`/propiedad/${formattedReminder.property_id}`)}
                 >
                   Ver Propiedad
                 </Button>

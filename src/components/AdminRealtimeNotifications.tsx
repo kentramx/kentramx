@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 interface RealtimeNotification {
   id: string;
@@ -47,6 +48,7 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
     use_sound: false,
     use_email: false,
   });
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -309,7 +311,7 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => window.location.href = '/admin/notification-settings'}
+            onClick={() => navigate('/admin/notification-settings')}
             className="h-8 w-8"
           >
             <Bell className="h-4 w-4" />
@@ -389,7 +391,7 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
               variant="ghost"
               size="sm"
               className="w-full text-xs"
-              onClick={() => window.location.href = '/admin/subscription-changes'}
+              onClick={() => navigate('/admin/subscription-changes')}
             >
               Ver todas las auditorías →
             </Button>

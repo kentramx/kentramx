@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { PlaceAutocomplete } from '@/components/PlaceAutocomplete';
@@ -79,6 +79,7 @@ const getTipoLabel = (tipo: string) => {
 const Buscar = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [properties, setProperties] = useState<Property[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
@@ -643,7 +644,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   };
 
   const handleMarkerClick = (propertyId: string) => {
-    window.location.href = `/property/${propertyId}`;
+    navigate(`/propiedad/${propertyId}`);
   };
 
   const handleFavoriteClick = async (propertyId: string) => {
