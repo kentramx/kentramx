@@ -46,7 +46,7 @@ const PricingAgente = () => {
         'Estadísticas esenciales',
       ],
       popular: false,
-      buttonText: 'Comenzar ahora',
+      buttonText: 'Empezar con Start',
     },
     {
       id: 'de96952c-ea83-4afb-a310-27f1f2db8f4e',
@@ -63,7 +63,7 @@ const PricingAgente = () => {
         'Leads directo a WhatsApp',
       ],
       popular: true,
-      buttonText: 'Continuar con Pro',
+      buttonText: 'Activar plan Pro',
     },
     {
       id: 'd4529d5f-725e-4513-9b29-1fecfc681708',
@@ -80,7 +80,7 @@ const PricingAgente = () => {
         'Soporte prioritario',
       ],
       popular: false,
-      buttonText: 'Actualizar mi plan',
+      buttonText: 'Subir a Elite',
     },
   ];
 
@@ -213,7 +213,7 @@ const PricingAgente = () => {
               <Card
                 key={plan.id}
                 id={plan.slug}
-                className={`relative scroll-mt-24 ${
+                className={`relative scroll-mt-24 flex flex-col ${
                   plan.popular ? 'border-primary border-2 shadow-lg' : ''
                 }`}
               >
@@ -247,7 +247,7 @@ const PricingAgente = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-3 mb-6">
+                  <ul className="space-y-3 mb-6 flex-1">
                     {plan.features.map((feature, idx) => (
                       <li key={idx} className="flex items-start gap-3 text-sm">
                         <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
