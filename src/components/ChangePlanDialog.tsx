@@ -90,6 +90,25 @@ export const ChangePlanDialog = ({
 
   const checkUserRole = async () => {
     try {
+      // Check for impersonation first
+      const IMPERSONATION_KEY = 'kentra_impersonated_role';
+      const impersonatedRole = localStorage.getItem(IMPERSONATION_KEY);
+      
+      if (impersonatedRole) {
+        // Verify user is actually super admin
+        const { data: isSuperData } = await (supabase.rpc as any)('is_super_admin', {
+          _user_id: userId,
+        });
+
+        if (isSuperData) {
+          setUserRole({
+            isAdmin: impersonatedRole === 'super_admin' || impersonatedRole === 'moderator',
+            role: impersonatedRole,
+          });
+          return;
+        }
+      }
+
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -99,7 +118,7 @@ export const ChangePlanDialog = ({
       if (error) throw error;
 
       setUserRole({
-        isAdmin: data.role === 'admin',
+        isAdmin: data.role === 'super_admin' || data.role === 'moderator',
         role: data.role,
       });
     } catch (error) {
@@ -222,6 +241,19 @@ export const ChangePlanDialog = ({
   }, [selectedPlanId, billingCycle, open]);
 
   const handleChangePlan = async () => {
+    // Check for simulation mode
+    const IMPERSONATION_KEY = 'kentra_impersonated_role';
+    const isSimulating = localStorage.getItem(IMPERSONATION_KEY) !== null;
+    
+    if (isSimulating) {
+      toast({
+        title: 'Modo de Simulación Activo',
+        description: 'Esta acción no se puede ejecutar durante la simulación. Sal del modo de simulación para realizar cambios reales.',
+        variant: 'default',
+      });
+      return;
+    }
+
     if (!selectedPlanId) {
       toast({
         title: 'Error',

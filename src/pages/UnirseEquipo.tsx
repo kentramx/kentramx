@@ -99,16 +99,29 @@ export default function UnirseEquipo() {
       return;
     }
 
+    // Verificar si está en modo simulación
+    const IMPERSONATION_KEY = 'kentra_impersonated_role';
+    const isSimulating = localStorage.getItem(IMPERSONATION_KEY) !== null;
+    
+    if (isSimulating) {
+      toast({
+        title: 'Modo de Simulación Activo',
+        description: 'Esta acción no se puede ejecutar durante la simulación. Sal del modo de simulación para realizar cambios reales.',
+        variant: 'default',
+      });
+      return;
+    }
+
     setAccepting(true);
     try {
       // Verificar que el usuario tenga el rol correcto (debe ser agent)
-      const { data: userRole } = await supabase
+      const { data: userRoleData } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
         .single();
 
-      if (!userRole || userRole.role !== 'agent') {
+      if (!userRoleData || userRoleData.role !== 'agent') {
         toast({
           title: 'Error',
           description: 'Solo usuarios con rol de agente pueden unirse a un equipo. Cambia tu tipo de cuenta primero.',

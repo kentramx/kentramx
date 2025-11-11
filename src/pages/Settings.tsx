@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "next-themes";
+import { useUserRole } from "@/hooks/useUserRole";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,7 +80,7 @@ const Settings = () => {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [savingAccount, setSavingAccount] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const { userRole } = useUserRole();
 
   const accountForm = useForm<AccountFormData>({
     resolver: zodResolver(accountSchema),
@@ -129,17 +130,6 @@ const Settings = () => {
       });
 
       setEmailNotifications(profileData.email_notifications ?? true);
-
-      // Obtener rol del usuario
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (roleData) {
-        setUserRole(roleData.role);
-      }
     } catch (error) {
       console.error("Error fetching user data:", error);
       toast.error("No se pudo cargar la información del perfil");

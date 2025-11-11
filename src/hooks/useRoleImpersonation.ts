@@ -58,11 +58,16 @@ export const useRoleImpersonation = () => {
     setIsImpersonating(false);
   };
 
+  const isSimulating = () => {
+    return localStorage.getItem(IMPERSONATION_KEY) !== null;
+  };
+
   return {
     impersonatedRole,
     isImpersonating,
     isSuperAdmin,
     startImpersonation,
     stopImpersonation,
+    isSimulating,
   };
 };

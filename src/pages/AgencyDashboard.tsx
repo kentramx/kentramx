@@ -40,6 +40,30 @@ const AgencyDashboard = () => {
 
   const checkAgencyStatus = async () => {
     try {
+      // Check for impersonation first
+      const IMPERSONATION_KEY = 'kentra_impersonated_role';
+      const impersonatedRole = localStorage.getItem(IMPERSONATION_KEY);
+      
+      if (impersonatedRole) {
+        // Verify user is actually super admin
+        const { data: isSuperData } = await (supabase.rpc as any)('is_super_admin', {
+          _user_id: user?.id,
+        });
+
+        if (isSuperData && impersonatedRole === 'agency') {
+          // In simulation mode, allow access and skip other checks
+          setAgency({ name: 'Agencia Simulada', owner_id: user?.id });
+          setSubscriptionInfo({ 
+            plan_name: 'inmobiliaria_pro',
+            properties_limit: 250,
+            featured_limit: 10,
+            status: 'active'
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
       // Verificar rol de agencia
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')

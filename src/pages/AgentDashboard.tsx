@@ -54,6 +54,31 @@ const AgentDashboard = () => {
 
   const checkAgentStatus = async () => {
     try {
+      // Check for impersonation first
+      const IMPERSONATION_KEY = 'kentra_impersonated_role';
+      const impersonatedRole = localStorage.getItem(IMPERSONATION_KEY);
+      
+      if (impersonatedRole) {
+        // Verify user is actually super admin
+        const { data: isSuperData } = await (supabase.rpc as any)('is_super_admin', {
+          _user_id: user?.id,
+        });
+
+        if (isSuperData && impersonatedRole === 'agent') {
+          // In simulation mode, allow access and skip other checks
+          setUserRole('agent');
+          setProfile({ name: 'Agente Simulado', id: user?.id });
+          setSubscriptionInfo({ 
+            plan_name: 'agente_pro',
+            properties_limit: 10,
+            featured_limit: 3,
+            status: 'active'
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
       // Check user role from user_roles table
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')

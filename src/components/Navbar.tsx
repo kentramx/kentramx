@@ -1,6 +1,6 @@
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import {
@@ -41,21 +41,8 @@ const Navbar = () => {
   const listingType = searchParams.get("listingType");
   const { compareList } = usePropertyCompare();
   const { isAdmin, isSuperAdmin } = useAdminCheck();
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const { userRole, loading: roleLoading } = useUserRole();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single()
-        .then(({ data }) => {
-          setUserRole(data?.role || 'buyer');
-        });
-    }
-  }, [user]);
 
   const getUserInitials = () => {
     if (!user?.email) return "U";
