@@ -15,6 +15,7 @@ import { DynamicBreadcrumbs } from '@/components/DynamicBreadcrumbs';
 import { PlanStatusCard } from '@/components/PlanStatusCard';
 import { SubscriptionManagement } from '@/components/SubscriptionManagement';
 import { PropertyExpiryReminders } from '@/components/PropertyExpiryReminders';
+import { PlanMetricsCards } from '@/components/PlanMetricsCards';
 
 const AgentDashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -29,6 +30,8 @@ const AgentDashboard = () => {
   const [editingProperty, setEditingProperty] = useState<any>(null);
   const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>('');
+  const [activePropertiesCount, setActivePropertiesCount] = useState(0);
+  const [featuredCount, setFeaturedCount] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -88,11 +91,42 @@ const AgentDashboard = () => {
       if (!subError && subInfo && subInfo.length > 0) {
         setSubscriptionInfo(subInfo[0]);
       }
+
+      // Get property counts
+      await fetchPropertyCounts();
     } catch (error) {
       console.error('Error checking agent status:', error);
       navigate('/');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPropertyCounts = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('status, id', { count: 'exact' })
+        .eq('agent_id', user.id);
+
+      if (error) throw error;
+
+      const activeCount = data?.filter(p => p.status === 'activa').length || 0;
+      setActivePropertiesCount(activeCount);
+
+      // Get featured properties count
+      const { count: featuredCountData } = await supabase
+        .from('featured_properties')
+        .select('*', { count: 'exact', head: true })
+        .eq('agent_id', user.id)
+        .eq('status', 'active')
+        .gt('end_date', new Date().toISOString());
+
+      setFeaturedCount(featuredCountData || 0);
+    } catch (error) {
+      console.error('Error fetching property counts:', error);
     }
   };
 
@@ -215,6 +249,13 @@ const AgentDashboard = () => {
         <div className="mb-6">
           <PlanStatusCard subscriptionInfo={subscriptionInfo} userRole={userRole} />
         </div>
+
+        {/* Plan Metrics Cards */}
+        <PlanMetricsCards
+          subscriptionInfo={subscriptionInfo}
+          activePropertiesCount={activePropertiesCount}
+          featuredCount={featuredCount}
+        />
 
         <Card>
           <CardHeader>
