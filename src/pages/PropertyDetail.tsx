@@ -53,6 +53,7 @@ import { PropertyExportPDF } from "@/components/PropertyExportPDF";
 import { ContactPropertyDialog } from "@/components/ContactPropertyDialog";
 import { usePropertyCompare } from "@/hooks/usePropertyCompare";
 import { getWhatsAppUrl, WhatsAppTemplates } from "@/utils/whatsapp";
+import { useTracking } from "@/hooks/useTracking";
 
 const PropertyDetail = () => {
   const { id } = useParams();
@@ -63,6 +64,7 @@ const PropertyDetail = () => {
   const [agentStats, setAgentStats] = useState<any>(null);
   const { toast } = useToast();
   const { addToCompare, isInCompare, removeFromCompare } = usePropertyCompare();
+  const { trackGA4Event } = useTracking();
 
   // Fetch con React Query
   const { data: property, isLoading: loading, error: propertyError } = useProperty(id);
@@ -110,6 +112,36 @@ const PropertyDetail = () => {
         property_id: id,
         viewer_id: user?.id || null,
       });
+
+      // Track en GA4
+      if (property) {
+        // Si la propiedad está destacada, trackear como promoción
+        const { data: featuredData } = await supabase
+          .from('featured_properties')
+          .select('id')
+          .eq('property_id', id)
+          .maybeSingle();
+
+        if (featuredData) {
+          trackGA4Event('view_promotion', {
+            promotion_id: id,
+            promotion_name: property.title,
+            item_id: id,
+            item_name: property.title,
+            item_category: property.type,
+            value: property.price,
+            currency: 'MXN',
+          });
+        } else {
+          trackGA4Event('view_item', {
+            item_id: id,
+            item_name: property.title,
+            item_category: property.type,
+            value: property.price,
+            currency: 'MXN',
+          });
+        }
+      }
     } catch (error) {
       // Silently fail - analytics shouldn't break the page
       console.error("Error tracking view:", error);
@@ -199,6 +231,15 @@ const PropertyDetail = () => {
         if (error) throw error;
         setIsFavorite(false);
 
+        // Track en GA4
+        trackGA4Event('remove_from_wishlist', {
+          item_id: id,
+          item_name: property?.title,
+          item_category: property?.type,
+          value: property?.price,
+          currency: 'MXN',
+        });
+
         toast({
           title: 'Removido',
           description: 'Propiedad removida de favoritos',
@@ -213,6 +254,15 @@ const PropertyDetail = () => {
 
         if (error) throw error;
         setIsFavorite(true);
+
+        // Track en GA4
+        trackGA4Event('add_to_wishlist', {
+          item_id: id,
+          item_name: property?.title,
+          item_category: property?.type,
+          value: property?.price,
+          currency: 'MXN',
+        });
 
         toast({
           title: 'Agregado',
@@ -486,6 +536,8 @@ const PropertyDetail = () => {
               images={property.images || []}
               title={property.title}
               type={property.type}
+              propertyId={property.id}
+              price={property.price}
             />
 
             {/* Property Info */}

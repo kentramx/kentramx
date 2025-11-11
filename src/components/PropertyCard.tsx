@@ -6,6 +6,7 @@ import { Heart, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { trackWhatsAppInteraction } from "@/utils/whatsappTracking";
 import propertyPlaceholder from "@/assets/property-placeholder.jpg";
+import { useTracking } from "@/hooks/useTracking";
 
 interface PropertyCardProps {
   id: string;
@@ -47,6 +48,7 @@ const PropertyCard = ({
   agentId,
 }: PropertyCardProps) => {
   const { toast } = useToast();
+  const { trackGA4Event } = useTracking();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("es-MX", {
@@ -95,9 +97,21 @@ const PropertyCard = ({
     });
   };
 
+  const handleCardClick = () => {
+    // Track selección de propiedad en GA4
+    trackGA4Event('select_item', {
+      item_id: id,
+      item_name: title,
+      item_category: type,
+      item_list_name: 'search_results',
+      value: price,
+      currency: 'MXN',
+    });
+  };
+
   return (
     <Card className={`group overflow-hidden transition-all hover:shadow-lg ${isHovered ? 'ring-2 ring-primary shadow-xl scale-[1.02]' : ''}`}>
-      <Link to={`/propiedad/${id}`}>
+      <Link to={`/propiedad/${id}`} onClick={handleCardClick}>
         <div className="relative aspect-[4/3] overflow-hidden">
           <img
             src={imageUrl || propertyPlaceholder}
@@ -125,7 +139,7 @@ const PropertyCard = ({
       </Link>
 
       <CardContent className="p-4 space-y-2">
-        <Link to={`/propiedad/${id}`} className="block">
+        <Link to={`/propiedad/${id}`} className="block" onClick={handleCardClick}>
           <p className="text-2xl font-bold text-foreground mb-1">
             {formatPrice(price)}
           </p>

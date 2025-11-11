@@ -16,7 +16,13 @@ export type GoogleAnalyticsEvent =
   | 'generate_lead'     // Reemplazo de Contact/Lead
   | 'begin_checkout'    // Reemplazo de InitiateCheckout
   | 'purchase'          // Purchase
-  | 'view_item';        // ViewContent
+  | 'view_item'         // ViewContent
+  | 'view_item_list'    // Ver listado de propiedades
+  | 'select_item'       // Seleccionar una propiedad
+  | 'add_to_wishlist'   // Agregar a favoritos
+  | 'remove_from_wishlist' // Remover de favoritos
+  | 'search'            // Búsqueda de propiedades
+  | 'view_promotion';   // Ver propiedad destacada
 
 interface EventParameters {
   event_category?: string;
@@ -36,6 +42,21 @@ const EVENT_MAPPING: Record<string, GoogleAnalyticsEvent> = {
   InitiateCheckout: 'begin_checkout',
   Purchase: 'purchase',
   ViewContent: 'view_item',
+};
+
+// Función para trackear eventos GA4 directos (sin mapeo de FB)
+export const trackGA4Event = (
+  eventName: GoogleAnalyticsEvent,
+  parameters?: EventParameters
+) => {
+  if (typeof window !== 'undefined' && window.gtag) {
+    try {
+      window.gtag('event', eventName, parameters);
+      console.log(`Google Analytics 4: ${eventName}`, parameters);
+    } catch (error) {
+      console.error('Error tracking GA4 event:', error);
+    }
+  }
 };
 
 // Generar o recuperar session_id
@@ -128,8 +149,17 @@ export const useGoogleAnalytics = () => {
     }
   }, []);
 
+  // Trackear evento GA4 directo (sin guardar en BD)
+  const trackGA4Only = useCallback(
+    (eventName: GoogleAnalyticsEvent, parameters?: EventParameters) => {
+      trackGA4Event(eventName, parameters);
+    },
+    []
+  );
+
   return {
     trackEvent,
     trackPageView,
+    trackGA4Only,
   };
 };

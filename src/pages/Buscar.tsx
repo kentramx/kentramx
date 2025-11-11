@@ -30,6 +30,7 @@ import { mexicoStates, mexicoMunicipalities } from '@/data/mexicoLocations';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { PropertyStats } from '@/components/PropertyStats';
 import { DynamicBreadcrumbs, type BreadcrumbItem } from '@/components/DynamicBreadcrumbs';
+import { useTracking } from '@/hooks/useTracking';
 
 interface Property {
   id: string;
@@ -83,6 +84,7 @@ const Buscar = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isFiltering, setIsFiltering] = useState(false);
+  const { trackGA4Event } = useTracking();
   
   // Flag para prevenir sobrescritura durante sincronización URL -> estado
   const syncingFromUrl = useRef(false);
@@ -278,7 +280,39 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   // Reiniciar a página 1 cuando cambien los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, searchCoordinates]);
+    
+    // Track búsqueda en GA4 cuando se aplican filtros
+    const hasFilters = !!(
+      filters.estado || 
+      filters.municipio || 
+      filters.tipo || 
+      filters.listingType || 
+      filters.precioMin || 
+      filters.precioMax || 
+      filters.recamaras || 
+      filters.banos
+    );
+    
+    if (hasFilters) {
+      const searchTerm = [
+        filters.estado,
+        filters.municipio,
+        filters.tipo,
+        filters.listingType,
+      ].filter(Boolean).join(' ');
+      
+      trackGA4Event('search', {
+        search_term: searchTerm || 'búsqueda general',
+        item_list_name: 'property_search',
+        items: properties.slice(0, 10).map(p => ({
+          item_id: p.id,
+          item_name: p.title,
+          item_category: p.type,
+          price: p.price,
+        })),
+      });
+    }
+  }, [filters, searchCoordinates, properties]);
 
   useEffect(() => {
     if (user) {

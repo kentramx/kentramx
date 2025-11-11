@@ -4,22 +4,38 @@ import propertyPlaceholder from '@/assets/property-placeholder.jpg';
 import { Badge } from '@/components/ui/badge';
 import { ImageLightbox } from './ImageLightbox';
 import { Button } from '@/components/ui/button';
+import { useTracking } from '@/hooks/useTracking';
 
 interface PropertyImageGalleryProps {
   images: { url: string }[];
   title: string;
   type: string;
+  propertyId?: string;
+  price?: number;
 }
 
-export const PropertyImageGallery = ({ images, title, type }: PropertyImageGalleryProps) => {
+export const PropertyImageGallery = ({ images, title, type, propertyId, price }: PropertyImageGalleryProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const displayImages = images.length > 0 ? images : [{ url: propertyPlaceholder }];
+  const { trackGA4Event } = useTracking();
 
   const openLightbox = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsLightboxOpen(true);
+    
+    // Track visualización de galería en GA4
+    if (propertyId) {
+      trackGA4Event('view_item_list', {
+        item_list_name: 'property_gallery',
+        item_id: propertyId,
+        item_name: title,
+        item_category: type,
+        value: price,
+        currency: 'MXN',
+      });
+    }
   };
 
   const nextImage = (e: React.MouseEvent) => {
