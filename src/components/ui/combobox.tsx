@@ -19,11 +19,12 @@ import {
 interface ComboboxProps {
   options: { value: string; label: string }[]
   value?: string
-  onValueChange: (value: string) => void
+  onValueChange?: (value: string) => void
   placeholder?: string
-  emptyText?: string
   searchPlaceholder?: string
+  emptyText?: string
   className?: string
+  disabled?: boolean
 }
 
 export function Combobox({
@@ -31,9 +32,10 @@ export function Combobox({
   value,
   onValueChange,
   placeholder = "Seleccionar...",
-  emptyText = "No se encontraron resultados",
   searchPlaceholder = "Buscar...",
+  emptyText = "No se encontraron resultados.",
   className,
+  disabled = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
 
@@ -45,6 +47,7 @@ export function Combobox({
           role="combobox"
           aria-expanded={open}
           className={cn("w-full justify-between", className)}
+          disabled={disabled}
         >
           {value
             ? options.find((option) => option.value === value)?.label
@@ -52,21 +55,20 @@ export function Combobox({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border border-border z-50" align="start">
-        <Command className="bg-popover">
-          <CommandInput placeholder={searchPlaceholder} className="bg-popover" />
-          <CommandList className="bg-popover">
-            <CommandEmpty className="bg-popover">{emptyText}</CommandEmpty>
-            <CommandGroup className="bg-popover">
+      <PopoverContent className="w-full p-0" align="start">
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} />
+          <CommandList>
+            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandGroup>
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
                   value={option.value}
                   onSelect={(currentValue) => {
-                    onValueChange(currentValue === value ? "" : currentValue)
+                    onValueChange?.(currentValue === value ? "" : currentValue)
                     setOpen(false)
                   }}
-                  className="hover:bg-accent hover:text-accent-foreground cursor-pointer"
                 >
                   <Check
                     className={cn(
