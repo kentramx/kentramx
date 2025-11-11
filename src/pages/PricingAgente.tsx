@@ -34,50 +34,53 @@ const PricingAgente = () => {
   const plans = [
     {
       id: '49d3847c-3dda-4f35-80a2-b4a66018100b',
-      name: 'Agente Básico',
+      name: 'Agente Start',
       slug: 'basico',
-      monthlyPrice: 299,
-      annualPrice: 3150,
-      annualMonthlyEquivalent: 262,
+      monthlyPrice: 249,
+      annualPrice: 2480,
+      annualMonthlyEquivalent: 206.67,
       features: [
-        'Hasta 4 propiedades activas (no caducan mientras se renueven cada 30 días)',
-        'Página básica',
+        'Hasta 4 propiedades activas',
+        'Perfil profesional básico',
         'Leads directo a WhatsApp',
-        '1 propiedad destacada al mes',
+        'Estadísticas esenciales',
       ],
       popular: false,
+      buttonText: 'Comenzar ahora',
     },
     {
       id: 'de96952c-ea83-4afb-a310-27f1f2db8f4e',
       name: 'Agente Pro',
       slug: 'pro',
-      monthlyPrice: 799,
-      annualPrice: 8430,
-      annualMonthlyEquivalent: 703,
+      monthlyPrice: 599,
+      annualPrice: 5966,
+      annualMonthlyEquivalent: 497.17,
       features: [
-        'Hasta 10 propiedades activas (no caducan mientras se renueven cada 30 días)',
-        'Página profesional',
-        'Autopublicación a Facebook e Instagram',
+        'Hasta 12 propiedades activas',
+        '2 propiedades destacadas al mes',
+        'Página profesional personalizada',
+        'Contenido listo para compartir (copys + fotos optimizadas)',
         'Leads directo a WhatsApp',
-        '3 propiedades destacadas al mes',
       ],
       popular: true,
+      buttonText: 'Continuar con Pro',
     },
     {
       id: 'd4529d5f-725e-4513-9b29-1fecfc681708',
       name: 'Agente Elite',
       slug: 'elite',
-      monthlyPrice: 1350,
-      annualPrice: 14256,
-      annualMonthlyEquivalent: 1188,
+      monthlyPrice: 999,
+      annualPrice: 9950,
+      annualMonthlyEquivalent: 829.17,
       features: [
-        'Hasta 20 propiedades activas (no caducan mientras se renueven cada 30 días)',
-        'Branding premium + visibilidad prioritaria',
-        'Autopublicación optimizada',
-        '6 propiedades destacadas al mes',
-        'Prioridad en búsquedas',
+        'Hasta 30 propiedades activas',
+        '6 destacadas al mes + visibilidad prioritaria',
+        'Branding premium en perfil',
+        'IA para descripciones + programación de publicaciones',
+        'Soporte prioritario',
       ],
       popular: false,
+      buttonText: 'Actualizar mi plan',
     },
   ];
 
@@ -145,10 +148,10 @@ const PricingAgente = () => {
           {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-foreground mb-4">
-              Elige el plan perfecto para ti
+              Planes para Agentes
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Paga mes a mes sin compromiso o ahorra pagando el año completo (opcional).
+              Publica tus propiedades y recibe leads directo a WhatsApp. Diseñado para agentes en las 10 ciudades más grandes de México.
             </p>
 
             {/* Toggle */}
@@ -170,28 +173,36 @@ const PricingAgente = () => {
             </p>
           </div>
 
-          {/* Información importante */}
-          <Card className="mb-8 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+          {/* Beneficios Principales */}
+          <Card className="mb-8 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
             <CardContent className="pt-6">
-              <div className="flex items-start gap-4">
-                <div className="bg-blue-500 text-white p-2 rounded-lg shrink-0">
-                  <Info className="h-6 w-6" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-2">
-                    Sistema de Propiedades Activas Simultáneas
-                  </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                    Los planes ofrecen <strong>propiedades activas simultáneas</strong> (slots), 
-                    no un límite total de publicaciones. Las propiedades no caducan mientras se 
-                    renueven mensualmente con un clic. Cuando se vende o renta una propiedad, 
-                    el slot se libera y puedes publicar otra nueva.
-                  </p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    <strong>Con rotación normal</strong>, un agente con plan de 4 propiedades 
-                    activas podría publicar 20-30+ propiedades durante un año.
-                  </p>
-                </div>
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold mb-6">¿Por qué elegirnos?</h2>
+                <ul className="space-y-3 text-left max-w-2xl mx-auto">
+                  <li className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span>Publica propiedades en minutos</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span>Recibe leads directo a WhatsApp</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span>Página profesional automática</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span>Comparte tu catálogo con un solo enlace</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span>IA para mejorar descripciones y visibilidad</span>
+                  </li>
+                </ul>
+                <p className="text-sm text-muted-foreground mt-6 font-semibold">
+                  Menos fricción. Más cierres.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -209,7 +220,7 @@ const PricingAgente = () => {
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                     <Badge className="bg-primary text-primary-foreground px-4 py-1">
-                      Más Popular
+                      Más elegido
                     </Badge>
                   </div>
                 )}
@@ -249,31 +260,28 @@ const PricingAgente = () => {
                     variant={plan.popular ? 'default' : 'outline'}
                     onClick={() => handleSelectPlan(plan.id)}
                   >
-                    Seleccionar Plan
+                    {plan.buttonText}
                   </Button>
                 </CardContent>
               </Card>
             ))}
           </div>
 
-          {/* Nota de renovación */}
-          <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 mb-12">
+          {/* Upsells */}
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800 mb-12">
             <CardContent className="pt-6">
-              <div className="flex items-start gap-4">
-                <div className="bg-amber-500 text-white p-2 rounded-lg shrink-0">
-                  <Info className="h-6 w-6" />
+              <div className="text-center">
+                <h3 className="font-semibold text-2xl mb-4">
+                  Crece solo cuando lo necesites.
+                </h3>
+                <div className="space-y-2 text-sm text-muted-foreground max-w-2xl mx-auto">
+                  <p>• Slot adicional: $49–$99 / mes según volumen</p>
+                  <p>• Destacar propiedad 7 días: $59</p>
+                  <p>• Bot de WhatsApp: $149/mes</p>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-2">
-                    Importante: Sistema de Renovación
-                  </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Las propiedades <strong>no se eliminan</strong>. Cada propiedad solo debe 
-                    renovarse cada 30 días para mantener la información actualizada. 
-                    Si no se renueva, <strong>se pausa</strong>. Se puede <strong>reactivar 
-                    con un clic</strong> cuando lo necesites.
-                  </p>
-                </div>
+                <p className="text-xs text-muted-foreground mt-4">
+                  Los slots adicionales se renuevan mensualmente con tu plan.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -284,84 +292,60 @@ const PricingAgente = () => {
             <Accordion type="single" collapsible className="w-full space-y-4">
               <AccordionItem value="item-1" className="border rounded-lg px-6">
                 <AccordionTrigger className="text-left font-semibold">
-                  ¿Qué significa "propiedades activas simultáneas"?
+                  ¿Mis propiedades caducan?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Los planes ofrecen slots de propiedades activas, no un límite total. 
-                  Puedes tener ese número de propiedades publicadas al mismo tiempo. 
-                  Cuando una se vende o renta, liberas el slot para publicar otra nueva. 
-                  Con rotación normal, publicas muchas más propiedades al año que tu límite de slots.
+                  No, mientras la suscripción esté activa.
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-2" className="border rounded-lg px-6">
                 <AccordionTrigger className="text-left font-semibold">
-                  ¿Qué pasa si no renuevo una propiedad en 30 días?
+                  ¿Puedo comprar más slots?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Si no renuevas una propiedad en 30 días, se pausa automáticamente. 
-                  Puedes reactivarla con un clic cuando desees. Las propiedades no se eliminan, 
-                  solo se pausan para mantener la información actualizada.
+                  Sí, hasta 30 propiedades activas en plan Agente.
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-3" className="border rounded-lg px-6">
                 <AccordionTrigger className="text-left font-semibold">
-                  ¿Puedo cancelar mi suscripción en cualquier momento?
+                  ¿Qué pasa si cambio de plan?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Sí, puedes cancelar tu suscripción mensual en cualquier momento sin compromiso. 
-                  Si elegiste el pago anual, tu suscripción seguirá activa hasta el final del 
-                  período prepagado, pero no se renovará automáticamente.
+                  Los cambios aplican al siguiente ciclo.
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-4" className="border rounded-lg px-6">
                 <AccordionTrigger className="text-left font-semibold">
-                  ¿Cuál es la diferencia entre pago mensual y anual?
+                  ¿Puedo cancelar cuando quiera?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  El pago mensual es sin compromiso y puedes cancelar cuando quieras. 
-                  El pago anual es opcional y te permite ahorrar un 12% pagando por adelantado 
-                  el año completo. Ambas opciones incluyen exactamente las mismas características.
+                  Sí, sin penalizaciones.
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-5" className="border rounded-lg px-6">
                 <AccordionTrigger className="text-left font-semibold">
-                  ¿Puedo cambiar de plan después?
+                  ¿Emiten factura?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Sí, puedes actualizar o cambiar tu plan en cualquier momento. 
-                  Si actualizas a un plan superior, el cambio es inmediato. 
-                  Si cambias a un plan inferior, el cambio se aplicará al inicio del siguiente ciclo de facturación.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-6" className="border rounded-lg px-6">
-                <AccordionTrigger className="text-left font-semibold">
-                  ¿Qué incluyen las propiedades destacadas?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground">
-                  Las propiedades destacadas aparecen en posiciones prioritarias en los resultados 
-                  de búsqueda y en la página principal, aumentando significativamente su visibilidad 
-                  y la probabilidad de recibir consultas. El número de propiedades destacadas varía 
-                  según tu plan.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-7" className="border rounded-lg px-6">
-                <AccordionTrigger className="text-left font-semibold">
-                  ¿Cómo funciona la renovación mensual de propiedades?
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground">
-                  Cada propiedad debe renovarse cada 30 días con un simple clic. 
-                  Esto confirma que la información está actualizada y la propiedad sigue disponible. 
-                  Es un proceso rápido que puedes hacer desde tu panel de control. 
-                  Te notificaremos cuando una propiedad esté próxima a pausarse.
+                  Sí, CFDI en cada ciclo con tus datos fiscales.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
+          </div>
+
+          {/* Cierre Final */}
+          <div className="text-center py-12">
+            <h2 className="text-4xl font-bold mb-4">Empieza hoy.</h2>
+            <p className="text-xl text-muted-foreground mb-8">
+              Tu inventario merece verse profesional.
+            </p>
+            <Button size="lg" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              Comenzar ahora
+            </Button>
           </div>
         </div>
       </main>
