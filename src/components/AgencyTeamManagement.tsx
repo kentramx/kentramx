@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, UserPlus, Trash2, Mail } from 'lucide-react';
+import { Loader2, UserPlus, Trash2, Mail, Clock, XCircle, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -39,16 +39,20 @@ interface AgencyTeamManagementProps {
 export const AgencyTeamManagement = ({ agencyId, subscriptionInfo }: AgencyTeamManagementProps) => {
   const { toast } = useToast();
   const [agents, setAgents] = useState<any[]>([]);
+  const [invitations, setInvitations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'agent' | 'manager'>('agent');
   const [inviting, setInviting] = useState(false);
+  const [agencyName, setAgencyName] = useState('');
 
   const maxAgents = subscriptionInfo?.features?.max_agents || 5;
 
   useEffect(() => {
     fetchAgents();
+    fetchInvitations();
+    fetchAgencyName();
   }, [agencyId]);
 
   const fetchAgents = async () => {
@@ -81,8 +85,50 @@ export const AgencyTeamManagement = ({ agencyId, subscriptionInfo }: AgencyTeamM
     }
   };
 
+  const fetchInvitations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('agency_invitations')
+        .select('*')
+        .eq('agency_id', agencyId)
+        .in('status', ['pending', 'accepted'])
+        .order('invited_at', { ascending: false });
+
+      if (error) throw error;
+      setInvitations(data || []);
+    } catch (error) {
+      console.error('Error fetching invitations:', error);
+    }
+  };
+
+  const fetchAgencyName = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('agencies')
+        .select('name')
+        .eq('id', agencyId)
+        .single();
+
+      if (error) throw error;
+      setAgencyName(data?.name || '');
+    } catch (error) {
+      console.error('Error fetching agency name:', error);
+    }
+  };
+
   const handleInviteAgent = async () => {
     if (!inviteEmail) return;
+
+    // Validar email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inviteEmail)) {
+      toast({
+        title: 'Email inválido',
+        description: 'Por favor ingresa un email válido',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     if (agents.length >= maxAgents) {
       toast({
@@ -95,24 +141,111 @@ export const AgencyTeamManagement = ({ agencyId, subscriptionInfo }: AgencyTeamM
 
     setInviting(true);
     try {
-      // En una implementación real, aquí enviarías un email de invitación
-      // Por ahora solo mostramos un mensaje
+      // Obtener datos del usuario actual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+
+      // Llamar al Edge Function para enviar la invitación
+      const { data, error } = await supabase.functions.invoke('send-agent-invitation', {
+        body: {
+          agencyId,
+          email: inviteEmail,
+          role: inviteRole,
+          agencyName: agencyName,
+          inviterName: profile?.name || 'Administrador',
+        },
+      });
+
+      if (error) throw error;
+
       toast({
-        title: 'Invitación enviada',
+        title: '✅ Invitación enviada',
         description: `Se ha enviado una invitación a ${inviteEmail}`,
       });
       
       setInviteDialogOpen(false);
       setInviteEmail('');
-    } catch (error) {
+      fetchInvitations(); // Recargar invitaciones
+    } catch (error: any) {
       console.error('Error inviting agent:', error);
       toast({
         title: 'Error',
-        description: 'No se pudo enviar la invitación',
+        description: error.message || 'No se pudo enviar la invitación',
         variant: 'destructive',
       });
     } finally {
       setInviting(false);
+    }
+  };
+
+  const handleCancelInvitation = async (invitationId: string, email: string) => {
+    if (!confirm(`¿Cancelar la invitación enviada a ${email}?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('agency_invitations')
+        .update({ status: 'rejected' })
+        .eq('id', invitationId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Invitación cancelada',
+        description: `Se ha cancelado la invitación a ${email}`,
+      });
+
+      fetchInvitations();
+    } catch (error) {
+      console.error('Error cancelling invitation:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo cancelar la invitación',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleResendInvitation = async (invitation: any) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+
+      // Reenviar invitación
+      const { error } = await supabase.functions.invoke('send-agent-invitation', {
+        body: {
+          agencyId,
+          email: invitation.email,
+          role: invitation.role,
+          agencyName: agencyName,
+          inviterName: profile?.name || 'Administrador',
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Invitación reenviada',
+        description: `Se ha reenviado la invitación a ${invitation.email}`,
+      });
+    } catch (error: any) {
+      console.error('Error resending invitation:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'No se pudo reenviar la invitación',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -180,6 +313,46 @@ export const AgencyTeamManagement = ({ agencyId, subscriptionInfo }: AgencyTeamM
             Has alcanzado el límite de agentes de tu plan. Mejora tu plan para agregar más miembros al equipo.
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* Invitaciones pendientes */}
+      {invitations.filter(inv => inv.status === 'pending').length > 0 && (
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-muted-foreground">Invitaciones Pendientes</h4>
+          <div className="space-y-2">
+            {invitations.filter(inv => inv.status === 'pending').map((invitation) => (
+              <Alert key={invitation.id} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Clock className="h-4 w-4 text-orange-500" />
+                  <div>
+                    <p className="font-medium">{invitation.email}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Invitado el {new Date(invitation.invited_at).toLocaleDateString('es-MX')} • 
+                      Expira el {new Date(invitation.expires_at).toLocaleDateString('es-MX')}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleResendInvitation(invitation)}
+                  >
+                    <Send className="h-3 w-3 mr-1" />
+                    Reenviar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleCancelInvitation(invitation.id, invitation.email)}
+                  >
+                    <XCircle className="h-3 w-3" />
+                  </Button>
+                </div>
+              </Alert>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Lista de agentes */}

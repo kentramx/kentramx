@@ -139,6 +139,56 @@ export type Database = {
           },
         ]
       }
+      agency_invitations: {
+        Row: {
+          accepted_at: string | null
+          agency_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_at: string
+          invited_by: string
+          role: string
+          status: Database["public"]["Enums"]["invitation_status"]
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          agency_id: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_at?: string
+          invited_by: string
+          role?: string
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          agency_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string
+          role?: string
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_invitations_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_reviews: {
         Row: {
           agent_id: string
@@ -1387,6 +1437,7 @@ export type Database = {
         Args: { new_role: Database["public"]["Enums"]["app_role"] }
         Returns: Json
       }
+      expire_old_invitations: { Args: never; Returns: undefined }
       get_agent_stats: {
         Args: { agent_uuid: string }
         Returns: {
@@ -1458,6 +1509,7 @@ export type Database = {
         | "admin"
         | "super_admin"
         | "moderator"
+      invitation_status: "pending" | "accepted" | "rejected" | "expired"
       moderation_action:
         | "approved"
         | "rejected"
@@ -1610,6 +1662,7 @@ export const Constants = {
         "super_admin",
         "moderator",
       ],
+      invitation_status: ["pending", "accepted", "rejected", "expired"],
       moderation_action: [
         "approved",
         "rejected",

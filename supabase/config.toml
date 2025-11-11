@@ -32,3 +32,6 @@ verify_jwt = true
 
 [functions.send-role-change-notification]
 verify_jwt = false
+
+[functions.send-agent-invitation]
+verify_jwt = true

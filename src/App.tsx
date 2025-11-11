@@ -41,6 +41,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminFinancial from "./pages/AdminFinancial";
 import AdminKPIs from "./pages/AdminKPIs";
 import AdminMarketing from "./pages/AdminMarketing";
+import UnirseEquipo from "./pages/UnirseEquipo";
 import { Footer } from "@/components/Footer";
 
 const queryClient = new QueryClient({
@@ -92,6 +93,7 @@ const AppContent = () => {
               <Route path="/agentes" element={<DirectorioAgentes />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/unirse-equipo" element={<UnirseEquipo />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/financiero" element={<AdminFinancial />} />
               <Route path="/admin/kpis" element={<AdminKPIs />} />
