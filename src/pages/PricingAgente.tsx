@@ -318,7 +318,6 @@ const PricingAgente = () => {
                 <div className="space-y-2 text-sm text-muted-foreground max-w-2xl mx-auto">
                   <p>• Slot adicional: $49–$99 / mes según volumen</p>
                   <p>• Destacar propiedad 7 días: $59</p>
-                  <p>• Bot de WhatsApp: $149/mes</p>
                 </div>
                 <p className="text-xs text-muted-foreground mt-4">
                   Los slots adicionales se renuevan mensualmente con tu plan.
