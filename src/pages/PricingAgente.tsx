@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
@@ -18,10 +18,24 @@ const PricingAgente = () => {
   const { toast } = useToast();
   const [isAnnual, setIsAnnual] = useState(false);
 
+  // Scroll automático al plan cuando hay hash en la URL
+  useEffect(() => {
+    const hash = window.location.hash.slice(1); // Remove #
+    if (hash) {
+      setTimeout(() => {
+        const element = document.getElementById(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, []);
+
   const plans = [
     {
       id: '49d3847c-3dda-4f35-80a2-b4a66018100b',
       name: 'Agente Básico',
+      slug: 'basico',
       monthlyPrice: 299,
       annualPrice: 3150,
       annualMonthlyEquivalent: 262,
@@ -36,6 +50,7 @@ const PricingAgente = () => {
     {
       id: 'de96952c-ea83-4afb-a310-27f1f2db8f4e',
       name: 'Agente Pro',
+      slug: 'pro',
       monthlyPrice: 799,
       annualPrice: 8430,
       annualMonthlyEquivalent: 703,
@@ -51,6 +66,7 @@ const PricingAgente = () => {
     {
       id: 'd4529d5f-725e-4513-9b29-1fecfc681708',
       name: 'Agente Elite',
+      slug: 'elite',
       monthlyPrice: 1350,
       annualPrice: 14256,
       annualMonthlyEquivalent: 1188,
@@ -185,7 +201,8 @@ const PricingAgente = () => {
             {plans.map((plan) => (
               <Card
                 key={plan.id}
-                className={`relative ${
+                id={plan.slug}
+                className={`relative scroll-mt-24 ${
                   plan.popular ? 'border-primary border-2 shadow-lg' : ''
                 }`}
               >

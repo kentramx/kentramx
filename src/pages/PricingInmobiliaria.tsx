@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
@@ -18,10 +18,24 @@ const PricingInmobiliaria = () => {
   const { toast } = useToast();
   const [isAnnual, setIsAnnual] = useState(false);
 
+  // Scroll automático al plan cuando hay hash en la URL
+  useEffect(() => {
+    const hash = window.location.hash.slice(1); // Remove #
+    if (hash) {
+      setTimeout(() => {
+        const element = document.getElementById(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, []);
+
   const plans = [
     {
       id: 'dcdc3a80-6203-4346-9144-a27935c1d3ed',
       name: 'Inmobiliaria Start',
+      slug: 'start',
       monthlyPrice: 5900,
       annualPrice: 62352,
       annualMonthlyEquivalent: 5196,
@@ -37,6 +51,7 @@ const PricingInmobiliaria = () => {
     {
       id: '3da21adc-8248-48b2-bbc2-b7a69d886646',
       name: 'Inmobiliaria Grow',
+      slug: 'grow',
       monthlyPrice: 9900,
       annualPrice: 104544,
       annualMonthlyEquivalent: 8712,
@@ -52,6 +67,7 @@ const PricingInmobiliaria = () => {
     {
       id: '2c1e2283-e9b6-439e-8cc5-37af2d669458',
       name: 'Inmobiliaria Pro',
+      slug: 'pro',
       monthlyPrice: 15900,
       annualPrice: 167616,
       annualMonthlyEquivalent: 13968,
@@ -186,7 +202,8 @@ const PricingInmobiliaria = () => {
             {plans.map((plan) => (
               <Card
                 key={plan.id}
-                className={`relative ${
+                id={plan.slug}
+                className={`relative scroll-mt-24 ${
                   plan.popular ? 'border-primary border-2 shadow-lg' : ''
                 }`}
               >
