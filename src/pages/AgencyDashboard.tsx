@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useRoleImpersonation } from '@/hooks/useRoleImpersonation';
 import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,12 +21,21 @@ const AgencyDashboard = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { isImpersonating, impersonatedRole, getDemoUserId, getDemoAgencyId } = useRoleImpersonation();
   const [loading, setLoading] = useState(true);
   const [agency, setAgency] = useState<any>(null);
   const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
   const [activeTab, setActiveTab] = useState(
     searchParams.get('tab') === 'form' ? 'inventory' : 'inventory'
   );
+  
+  // Si está simulando rol agency, usar owner/agency demo; si no, usar user real
+  const effectiveOwnerId = (isImpersonating && impersonatedRole === 'agency') 
+    ? getDemoUserId() 
+    : user?.id;
+  const effectiveAgencyId = (isImpersonating && impersonatedRole === 'agency')
+    ? getDemoAgencyId()
+    : agency?.id;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -39,29 +49,38 @@ const AgencyDashboard = () => {
   }, [user, authLoading, navigate]);
 
   const checkAgencyStatus = async () => {
+    if (!effectiveOwnerId) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Check for impersonation first
-      const IMPERSONATION_KEY = 'kentra_impersonated_role';
-      const impersonatedRole = localStorage.getItem(IMPERSONATION_KEY);
-      
-      if (impersonatedRole) {
-        // Verify user is actually super admin
-        const { data: isSuperData } = await (supabase.rpc as any)('is_super_admin', {
-          _user_id: user?.id,
+      // Si está simulando, cargar datos demo
+      if (isImpersonating && impersonatedRole === 'agency') {
+        // Cargar agencia demo
+        const { data: agencyData } = await supabase
+          .from('agencies')
+          .select('*')
+          .eq('owner_id', effectiveOwnerId)
+          .single();
+        
+        setAgency(agencyData || { 
+          name: 'Kentra Inmobiliaria Demo', 
+          owner_id: effectiveOwnerId,
+          id: getDemoAgencyId()
         });
 
-        if (isSuperData && impersonatedRole === 'agency') {
-          // In simulation mode, allow access and skip other checks
-          setAgency({ name: 'Agencia Simulada', owner_id: user?.id });
-          setSubscriptionInfo({ 
-            plan_name: 'inmobiliaria_pro',
-            properties_limit: 250,
-            featured_limit: 10,
-            status: 'active'
-          });
-          setLoading(false);
-          return;
+        // Cargar suscripción demo
+        const { data: subInfo } = await supabase.rpc('get_user_subscription_info', {
+          user_uuid: effectiveOwnerId,
+        });
+
+        if (subInfo && subInfo.length > 0) {
+          setSubscriptionInfo(subInfo[0]);
         }
+        
+        setLoading(false);
+        return;
       }
 
       // Verificar rol de agencia
@@ -174,26 +193,26 @@ const AgencyDashboard = () => {
               </TabsList>
 
               <TabsContent value="inventory" className="mt-6">
-                <AgencyInventory agencyId={agency.id} />
+                <AgencyInventory agencyId={effectiveAgencyId || agency?.id || ''} />
               </TabsContent>
 
               <TabsContent value="team" className="mt-6">
                 <AgencyTeamManagement 
-                  agencyId={agency.id} 
+                  agencyId={effectiveAgencyId || agency?.id || ''} 
                   subscriptionInfo={subscriptionInfo}
                 />
               </TabsContent>
 
               <TabsContent value="analytics" className="mt-6">
-                <AgencyAnalytics agencyId={agency.id} />
+                <AgencyAnalytics agencyId={effectiveAgencyId || agency?.id || ''} />
               </TabsContent>
 
               <TabsContent value="history" className="mt-6">
-                <PropertyAssignmentHistory agencyId={agency.id} />
+                <PropertyAssignmentHistory agencyId={effectiveAgencyId || agency?.id || ''} />
               </TabsContent>
 
               <TabsContent value="subscription" className="mt-6">
-                <SubscriptionManagement userId={user?.id || ''} />
+                <SubscriptionManagement userId={effectiveOwnerId || ''} />
               </TabsContent>
             </Tabs>
           </CardContent>

@@ -62,6 +62,25 @@ export const useRoleImpersonation = () => {
     return localStorage.getItem(IMPERSONATION_KEY) !== null;
   };
 
+  // Retornar IDs de usuarios demo según el rol simulado
+  const getDemoUserId = (): string | null => {
+    if (!isImpersonating || !impersonatedRole) return null;
+    
+    switch (impersonatedRole) {
+      case 'agent':
+        return '00000000-0000-0000-0000-000000000001'; // Demo Agent
+      case 'agency':
+        return '00000000-0000-0000-0000-000000000010'; // Demo Agency Owner
+      default:
+        return null;
+    }
+  };
+
+  const getDemoAgencyId = (): string | null => {
+    if (!isImpersonating || impersonatedRole !== 'agency') return null;
+    return '20000000-0000-0000-0000-000000000001'; // Demo Agency
+  };
+
   return {
     impersonatedRole,
     isImpersonating,
@@ -69,5 +88,7 @@ export const useRoleImpersonation = () => {
     startImpersonation,
     stopImpersonation,
     isSimulating,
+    getDemoUserId,
+    getDemoAgencyId,
   };
 };

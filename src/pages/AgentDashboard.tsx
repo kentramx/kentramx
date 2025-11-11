@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAgentProperties } from '@/hooks/useAgentProperties';
+import { useRoleImpersonation } from '@/hooks/useRoleImpersonation';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +24,7 @@ const AgentDashboard = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { isImpersonating, impersonatedRole, getDemoUserId } = useRoleImpersonation();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(
@@ -32,9 +34,14 @@ const AgentDashboard = () => {
   const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>('');
   const [featuredCount, setFeaturedCount] = useState(0);
+  
+  // Si está simulando rol agent, usar agent demo; si no, usar user real
+  const effectiveAgentId = (isImpersonating && impersonatedRole === 'agent') 
+    ? getDemoUserId() 
+    : user?.id;
 
   // Fetch properties con React Query
-  const { data: allProperties = [] } = useAgentProperties(user?.id);
+  const { data: allProperties = [] } = useAgentProperties(effectiveAgentId);
   
   // Calcular counts desde los datos
   const activePropertiesCount = useMemo(() => {
@@ -53,30 +60,39 @@ const AgentDashboard = () => {
   }, [user, authLoading, navigate]);
 
   const checkAgentStatus = async () => {
+    if (!effectiveAgentId) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Check for impersonation first
-      const IMPERSONATION_KEY = 'kentra_impersonated_role';
-      const impersonatedRole = localStorage.getItem(IMPERSONATION_KEY);
-      
-      if (impersonatedRole) {
-        // Verify user is actually super admin
-        const { data: isSuperData } = await (supabase.rpc as any)('is_super_admin', {
-          _user_id: user?.id,
+      // Si está simulando, cargar datos demo
+      if (isImpersonating && impersonatedRole === 'agent') {
+        setUserRole('agent');
+        
+        // Cargar perfil demo
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', effectiveAgentId)
+          .single();
+        
+        setProfile(profileData || { name: 'Demo Agent Kentra', id: effectiveAgentId });
+
+        // Cargar suscripción demo
+        const { data: subInfo } = await supabase.rpc('get_user_subscription_info', {
+          user_uuid: effectiveAgentId,
         });
 
-        if (isSuperData && impersonatedRole === 'agent') {
-          // In simulation mode, allow access and skip other checks
-          setUserRole('agent');
-          setProfile({ name: 'Agente Simulado', id: user?.id });
-          setSubscriptionInfo({ 
-            plan_name: 'agente_pro',
-            properties_limit: 10,
-            featured_limit: 3,
-            status: 'active'
-          });
-          setLoading(false);
-          return;
+        if (subInfo && subInfo.length > 0) {
+          setSubscriptionInfo(subInfo[0]);
         }
+
+        // Get featured properties count
+        await fetchFeaturedCount();
+        
+        setLoading(false);
+        return;
       }
 
       // Check user role from user_roles table
@@ -136,13 +152,13 @@ const AgentDashboard = () => {
   };
 
   const fetchFeaturedCount = async () => {
-    if (!user) return;
+    if (!effectiveAgentId) return;
 
     try {
       const { count: featuredCountData } = await supabase
         .from('featured_properties')
         .select('*', { count: 'exact', head: true })
-        .eq('agent_id', user.id)
+        .eq('agent_id', effectiveAgentId)
         .eq('status', 'active')
         .gt('end_date', new Date().toISOString());
 
@@ -310,15 +326,15 @@ const AgentDashboard = () => {
               </TabsContent>
 
               <TabsContent value="analytics" className="mt-6">
-                <AgentAnalytics agentId={user?.id || ''} />
+                <AgentAnalytics agentId={effectiveAgentId || ''} />
               </TabsContent>
 
               <TabsContent value="reminders" className="mt-6">
-                <PropertyExpiryReminders agentId={user?.id || ''} />
+                <PropertyExpiryReminders agentId={effectiveAgentId || ''} />
               </TabsContent>
 
               <TabsContent value="subscription" className="mt-6">
-                <SubscriptionManagement userId={user?.id || ''} />
+                <SubscriptionManagement userId={effectiveAgentId || ''} />
               </TabsContent>
 
               <TabsContent value="form" className="mt-6">
