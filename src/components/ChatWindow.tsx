@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { ImageLightbox } from './ImageLightbox';
-import { useNotifications } from '@/hooks/useNotifications';
 import { useBackgroundSync } from '@/hooks/useBackgroundSync';
 import { z } from 'zod';
 
@@ -55,7 +54,6 @@ export const ChatWindow = ({
 }: ChatWindowProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { showNotification, permission } = useNotifications();
   const { isOnline, pendingCount, queueMessage } = useBackgroundSync();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
