@@ -93,8 +93,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/auth');
+    try {
+      // Intentar cerrar sesión en Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      // Si hay error de sesión no encontrada, ignorarlo porque igual queremos limpiar el estado local
+      if (error && !error.message.includes('session') && !error.message.includes('Session')) {
+        console.error('Error al cerrar sesión:', error);
+      }
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    } finally {
+      // Siempre limpiar el estado local y redirigir, incluso si falla el signOut
+      setSession(null);
+      setUser(null);
+      navigate('/auth');
+    }
   };
 
   const resetPassword = async (email: string) => {
