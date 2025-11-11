@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AgentCard from "@/components/AgentCard";
 import AgentSearchBar from "@/components/AgentSearchBar";
+import Navbar from "@/components/Navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -68,7 +69,7 @@ const DirectorioAgentes = () => {
           user_roles!inner(role),
           properties(id, status, state, municipality),
           agent_reviews:agent_reviews!agent_id(rating),
-          user_subscriptions!inner(
+          user_subscriptions(
             status,
             subscription_plans(display_name, name)
           ),
@@ -137,7 +138,7 @@ const DirectorioAgentes = () => {
           avg_rating: avgRating,
           total_reviews: reviews.length,
           is_verified: profile.is_verified || false,
-          plan_name: subscription?.subscription_plans?.display_name || null,
+          plan_name: subscription?.subscription_plans?.display_name || "Sin Plan",
           plan_level: subscription?.subscription_plans?.name || null,
           badges,
         };
@@ -188,7 +189,7 @@ const DirectorioAgentes = () => {
             total_reviews: reviews?.length || 0,
             is_verified: agency.is_verified || false,
             logo_url: agency.logo_url,
-            plan_name: subscription?.subscription_plans?.display_name || null,
+            plan_name: subscription?.subscription_plans?.display_name || "Sin Plan",
             plan_level: subscription?.subscription_plans?.name || null,
             badges,
           };
@@ -237,28 +238,58 @@ const DirectorioAgentes = () => {
         return badges.reduce((sum, badge) => sum + badge.priority, 0);
       };
 
-      // Apply sorting - prioritize by badge score, then plan level, then secondary sort
+      // Sistema de scoring compuesto con pesos para ranking
+      const calculateAgentScore = (agent: AgentData): number => {
+        let score = 0;
+        
+        // 1. Plan Level (30%) - Mayor compromiso y seriedad
+        const planScore = getPlanLevel(agent.plan_level);
+        score += planScore === 3 ? 30 : planScore === 2 ? 25 : planScore === 1 ? 15 : 0;
+        
+        // 2. Rating (25%) - Calidad del servicio verificada
+        if (agent.avg_rating) {
+          if (agent.avg_rating >= 5) score += 25;
+          else if (agent.avg_rating >= 4) score += 20;
+          else if (agent.avg_rating >= 3) score += 12;
+          else score += 5;
+        }
+        
+        // 3. Badges (20%) - Reconocimientos y logros
+        const badgeScore = getBadgeScore(agent.badges);
+        score += Math.min(20, badgeScore / 2); // Normalizar a escala de 20
+        
+        // 4. Active Properties (15%) - Inventario y actividad
+        if (agent.active_properties >= 20) score += 15;
+        else if (agent.active_properties >= 10) score += 12;
+        else if (agent.active_properties >= 5) score += 8;
+        else if (agent.active_properties >= 1) score += 4;
+        
+        // 5. Total Reviews (10%) - Experiencia y confianza
+        if (agent.total_reviews >= 20) score += 10;
+        else if (agent.total_reviews >= 10) score += 8;
+        else if (agent.total_reviews >= 5) score += 5;
+        else if (agent.total_reviews >= 1) score += 2;
+        
+        return score;
+      };
+
+      // Apply sorting basado en score compuesto
       combinedData.sort((a, b) => {
-        const aBadgeScore = getBadgeScore(a.badges);
-        const bBadgeScore = getBadgeScore(b.badges);
+        const scoreA = calculateAgentScore(a);
+        const scoreB = calculateAgentScore(b);
         
-        // First sort by badge score (highest priority badges first)
-        if (aBadgeScore !== bBadgeScore) return bBadgeScore - aBadgeScore;
+        // Primary sort: Total score
+        if (scoreA !== scoreB) return scoreB - scoreA;
         
-        const aLevel = getPlanLevel(a.plan_level);
-        const bLevel = getPlanLevel(b.plan_level);
-        
-        // Second sort by plan level (featured agents first)
-        if (aLevel !== bLevel) return bLevel - aLevel;
-        
-        // Then apply secondary sorting
+        // Tiebreaker: Secondary sort preference
         if (sortBy === "active") {
           return b.active_properties - a.active_properties;
         }
         if (sortBy === "rating") {
           return (b.avg_rating || 0) - (a.avg_rating || 0);
         }
-        return 0; // recent - would need created_at field
+        
+        return 0;
       });
 
       setAgents(combinedData);
@@ -275,7 +306,8 @@ const DirectorioAgentes = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">        
+      <Navbar />
+      <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Directorio de Agentes e Inmobiliarias</h1>
           <p className="text-muted-foreground">
