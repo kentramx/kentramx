@@ -365,7 +365,7 @@ const Home = () => {
               </Collapsible>
 
               {/* Tabs para búsqueda por texto o mapa */}
-              <Tabs defaultValue="search" className="w-full">
+              <Tabs defaultValue="map" className="w-full">
                 <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white/95">
                   <TabsTrigger value="search" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                     <Search className="mr-2 h-4 w-4" />
