@@ -720,7 +720,7 @@ export const ChatWindow = ({
                   <div
                     className={`max-w-[70%] rounded-lg p-3 transition-all ${
                       isOwn
-                        ? 'bg-primary text-primary-foreground'
+                        ? 'bg-primary/10 text-foreground border border-primary/20'
                         : 'bg-muted text-foreground'
                     } ${
                       isCurrentSearchResult
@@ -752,9 +752,7 @@ export const ChatWindow = ({
                     )}
                     <div className="flex items-center justify-between gap-2 mt-1">
                       <p
-                        className={`text-xs ${
-                          isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                        }`}
+                        className={`text-xs text-muted-foreground`}
                       >
                         {formatDistanceToNow(new Date(message.created_at), {
                           addSuffix: true,
@@ -767,15 +765,11 @@ export const ChatWindow = ({
                         <div className="flex-shrink-0">
                           {isRead ? (
                             <CheckCheck 
-                              className={`w-4 h-4 ${
-                                isOwn ? 'text-blue-400' : 'text-muted-foreground'
-                              }`}
+                              className="w-4 h-4 text-primary"
                             />
                           ) : (
                             <Check 
-                              className={`w-4 h-4 ${
-                                isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                              }`}
+                              className="w-4 h-4 text-muted-foreground"
                             />
                           )}
                         </div>

@@ -173,8 +173,8 @@ export const ConversationList = ({ selectedId, onSelect }: ConversationListProps
             onClick={() => onSelect(conversation)}
             className={`w-full text-left p-4 rounded-lg border transition-colors ${
               selectedId === conversation.id
-                ? 'bg-accent border-primary'
-                : 'bg-card border-border hover:bg-accent/50'
+                ? 'bg-primary/10 border-primary text-foreground'
+                : 'bg-card border-border hover:bg-accent/50 text-foreground'
             }`}
           >
             <div className="flex items-start justify-between mb-2">
