@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProperties } from '@/hooks/useProperties';
 import { PlaceAutocomplete } from '@/components/PlaceAutocomplete';
 import BasicGoogleMap from '@/components/BasicGoogleMap';
 import Navbar from '@/components/Navbar';
@@ -43,7 +44,7 @@ interface Property {
   state: string;
   municipality: string;
   type: 'casa' | 'departamento' | 'terreno' | 'oficina' | 'local' | 'bodega' | 'edificio' | 'rancho';
-  listing_type: 'venta' | 'renta';
+  listing_type: string;
   images: { url: string; position: number }[];
   created_at: string | null;
   sqft: number | null;
@@ -81,9 +82,6 @@ const Buscar = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isFiltering, setIsFiltering] = useState(false);
   
   // Flag para prevenir sobrescritura durante sincronización URL -> estado
@@ -130,6 +128,61 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     banos: searchParams.get('banos') || '',
     orden: (searchParams.get('orden') as any) || 'price_desc',
   });
+  
+  // Fetch de propiedades con React Query
+  const queryFilters = useMemo(() => ({
+    estado: filters.estado || undefined,
+    municipio: filters.municipio || undefined,
+    tipo: filters.tipo || undefined,
+    listingType: filters.listingType || undefined,
+    precioMin: filters.precioMin ? parseFloat(filters.precioMin) : undefined,
+    precioMax: filters.precioMax ? parseFloat(filters.precioMax) : undefined,
+    recamaras: filters.recamaras || undefined,
+    banos: filters.banos || undefined,
+    status: ['activa'],
+  }), [filters.estado, filters.municipio, filters.tipo, filters.listingType, filters.precioMin, filters.precioMax, filters.recamaras, filters.banos]);
+
+  const { data: properties = [], isLoading: loading, isFetching } = useProperties(queryFilters);
+
+  // Ordenar propiedades según criterio seleccionado
+  const sortedProperties = useMemo(() => {
+    const sorted = [...properties];
+    
+    switch (filters.orden) {
+      case 'price_desc':
+        sorted.sort((a, b) => b.price - a.price);
+        break;
+      case 'price_asc':
+        sorted.sort((a, b) => a.price - b.price);
+        break;
+      case 'newest':
+        sorted.sort((a, b) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA;
+        });
+        break;
+      case 'oldest':
+        sorted.sort((a, b) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateA - dateB;
+        });
+        break;
+      case 'bedrooms_desc':
+        sorted.sort((a, b) => (b.bedrooms || 0) - (a.bedrooms || 0));
+        break;
+      case 'sqft_desc':
+        sorted.sort((a, b) => (b.sqft || 0) - (a.sqft || 0));
+        break;
+      default:
+        sorted.sort((a, b) => b.price - a.price);
+    }
+    
+    return sorted;
+  }, [properties, filters.orden]);
+
+  const filteredProperties = sortedProperties;
   
   // Estado para guardar coordenadas de la ubicación buscada
   const [searchCoordinates, setSearchCoordinates] = useState<{ lat: number; lng: number } | null>(null);
@@ -417,41 +470,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   }, [filters, searchCoordinates, searchParams, setSearchParams]);
 
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('properties')
-      .select(`
-        id, title, price, bedrooms, bathrooms, parking, 
-        lat, lng, address, state, municipality, type, listing_type,
-        created_at, sqft, agent_id,
-        images (url, position)
-      `)
-          .eq('status', 'activa')
-          .order('position', { foreignTable: 'images', ascending: true })
-          .limit(1000);
-
-        if (error) throw error;
-
-        const propertiesWithSortedImages = data?.map(property => ({
-          ...property,
-          type: property.type === 'local_comercial' ? 'local' : property.type,
-          images: (property.images || []).sort((a: any, b: any) => a.position - b.position)
-        })) as Property[] || [];
-
-        setProperties(propertiesWithSortedImages);
-        setFilteredProperties(propertiesWithSortedImages);
-      } catch (error) {
-        console.error('Error fetching properties:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
     if (filters.estado) {
       setMunicipios(mexicoMunicipalities[filters.estado] || []);
     } else {
@@ -560,84 +578,10 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     filters.banos,
   ].filter(Boolean).length;
 
+  // Mantener flag de isFiltering basado en isFetching
   useEffect(() => {
-    // Indicar que se está filtrando
-    setIsFiltering(true);
-    
-    // Usar un pequeño delay para permitir que se muestre el indicador
-    const timeoutId = setTimeout(() => {
-      let filtered = [...properties];
-
-      if (filters.estado) {
-        filtered = filtered.filter(p => p.state === filters.estado);
-      }
-
-      if (filters.municipio) {
-        filtered = filtered.filter(p => p.municipality === filters.municipio);
-      }
-
-      if (filters.precioMin) {
-        filtered = filtered.filter(p => p.price >= Number(filters.precioMin));
-      }
-
-      if (filters.precioMax) {
-        filtered = filtered.filter(p => p.price <= Number(filters.precioMax));
-      }
-
-      if (filters.tipo) {
-        filtered = filtered.filter(p => p.type === filters.tipo);
-      }
-
-      if (filters.listingType) {
-        filtered = filtered.filter(p => p.listing_type === filters.listingType);
-      }
-
-      if (filters.recamaras) {
-        filtered = filtered.filter(p => (p.bedrooms || 0) >= Number(filters.recamaras));
-      }
-
-      if (filters.banos) {
-        filtered = filtered.filter(p => (p.bathrooms || 0) >= Number(filters.banos));
-      }
-
-      // Ordenar según el criterio seleccionado
-      switch (filters.orden) {
-        case 'price_desc':
-          filtered.sort((a, b) => b.price - a.price);
-          break;
-        case 'price_asc':
-          filtered.sort((a, b) => a.price - b.price);
-          break;
-        case 'newest':
-          filtered.sort((a, b) => {
-            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-            return dateB - dateA;
-          });
-          break;
-        case 'oldest':
-          filtered.sort((a, b) => {
-            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-            return dateA - dateB;
-          });
-          break;
-        case 'bedrooms_desc':
-          filtered.sort((a, b) => (b.bedrooms || 0) - (a.bedrooms || 0));
-          break;
-        case 'sqft_desc':
-          filtered.sort((a, b) => (b.sqft || 0) - (a.sqft || 0));
-          break;
-        default:
-          filtered.sort((a, b) => b.price - a.price);
-      }
-
-      setFilteredProperties(filtered);
-      setIsFiltering(false);
-    }, 150); // Small delay para mostrar feedback visual
-    
-    return () => clearTimeout(timeoutId);
-  }, [filters, properties]);
+    setIsFiltering(isFetching);
+  }, [isFetching]);
 
   const handlePropertyClick = (property: Property) => {
     console.log('Clicked property:', property.id);
@@ -760,7 +704,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       bedrooms: p.bedrooms,
       bathrooms: p.bathrooms,
       images: p.images,
-      listing_type: p.listing_type,
+      listing_type: p.listing_type as "venta" | "renta",
       address: p.address,
     }));
 
@@ -1365,7 +1309,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
               onMarkerHover={(markerId) => {
                 if (markerId) {
                   hoverFromMap.current = true;
-                  const property = filteredProperties.find(p => p.id === markerId);
+                  const property = filteredProperties.find(p => p.id === markerId) as Property | undefined;
                   setHoveredProperty(property || null);
                 } else {
                   setHoveredProperty(null);
@@ -1445,11 +1389,11 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                               propertyCardRefs.current.delete(property.id);
                             }
                           }}
-                          onMouseEnter={() => {
-                            hoverFromMap.current = false;
-                            setHoveredProperty(property);
-                          }}
-                          onMouseLeave={() => setHoveredProperty(null)}
+                        onMouseEnter={() => {
+                          hoverFromMap.current = false;
+                          setHoveredProperty(property as Property);
+                        }}
+                        onMouseLeave={() => setHoveredProperty(null)}
                         >
                           <PropertyCard
                             id={property.id}
