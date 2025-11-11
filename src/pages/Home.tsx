@@ -13,7 +13,7 @@ import PropertyCard from "@/components/PropertyCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { NewsletterForm } from "@/components/NewsletterForm";
-import { InteractiveMapSearch } from "@/components/InteractiveMapSearch";
+import BasicGoogleMap from "@/components/BasicGoogleMap";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -41,7 +41,9 @@ interface Property {
   bathrooms?: number;
   parking?: number;
   sqft?: number;
-  images?: { url: string }[];
+  lat?: number;
+  lng?: number;
+  images?: { url: string; position: number }[];
   agent_id: string;
 }
 
@@ -147,16 +149,25 @@ const Home = () => {
             bathrooms,
             parking,
             sqft,
+            lat,
+            lng,
             agent_id,
-            images (url)
+            images (url, position)
           `)
           .eq('status', 'activa')
           .eq('listing_type', listingType)
           .order('created_at', { ascending: false })
-          .limit(6);
+          .limit(20);
 
         if (error) throw error;
-        setFeaturedProperties(data || []);
+        
+        // Ordenar imágenes por posición
+        const propertiesWithSortedImages = data?.map(property => ({
+          ...property,
+          images: (property.images || []).sort((a: any, b: any) => (a.position || 0) - (b.position || 0))
+        })) || [];
+        
+        setFeaturedProperties(propertiesWithSortedImages);
       } catch (error) {
         console.error('Error fetching featured properties:', error);
       } finally {
@@ -376,10 +387,27 @@ const Home = () => {
                 </TabsContent>
                 
                 <TabsContent value="map" className="mt-4">
-                  <InteractiveMapSearch
-                    onLocationSelect={handleMapLocationSelect}
+                  <BasicGoogleMap
+                    center={{ lat: 23.6345, lng: -102.5528 }}
+                    zoom={6}
                     height="450px"
-                    defaultZoom={6}
+                    markers={featuredProperties
+                      .filter(p => p.lat && p.lng)
+                      .map(p => ({
+                        id: p.id,
+                        lat: p.lat!,
+                        lng: p.lng!,
+                        title: p.title,
+                        price: p.price,
+                        bedrooms: p.bedrooms,
+                        bathrooms: p.bathrooms,
+                        images: p.images,
+                        listing_type: p.listing_type as 'venta' | 'renta',
+                        address: `${p.address}, ${p.municipality}, ${p.state}`,
+                      }))}
+                    enableClustering={true}
+                    onMarkerClick={(markerId) => navigate(`/propiedad/${markerId}`)}
+                    disableAutoFit={false}
                   />
                 </TabsContent>
               </Tabs>
