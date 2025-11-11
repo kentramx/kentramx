@@ -21,11 +21,33 @@ export const PropertyExportPDF = ({ property, agent }: PropertyExportPDFProps) =
     }).format(price);
   };
 
+  const loadImageAsBase64 = async (url: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL("image/jpeg", 0.8));
+        } else {
+          reject(new Error("Could not get canvas context"));
+        }
+      };
+      img.onerror = () => reject(new Error("Could not load image"));
+      img.src = url;
+    });
+  };
+
   const exportToPDF = async () => {
     setIsExporting(true);
     try {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
       let yPosition = 20;
 
       // Header
@@ -56,6 +78,43 @@ export const PropertyExportPDF = ({ property, agent }: PropertyExportPDFProps) =
       );
       yPosition += 15;
 
+      // Images Section
+      if (property.images && property.images.length > 0) {
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("Imágenes", 20, yPosition);
+        yPosition += 7;
+
+        // Load and add up to 4 images
+        const imagesToInclude = property.images.slice(0, 4);
+        for (let i = 0; i < imagesToInclude.length; i++) {
+          try {
+            const imageUrl = imagesToInclude[i];
+            const base64Image = await loadImageAsBase64(imageUrl);
+            
+            const imgWidth = pageWidth - 40;
+            const imgHeight = 60;
+
+            // Check if we need a new page
+            if (yPosition + imgHeight > pageHeight - 30) {
+              doc.addPage();
+              yPosition = 20;
+            }
+
+            doc.addImage(base64Image, "JPEG", 20, yPosition, imgWidth, imgHeight);
+            yPosition += imgHeight + 10;
+          } catch (error) {
+            console.error(`Error loading image ${i + 1}:`, error);
+          }
+        }
+      }
+
+      // Check if we need a new page for details table
+      if (yPosition + 50 > pageHeight - 30) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
       // Property Details Table
       const detailsData = [
         ["Tipo", property.type],
@@ -79,6 +138,12 @@ export const PropertyExportPDF = ({ property, agent }: PropertyExportPDFProps) =
 
       // Description
       if (property.description) {
+        // Check if we need a new page
+        if (yPosition + 30 > pageHeight - 30) {
+          doc.addPage();
+          yPosition = 20;
+        }
+
         doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
         doc.text("Descripción", 20, yPosition);
@@ -96,6 +161,12 @@ export const PropertyExportPDF = ({ property, agent }: PropertyExportPDFProps) =
 
       // Agent Info
       if (agent) {
+        // Check if we need a new page
+        if (yPosition + 30 > pageHeight - 30) {
+          doc.addPage();
+          yPosition = 20;
+        }
+
         doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
         doc.text("Información del Agente", 20, yPosition);
