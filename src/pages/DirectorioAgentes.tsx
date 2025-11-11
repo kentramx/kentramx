@@ -65,9 +65,19 @@ const DirectorioAgentes = () => {
         .select("user_id")
         .eq("role", "agent");
 
-      const agentIds = agentRoles?.map(r => r.user_id) || [];
+      let agentIds = agentRoles?.map(r => r.user_id) || [];
 
-      // Fetch individual agents usando los IDs obtenidos
+      // Fallback: si RLS impide leer user_roles o no hay resultados, tomar agentes desde properties activas
+      if (agentIds.length === 0) {
+        const { data: propAgents } = await supabase
+          .from("properties")
+          .select("agent_id")
+          .eq("status", "activa");
+        const fromProps = Array.from(new Set((propAgents || []).map((p: any) => p.agent_id))).filter(Boolean);
+        agentIds = fromProps;
+      }
+
+      // Fetch individual agents usando los IDs obtenidos (aplicar .in solo si hay IDs)
       let agentsQuery = supabase
         .from("profiles")
         .select(`
@@ -76,8 +86,10 @@ const DirectorioAgentes = () => {
           is_verified,
           properties(id, status, state, municipality),
           agent_reviews:agent_reviews!agent_id(rating)
-        `)
-        .in("id", agentIds);
+        `);
+      if (agentIds.length > 0) {
+        agentsQuery = agentsQuery.in("id", agentIds);
+      }
 
       // Fetch agencies
       let agenciesQuery = supabase
@@ -101,22 +113,30 @@ const DirectorioAgentes = () => {
       if (agentsResult.error) throw agentsResult.error;
       if (agenciesResult.error) throw agenciesResult.error;
 
-      // Obtener suscripciones de los agentes
-      const { data: agentSubscriptions } = await supabase
-        .from("user_subscriptions")
-        .select("user_id, status, subscription_plans(display_name, name)")
-        .in("user_id", agentIds)
-        .eq("status", "active");
+      // Obtener suscripciones de los agentes (condicional si hay IDs)
+      let agentSubscriptions: any[] = [];
+      if (agentIds.length > 0) {
+        const { data } = await supabase
+          .from("user_subscriptions")
+          .select("user_id, status, subscription_plans(display_name, name)")
+          .in("user_id", agentIds)
+          .eq("status", "active");
+        agentSubscriptions = data || [];
+      }
 
       const subscriptionMap = new Map(
-        agentSubscriptions?.map(sub => [sub.user_id, sub]) || []
+        (agentSubscriptions || []).map((sub: any) => [sub.user_id, sub])
       );
 
-      // Obtener badges de los agentes en una sola consulta
-      const { data: agentBadgesRows } = await supabase
-        .from("user_badges")
-        .select("user_id, badge_definitions(code, name, description, icon, color, priority, is_secret)")
-        .in("user_id", agentIds);
+      // Obtener badges de los agentes en una sola consulta (condicional si hay IDs)
+      let agentBadgesRows: any[] = [];
+      if (agentIds.length > 0) {
+        const { data } = await supabase
+          .from("user_badges")
+          .select("user_id, badge_definitions(code, name, description, icon, color, priority, is_secret)")
+          .in("user_id", agentIds);
+        agentBadgesRows = data || [];
+      }
 
       const badgesMap = new Map<string, BadgeData[]>();
       (agentBadgesRows || []).forEach((row: any) => {
