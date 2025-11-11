@@ -16,7 +16,20 @@ const PricingAgente = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isAnnual, setIsAnnual] = useState(false);
+  const [pricingPeriod, setPricingPeriod] = useState<'monthly' | 'annual'>('annual');
+
+  // Cargar preferencia de pricing desde localStorage al iniciar
+  useEffect(() => {
+    const savedPreference = localStorage.getItem('kentra_pricing_preference');
+    if (savedPreference === 'monthly' || savedPreference === 'annual') {
+      setPricingPeriod(savedPreference);
+    }
+  }, []);
+
+  // Guardar preferencia cuando cambie
+  useEffect(() => {
+    localStorage.setItem('kentra_pricing_preference', pricingPeriod);
+  }, [pricingPeriod]);
 
   // Scroll automático al plan cuando hay hash en la URL
   useEffect(() => {
@@ -104,7 +117,7 @@ const PricingAgente = () => {
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: {
           planId,
-          billingCycle: isAnnual ? 'yearly' : 'monthly',
+          billingCycle: pricingPeriod === 'annual' ? 'yearly' : 'monthly',
           successUrl: `${window.location.origin}/payment-success?payment=success`,
           cancelUrl: `${window.location.origin}/pricing-agente?payment=canceled`,
         },
@@ -159,17 +172,26 @@ const PricingAgente = () => {
 
             {/* Toggle */}
             <div className="flex items-center justify-center gap-4">
-              <Label htmlFor="billing-toggle" className="text-base">
-                Mensual (sin compromiso)
-              </Label>
-              <Switch
-                id="billing-toggle"
-                checked={isAnnual}
-                onCheckedChange={setIsAnnual}
-              />
-              <Label htmlFor="billing-toggle" className="text-base font-semibold text-primary">
-                Ahorrar 12% (opcional)
-              </Label>
+              <button
+                onClick={() => setPricingPeriod('monthly')}
+                className={`text-base px-4 py-2 rounded-lg transition-colors ${
+                  pricingPeriod === 'monthly'
+                    ? 'bg-primary text-primary-foreground font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Mensual
+              </button>
+              <button
+                onClick={() => setPricingPeriod('annual')}
+                className={`text-base px-4 py-2 rounded-lg transition-colors ${
+                  pricingPeriod === 'annual'
+                    ? 'bg-primary text-primary-foreground font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Anual -17%
+              </button>
             </div>
             <p className="text-sm text-muted-foreground mt-4">
               Puedes cancelar cuando quieras. El pago anual es opcional solo si deseas ahorrar.
@@ -230,7 +252,7 @@ const PricingAgente = () => {
                 <CardHeader>
                   <CardTitle className="text-2xl">{plan.name}</CardTitle>
                   <div className="mt-4">
-                    {isAnnual ? (
+                    {pricingPeriod === 'annual' ? (
                       <>
                         <div className="text-3xl font-bold">
                           ${plan.annualPrice.toLocaleString('es-MX')}
