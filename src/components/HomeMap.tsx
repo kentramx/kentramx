@@ -178,7 +178,7 @@ const HomeMap = ({ height = "450px" }: { height?: string }) => {
       {/* Contador de resultados sobre el mapa */}
       <div className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border">
         <p className="text-sm font-medium">
-          <span className="font-bold text-lg">{properties.length}</span>
+          <span className="font-bold text-lg text-foreground">{properties.length}</span>
           <span className="text-muted-foreground ml-1">
             {properties.length === 1 ? 'propiedad' : 'propiedades'}
           </span>
