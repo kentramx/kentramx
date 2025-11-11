@@ -57,13 +57,16 @@ export const PlanStatusCard = ({ subscriptionInfo, userRole }: PlanStatusCardPro
           {/* Preview de planes disponibles */}
           <div className="pt-4 border-t space-y-3">
             <p className="text-sm font-medium text-muted-foreground">
-              {userRole === 'agency' ? 'Planes para Inmobiliarias:' : 'Planes para Agentes:'}
+              {userRole === 'agency' ? 'Planes para Inmobiliarias:' : 'Planes para Agentes:'} (Click para seleccionar)
             </p>
             {userRole === 'agency' ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="p-3 rounded-lg bg-background border hover:border-primary/50 transition-colors">
+                <div 
+                  onClick={() => navigate('/pricing-inmobiliaria#start')}
+                  className="p-3 rounded-lg bg-background border hover:border-primary hover:shadow-md transition-all cursor-pointer group"
+                >
                   <div className="flex items-start justify-between mb-2">
-                    <p className="font-semibold text-sm">Plan Start</p>
+                    <p className="font-semibold text-sm group-hover:text-primary transition-colors">Plan Start</p>
                     <Badge variant="outline" className="text-xs">Desde</Badge>
                   </div>
                   <p className="text-lg font-bold text-primary mb-2">$5,900<span className="text-xs text-muted-foreground font-normal">/mes</span></p>
@@ -73,9 +76,12 @@ export const PlanStatusCard = ({ subscriptionInfo, userRole }: PlanStatusCardPro
                     <p>✓ 5 destacadas</p>
                   </div>
                 </div>
-                <div className="p-3 rounded-lg bg-background border hover:border-primary/50 transition-colors">
+                <div 
+                  onClick={() => navigate('/pricing-inmobiliaria#grow')}
+                  className="p-3 rounded-lg bg-background border hover:border-primary hover:shadow-md transition-all cursor-pointer group"
+                >
                   <div className="flex items-start justify-between mb-2">
-                    <p className="font-semibold text-sm">Plan Grow</p>
+                    <p className="font-semibold text-sm group-hover:text-primary transition-colors">Plan Grow</p>
                     <Badge variant="secondary" className="text-xs">Popular</Badge>
                   </div>
                   <p className="text-lg font-bold text-primary mb-2">$9,900<span className="text-xs text-muted-foreground font-normal">/mes</span></p>
@@ -85,9 +91,12 @@ export const PlanStatusCard = ({ subscriptionInfo, userRole }: PlanStatusCardPro
                     <p>✓ 12 destacadas</p>
                   </div>
                 </div>
-                <div className="p-3 rounded-lg bg-background border hover:border-primary/50 transition-colors">
+                <div 
+                  onClick={() => navigate('/pricing-inmobiliaria#pro')}
+                  className="p-3 rounded-lg bg-background border hover:border-primary hover:shadow-md transition-all cursor-pointer group"
+                >
                   <div className="flex items-start justify-between mb-2">
-                    <p className="font-semibold text-sm">Plan Pro</p>
+                    <p className="font-semibold text-sm group-hover:text-primary transition-colors">Plan Pro</p>
                     <Badge variant="default" className="text-xs">Premium</Badge>
                   </div>
                   <p className="text-lg font-bold text-primary mb-2">$15,900<span className="text-xs text-muted-foreground font-normal">/mes</span></p>
@@ -100,9 +109,12 @@ export const PlanStatusCard = ({ subscriptionInfo, userRole }: PlanStatusCardPro
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="p-3 rounded-lg bg-background border hover:border-primary/50 transition-colors">
+                <div 
+                  onClick={() => navigate('/pricing-agente#basico')}
+                  className="p-3 rounded-lg bg-background border hover:border-primary hover:shadow-md transition-all cursor-pointer group"
+                >
                   <div className="flex items-start justify-between mb-2">
-                    <p className="font-semibold text-sm">Plan Básico</p>
+                    <p className="font-semibold text-sm group-hover:text-primary transition-colors">Plan Básico</p>
                     <Badge variant="outline" className="text-xs">Inicial</Badge>
                   </div>
                   <p className="text-lg font-bold text-primary mb-2">$299<span className="text-xs text-muted-foreground font-normal">/mes</span></p>
@@ -112,9 +124,12 @@ export const PlanStatusCard = ({ subscriptionInfo, userRole }: PlanStatusCardPro
                     <p>✓ Soporte básico</p>
                   </div>
                 </div>
-                <div className="p-3 rounded-lg bg-background border hover:border-primary/50 transition-colors">
+                <div 
+                  onClick={() => navigate('/pricing-agente#pro')}
+                  className="p-3 rounded-lg bg-background border hover:border-primary hover:shadow-md transition-all cursor-pointer group"
+                >
                   <div className="flex items-start justify-between mb-2">
-                    <p className="font-semibold text-sm">Plan Pro</p>
+                    <p className="font-semibold text-sm group-hover:text-primary transition-colors">Plan Pro</p>
                     <Badge variant="secondary" className="text-xs">Popular</Badge>
                   </div>
                   <p className="text-lg font-bold text-primary mb-2">$799<span className="text-xs text-muted-foreground font-normal">/mes</span></p>
@@ -124,9 +139,12 @@ export const PlanStatusCard = ({ subscriptionInfo, userRole }: PlanStatusCardPro
                     <p>✓ Autopublicación</p>
                   </div>
                 </div>
-                <div className="p-3 rounded-lg bg-background border hover:border-primary/50 transition-colors">
+                <div 
+                  onClick={() => navigate('/pricing-agente#elite')}
+                  className="p-3 rounded-lg bg-background border hover:border-primary hover:shadow-md transition-all cursor-pointer group"
+                >
                   <div className="flex items-start justify-between mb-2">
-                    <p className="font-semibold text-sm">Plan Elite</p>
+                    <p className="font-semibold text-sm group-hover:text-primary transition-colors">Plan Elite</p>
                     <Badge variant="default" className="text-xs">Premium</Badge>
                   </div>
                   <p className="text-lg font-bold text-primary mb-2">$1,350<span className="text-xs text-muted-foreground font-normal">/mes</span></p>
