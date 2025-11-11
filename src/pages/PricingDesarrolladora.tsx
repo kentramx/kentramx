@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
@@ -5,6 +6,7 @@ import { DynamicBreadcrumbs } from '@/components/DynamicBreadcrumbs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Check, Info, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -12,6 +14,20 @@ const PricingDesarrolladora = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [pricingPeriod, setPricingPeriod] = useState<'monthly' | 'annual'>('annual');
+
+  // Cargar preferencia de pricing desde localStorage al iniciar
+  useEffect(() => {
+    const savedPreference = localStorage.getItem('kentra_pricing_preference');
+    if (savedPreference === 'monthly' || savedPreference === 'annual') {
+      setPricingPeriod(savedPreference);
+    }
+  }, []);
+
+  // Guardar preferencia cuando cambie
+  useEffect(() => {
+    localStorage.setItem('kentra_pricing_preference', pricingPeriod);
+  }, [pricingPeriod]);
 
   const features = [
     '600+ propiedades por proyecto',
@@ -74,8 +90,45 @@ const PricingDesarrolladora = () => {
             <h1 className="text-4xl font-bold text-foreground mb-4">
               Plan para Desarrolladoras
             </h1>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-xl text-muted-foreground mb-8">
               Solución completa para promocionar tus proyectos inmobiliarios.
+            </p>
+
+            {/* Toggle */}
+            <TooltipProvider>
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  onClick={() => setPricingPeriod('monthly')}
+                  className={`text-base px-4 py-2 rounded-lg transition-colors ${
+                    pricingPeriod === 'monthly'
+                      ? 'bg-primary text-primary-foreground font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Mensual
+                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setPricingPeriod('annual')}
+                      className={`text-base px-4 py-2 rounded-lg transition-colors ${
+                        pricingPeriod === 'annual'
+                          ? 'bg-primary text-primary-foreground font-semibold'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Anual -14%
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-semibold mb-2">Ahorro con pago anual:</p>
+                    <p className="text-sm">$30,240 MXN</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+            <p className="text-sm text-muted-foreground mt-4">
+              Puedes cancelar cuando quieras. El pago anual es opcional solo si deseas ahorrar.
             </p>
           </div>
 
@@ -84,10 +137,23 @@ const PricingDesarrolladora = () => {
             <CardHeader className="text-center">
               <CardTitle className="text-3xl mb-4">Desarrolladora</CardTitle>
               <div className="space-y-2">
-                <div className="text-4xl font-bold text-primary">
-                  Desde $18,000
-                </div>
-                <p className="text-lg text-muted-foreground">por mes</p>
+                {pricingPeriod === 'annual' ? (
+                  <>
+                    <div className="text-4xl font-bold text-primary">
+                      $185,760
+                    </div>
+                    <p className="text-lg text-muted-foreground">
+                      Pago adelantado (equivale a $15,480/mes)
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-4xl font-bold text-primary">
+                      Desde $18,000
+                    </div>
+                    <p className="text-lg text-muted-foreground">por mes</p>
+                  </>
+                )}
                 <p className="text-sm text-muted-foreground">
                   Precio personalizado según el alcance de tu proyecto
                 </p>

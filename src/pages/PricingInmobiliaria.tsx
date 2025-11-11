@@ -6,17 +6,29 @@ import { DynamicBreadcrumbs } from '@/components/DynamicBreadcrumbs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Check, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Check, Info, Building2, TrendingUp, Crown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const PricingInmobiliaria = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isAnnual, setIsAnnual] = useState(false);
+  const [pricingPeriod, setPricingPeriod] = useState<'monthly' | 'annual'>('annual');
+
+  // Cargar preferencia de pricing desde localStorage al iniciar
+  useEffect(() => {
+    const savedPreference = localStorage.getItem('kentra_pricing_preference');
+    if (savedPreference === 'monthly' || savedPreference === 'annual') {
+      setPricingPeriod(savedPreference);
+    }
+  }, []);
+
+  // Guardar preferencia cuando cambie
+  useEffect(() => {
+    localStorage.setItem('kentra_pricing_preference', pricingPeriod);
+  }, [pricingPeriod]);
 
   // Scroll automático al plan cuando hay hash en la URL
   useEffect(() => {
@@ -37,8 +49,8 @@ const PricingInmobiliaria = () => {
       name: 'Inmobiliaria Start',
       slug: 'start',
       monthlyPrice: 5900,
-      annualPrice: 62352,
-      annualMonthlyEquivalent: 5196,
+      annualPrice: 60888,
+      annualMonthlyEquivalent: 5074,
       features: [
         'Hasta 5 agentes',
         'Pool de 50 propiedades activas (no caducan mientras se renueven cada 30 días)',
@@ -47,14 +59,16 @@ const PricingInmobiliaria = () => {
         'Ruteo automático de leads',
       ],
       popular: false,
+      buttonText: 'Empezar con Start',
+      icon: Building2,
     },
     {
       id: '3da21adc-8248-48b2-bbc2-b7a69d886646',
       name: 'Inmobiliaria Grow',
       slug: 'grow',
       monthlyPrice: 9900,
-      annualPrice: 104544,
-      annualMonthlyEquivalent: 8712,
+      annualPrice: 102168,
+      annualMonthlyEquivalent: 8514,
       features: [
         'Hasta 10 agentes',
         'Pool de 120 propiedades activas (no caducan mientras se renueven cada 30 días)',
@@ -63,14 +77,16 @@ const PricingInmobiliaria = () => {
         'Todo lo incluido en Start',
       ],
       popular: true,
+      buttonText: 'Activar plan Grow',
+      icon: TrendingUp,
     },
     {
       id: '2c1e2283-e9b6-439e-8cc5-37af2d669458',
       name: 'Inmobiliaria Pro',
       slug: 'pro',
       monthlyPrice: 15900,
-      annualPrice: 167616,
-      annualMonthlyEquivalent: 13968,
+      annualPrice: 164088,
+      annualMonthlyEquivalent: 13674,
       features: [
         'Hasta 20 agentes',
         'Pool de 250 propiedades activas (no caducan mientras se renueven cada 30 días)',
@@ -80,6 +96,8 @@ const PricingInmobiliaria = () => {
         'Todo lo incluido en Grow',
       ],
       popular: false,
+      buttonText: 'Subir a Pro',
+      icon: Crown,
     },
   ];
 
@@ -100,7 +118,7 @@ const PricingInmobiliaria = () => {
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: {
           planId,
-          billingCycle: isAnnual ? 'yearly' : 'monthly',
+          billingCycle: pricingPeriod === 'annual' ? 'yearly' : 'monthly',
           successUrl: `${window.location.origin}/payment-success?payment=success`,
           cancelUrl: `${window.location.origin}/pricing-inmobiliaria?payment=canceled`,
         },
@@ -154,19 +172,42 @@ const PricingInmobiliaria = () => {
             </p>
 
             {/* Toggle */}
-            <div className="flex items-center justify-center gap-4">
-              <Label htmlFor="billing-toggle" className="text-base">
-                Mensual (sin compromiso)
-              </Label>
-              <Switch
-                id="billing-toggle"
-                checked={isAnnual}
-                onCheckedChange={setIsAnnual}
-              />
-              <Label htmlFor="billing-toggle" className="text-base font-semibold text-primary">
-                Ahorrar 12% (opcional)
-              </Label>
-            </div>
+            <TooltipProvider>
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  onClick={() => setPricingPeriod('monthly')}
+                  className={`text-base px-4 py-2 rounded-lg transition-colors ${
+                    pricingPeriod === 'monthly'
+                      ? 'bg-primary text-primary-foreground font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Mensual
+                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setPricingPeriod('annual')}
+                      className={`text-base px-4 py-2 rounded-lg transition-colors ${
+                        pricingPeriod === 'annual'
+                          ? 'bg-primary text-primary-foreground font-semibold'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Anual -14%
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-semibold mb-2">Ahorro con pago anual:</p>
+                    <ul className="space-y-1 text-sm">
+                      <li>• Start: ${((5900 * 12) - 60888).toLocaleString('es-MX')} MXN</li>
+                      <li>• Grow: ${((9900 * 12) - 102168).toLocaleString('es-MX')} MXN</li>
+                      <li>• Pro: ${((15900 * 12) - 164088).toLocaleString('es-MX')} MXN</li>
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
             <p className="text-sm text-muted-foreground mt-4">
               Puedes cancelar cuando quieras. El pago anual es opcional solo si deseas ahorrar.
             </p>
@@ -203,21 +244,21 @@ const PricingInmobiliaria = () => {
               <Card
                 key={plan.id}
                 id={plan.slug}
-                className={`relative scroll-mt-24 ${
+                className={`relative scroll-mt-24 flex flex-col ${
                   plan.popular ? 'border-primary border-2 shadow-lg' : ''
                 }`}
               >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                     <Badge className="bg-primary text-primary-foreground px-4 py-1">
-                      Más Popular
+                      Más elegido
                     </Badge>
                   </div>
                 )}
                 <CardHeader>
                   <CardTitle className="text-2xl">{plan.name}</CardTitle>
                   <div className="mt-4">
-                    {isAnnual ? (
+                    {pricingPeriod === 'annual' ? (
                       <>
                         <div className="text-3xl font-bold">
                           ${plan.annualPrice.toLocaleString('es-MX')}
@@ -236,8 +277,8 @@ const PricingInmobiliaria = () => {
                     )}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 mb-6">
+                <CardContent className="flex flex-col flex-1">
+                  <ul className="space-y-3 mb-6 flex-1">
                     {plan.features.map((feature, idx) => (
                       <li key={idx} className="flex items-start gap-3 text-sm">
                         <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
@@ -250,7 +291,8 @@ const PricingInmobiliaria = () => {
                     variant={plan.popular ? 'default' : 'outline'}
                     onClick={() => handleSelectPlan(plan.id)}
                   >
-                    Seleccionar Plan
+                    {plan.icon && <plan.icon className="mr-2 h-5 w-5" />}
+                    {plan.buttonText}
                   </Button>
                 </CardContent>
               </Card>
