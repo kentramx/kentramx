@@ -104,9 +104,9 @@ const Navbar = () => {
       <ImpersonationBanner />
       <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center justify-between gap-4">
+          <div className="grid grid-cols-3 h-16 items-center gap-4">
           {/* Left Navigation - Desktop */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1 justify-start">
             <Button 
               variant={isComprarActive ? "default" : "ghost"} 
               size="sm"
@@ -126,12 +126,12 @@ const Navbar = () => {
           </div>
 
           {/* Center Logo - Always visible */}
-          <Link to="/" className="flex items-center shrink-0">
+          <Link to="/" className="flex items-center justify-center shrink-0">
             <img src={kentraLogo} alt="Kentra" className="h-10 md:h-12" />
           </Link>
 
           {/* Right Navigation - Desktop */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3 justify-end">
             <RoleImpersonationSelector />
             <Button
               size="sm" 
