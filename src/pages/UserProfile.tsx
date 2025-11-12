@@ -403,7 +403,7 @@ const UserProfile = () => {
 
                     {/* Phone Verification Section */}
                     <PhoneVerification
-                      phoneNumber={profile?.phone || null}
+                      phoneNumber={form.watch("phone") || profile?.phone || null}
                       phoneVerified={profile?.phone_verified || false}
                       onPhoneVerified={fetchUserData}
                     />
