@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const IMPERSONATION_KEY = 'kentra_impersonated_role';
 
-export type UserRole = 'buyer' | 'agent' | 'agency' | 'developer' | 'super_admin' | 'moderator';
+export type UserRole = 'buyer' | 'agent' | 'agency' | 'super_admin' | 'moderator';
 
 export const useUserRole = () => {
   const { user } = useAuth();
@@ -58,7 +58,7 @@ export const useUserRole = () => {
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
-        .in('role', ['buyer', 'agent', 'agency', 'developer'] as any)
+        .in('role', ['buyer', 'agent', 'agency'] as any)
         .maybeSingle();
 
       if (regularRoleData?.role) {
