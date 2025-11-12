@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import { KYCVerificationHistory } from "@/components/KYCVerificationHistory";
 import { toast } from "@/hooks/use-toast";
 import {
   CheckCircle,
@@ -392,6 +393,13 @@ export const AdminKYCReview = () => {
                       <XCircle className="h-4 w-4 mr-2" />
                       Rechazar
                     </Button>
+                  </div>
+                )}
+
+                {/* Historial de Revisiones */}
+                {verification.status !== 'pending' && (
+                  <div className="mt-4">
+                    <KYCVerificationHistory verificationId={verification.id} />
                   </div>
                 )}
               </CardContent>

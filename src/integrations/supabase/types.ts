@@ -675,6 +675,47 @@ export type Database = {
           },
         ]
       }
+      kyc_verification_history: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          id: string
+          new_status: string
+          previous_status: string
+          rejection_reason: string | null
+          reviewed_by: string | null
+          verification_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          new_status: string
+          previous_status: string
+          rejection_reason?: string | null
+          reviewed_by?: string | null
+          verification_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          new_status?: string
+          previous_status?: string
+          rejection_reason?: string | null
+          reviewed_by?: string | null
+          verification_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kyc_verification_history_verification_id_fkey"
+            columns: ["verification_id"]
+            isOneToOne: false
+            referencedRelation: "identity_verifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
