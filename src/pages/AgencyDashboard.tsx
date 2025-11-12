@@ -221,7 +221,10 @@ const AgencyDashboard = () => {
               </TabsList>
 
               <TabsContent value="inventory" className="mt-6">
-                <AgencyInventory agencyId={effectiveAgencyId || agency?.id || ''} />
+                <AgencyInventory 
+                  agencyId={effectiveAgencyId || agency?.id || ''} 
+                  subscriptionInfo={subscriptionInfo}
+                />
               </TabsContent>
 
               <TabsContent value="team" className="mt-6">

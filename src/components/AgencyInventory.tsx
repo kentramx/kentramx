@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { FeaturePropertyDialog } from './FeaturePropertyDialog';
 import {
   Select,
   SelectContent,
@@ -25,16 +26,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Eye, Filter, Users, UserCog } from 'lucide-react';
+import { Loader2, Eye, Filter, Users, UserCog, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AgencyInventoryProps {
   agencyId: string;
+  subscriptionInfo?: any;
 }
 
-export const AgencyInventory = ({ agencyId }: AgencyInventoryProps) => {
+export const AgencyInventory = ({ agencyId, subscriptionInfo }: AgencyInventoryProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [properties, setProperties] = useState<any[]>([]);
@@ -46,10 +48,42 @@ export const AgencyInventory = ({ agencyId }: AgencyInventoryProps) => {
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [selectedNewAgent, setSelectedNewAgent] = useState<string>('');
   const [assigning, setAssigning] = useState(false);
+  const [featuredProperties, setFeaturedProperties] = useState<Set<string>>(new Set());
+  const [featureProperty, setFeatureProperty] = useState<any>(null);
 
   useEffect(() => {
-    Promise.all([fetchProperties(), fetchAgents()]);
+    loadData();
   }, [agencyId]);
+
+  const loadData = async () => {
+    await fetchAgents();
+    const loadedProperties = await fetchProperties();
+    // Fetch featured después de que properties esté cargado
+    if (loadedProperties && loadedProperties.length > 0) {
+      await fetchFeaturedProperties(loadedProperties);
+    }
+  };
+
+  const fetchFeaturedProperties = async (propertiesToCheck: any[] = properties) => {
+    if (propertiesToCheck.length === 0) return;
+
+    try {
+      const propertyIds = propertiesToCheck.map(p => p.id);
+      
+      const { data: featuredData } = await supabase
+        .from('featured_properties')
+        .select('property_id')
+        .in('property_id', propertyIds)
+        .eq('status', 'active')
+        .gt('end_date', new Date().toISOString());
+
+      if (featuredData) {
+        setFeaturedProperties(new Set(featuredData.map(f => f.property_id)));
+      }
+    } catch (error) {
+      console.error('Error fetching featured properties:', error);
+    }
+  };
 
   const fetchAgents = async () => {
     try {
@@ -93,6 +127,7 @@ export const AgencyInventory = ({ agencyId }: AgencyInventoryProps) => {
 
       if (error) throw error;
       setProperties(data || []);
+      return data || [];
     } catch (error) {
       console.error('Error fetching properties:', error);
       toast({
@@ -100,6 +135,7 @@ export const AgencyInventory = ({ agencyId }: AgencyInventoryProps) => {
         description: 'No se pudieron cargar las propiedades',
         variant: 'destructive',
       });
+      return [];
     } finally {
       setLoading(false);
     }
@@ -246,9 +282,10 @@ export const AgencyInventory = ({ agencyId }: AgencyInventoryProps) => {
                 <TableHead>Agente</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Precio</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead className="text-center">Acciones</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Destacada</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead className="text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -291,6 +328,25 @@ export const AgencyInventory = ({ agencyId }: AgencyInventoryProps) => {
                     >
                       {property.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {featuredProperties.has(property.id) ? (
+                      <Badge variant="default" className="gap-1">
+                        <Star className="h-3 w-3 fill-current" />
+                        Destacada
+                      </Badge>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFeatureProperty(property)}
+                        disabled={!subscriptionInfo || subscriptionInfo.featured_used >= subscriptionInfo.featured_limit}
+                        className="gap-1"
+                      >
+                        <Star className="h-3 w-3" />
+                        Destacar
+                      </Button>
+                    )}
                   </TableCell>
                   <TableCell>
                     {new Date(property.created_at).toLocaleDateString('es-MX')}
@@ -407,6 +463,17 @@ export const AgencyInventory = ({ agencyId }: AgencyInventoryProps) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FeaturePropertyDialog
+        property={featureProperty}
+        open={!!featureProperty}
+        onOpenChange={(open) => !open && setFeatureProperty(null)}
+        onSuccess={() => {
+          fetchProperties();
+          fetchFeaturedProperties();
+        }}
+        subscriptionInfo={subscriptionInfo}
+      />
     </div>
   );
 };
