@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, X, Plus, Trash2, Video, AlertTriangle, FileText } from 'lucide-react';
 import { z } from 'zod';
 import { LocationSearch } from '@/components/LocationSearch';
+import { ColoniaAutocomplete } from '@/components/ColoniaAutocomplete';
 
 const propertySchema = z.object({
   description: z.string().trim().min(20, 'La descripción debe tener al menos 20 caracteres').max(2000, 'La descripción no puede exceder 2000 caracteres'),
@@ -601,16 +602,17 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
         </div>
 
         <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="colonia" className="flex items-center justify-between">
-            <span>Colonia*</span>
-            <span className="text-xs text-muted-foreground font-normal">
-              Determina el título de tu propiedad
-            </span>
-          </Label>
-          <Input
+          <ColoniaAutocomplete
             id="colonia"
-            value={formData.colonia}
-            onChange={(e) => setFormData({ ...formData, colonia: e.target.value })}
+            label={
+              <span className="flex items-center justify-between">
+                <span>Colonia*</span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Determina el título de tu propiedad
+                </span>
+              </span>
+            }
+            defaultValue={formData.colonia}
             placeholder={(() => {
               const coloniaExamples: Record<string, string> = {
                 'Jalisco': 'Ej: Providencia, Chapalita, Americana',
@@ -624,9 +626,11 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
                 'Estado de México': 'Ej: Interlomas, Metepec Centro, Lomas Verdes',
                 'Baja California': 'Ej: Zona Río, Playas, Centro'
               };
-              return coloniaExamples[formData.state] || 'Ej: Nombre de la colonia';
+              return coloniaExamples[formData.state] || 'Escribe para buscar colonia...';
             })()}
-            required
+            state={formData.state}
+            municipality={formData.municipality}
+            onColoniaSelect={(colonia) => setFormData({ ...formData, colonia })}
           />
           <p className="text-xs text-muted-foreground">
             La colonia se usa para generar el título: "{formData.type ? 
