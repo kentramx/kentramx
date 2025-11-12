@@ -46,6 +46,7 @@ interface Property {
   images?: { url: string; position: number }[];
   agent_id: string;
   is_featured?: boolean;
+  created_at?: string;
 }
 
 const Home = () => {
@@ -153,6 +154,7 @@ const Home = () => {
             lat,
             lng,
             agent_id,
+            created_at,
             images (url, position),
             featured_properties!left (
               id,
@@ -466,8 +468,10 @@ const Home = () => {
                       parking={property.parking}
                       sqft={property.sqft}
                       imageUrl={property.images?.[0]?.url}
+                      images={property.images}
                       agentId={property.agent_id}
                       isFeatured={property.is_featured}
+                      createdAt={property.created_at}
                     />
                   </div>
                 ))}

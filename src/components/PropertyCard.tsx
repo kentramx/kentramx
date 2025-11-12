@@ -2,10 +2,12 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, Star } from "lucide-react";
+import { Heart, Star, MessageCircle, Phone, Eye, Bed, Bath, Car, Square, TrendingDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import propertyPlaceholder from "@/assets/property-placeholder.jpg";
 import { useTracking } from "@/hooks/useTracking";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface PropertyCardProps {
   id: string;
@@ -21,11 +23,13 @@ interface PropertyCardProps {
   parking?: number;
   sqft?: number;
   imageUrl?: string;
+  images?: { url: string; position: number }[];
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
   isHovered?: boolean;
   agentId: string;
   isFeatured?: boolean;
+  createdAt?: string;
 }
 
 const PropertyCard = ({
@@ -42,14 +46,17 @@ const PropertyCard = ({
   parking,
   sqft,
   imageUrl,
+  images,
   isFavorite = false,
   onToggleFavorite,
   isHovered = false,
   agentId,
   isFeatured = false,
+  createdAt,
 }: PropertyCardProps) => {
   const { toast } = useToast();
   const { trackGA4Event } = useTracking();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("es-MX", {
@@ -73,6 +80,22 @@ const PropertyCard = ({
     return labels[type] || type;
   };
 
+  const getDaysOnMarket = () => {
+    if (!createdAt) return null;
+    const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24));
+    if (days === 0) return "Hoy";
+    if (days === 1) return "Hace 1 día";
+    if (days < 7) return `Hace ${days} días`;
+    if (days < 30) return `Hace ${Math.floor(days/7)} semanas`;
+    return `Hace ${Math.floor(days/30)} meses`;
+  };
+
+  const isNew = () => {
+    if (!createdAt) return false;
+    const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24));
+    return days < 7;
+  };
+
   const handleCardClick = () => {
     // Track selección de propiedad en GA4
     trackGA4Event('select_item', {
@@ -85,33 +108,103 @@ const PropertyCard = ({
     });
   };
 
+  const handleWhatsAppClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.open(`https://wa.me/?text=Me%20interesa%20esta%20propiedad:%20${window.location.origin}/propiedad/${id}`, '_blank');
+  };
+
+  const handleCallClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toast({
+      title: "Contactar al agente",
+      description: "Verifica el teléfono del agente en la página de detalles",
+    });
+  };
+
+  const displayImages = images && images.length > 0 ? images : [{ url: imageUrl || propertyPlaceholder, position: 0 }];
+
   return (
-    <Card className={`group overflow-hidden transition-all hover:shadow-lg ${isHovered ? 'ring-2 ring-primary shadow-xl scale-[1.02]' : ''}`}>
+    <Card className={cn(
+      "group overflow-hidden transition-all hover:shadow-lg",
+      listingType === 'renta' && "border-l-4 border-l-blue-500",
+      listingType === 'venta' && "border-l-4 border-l-green-500",
+      isHovered && 'ring-2 ring-primary shadow-xl scale-[1.02]'
+    )}>
       <Link to={`/propiedad/${id}`} onClick={handleCardClick}>
         <div className="relative aspect-[4/3] overflow-hidden">
           <img
-            src={imageUrl || propertyPlaceholder}
+            src={displayImages[currentImageIndex]?.url || propertyPlaceholder}
             alt={`${bedrooms} bd, ${bathrooms} ba - ${getTypeLabel()}`}
             loading="lazy"
             decoding="async"
             className="h-full w-full object-cover transition-transform group-hover:scale-105"
           />
           
+          {/* Overlay con botones de acción al hover */}
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-10">
+            <Button size="sm" variant="secondary" onClick={handleWhatsAppClick}>
+              <MessageCircle className="h-4 w-4 mr-1" />
+              WhatsApp
+            </Button>
+            <Button size="sm" variant="secondary" onClick={handleCallClick}>
+              <Phone className="h-4 w-4 mr-1" />
+              Llamar
+            </Button>
+            <Button size="sm" variant="secondary">
+              <Eye className="h-4 w-4 mr-1" />
+              Ver
+            </Button>
+          </div>
+          
           {/* Badge de Destacada */}
           {isFeatured && (
             <Badge 
-              className="absolute left-3 top-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg"
+              className="absolute left-3 top-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg z-20"
             >
               <Star className="h-3 w-3 mr-1 fill-white" />
               Destacada
             </Badge>
           )}
           
+          {/* Badge de Nuevo */}
+          {!isFeatured && isNew() && (
+            <Badge 
+              className="absolute left-3 top-3 bg-green-500 text-white border-0 shadow-lg z-20"
+            >
+              Nuevo
+            </Badge>
+          )}
+          
+          {/* Tipo de operación */}
+          <Badge className="absolute right-3 bottom-3 bg-background/90 text-foreground z-20">
+            {listingType === 'renta' ? '🔑 Renta' : '🏠 Venta'}
+          </Badge>
+          
+          {/* Indicadores de galería */}
+          {displayImages.length > 1 && (
+            <div className="absolute bottom-3 left-3 flex gap-1 z-20">
+              {displayImages.slice(0, 5).map((_, idx) => (
+                <div 
+                  key={idx} 
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full transition-colors",
+                    idx === currentImageIndex ? "bg-white" : "bg-white/60"
+                  )}
+                />
+              ))}
+              {displayImages.length > 5 && (
+                <span className="text-xs text-white ml-1">+{displayImages.length - 5}</span>
+              )}
+            </div>
+          )}
+          
           {onToggleFavorite && (
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-3 top-3 bg-background/80 hover:bg-background"
+              className="absolute right-3 top-3 bg-background/80 hover:bg-background z-20"
               onClick={(e) => {
                 e.preventDefault();
                 onToggleFavorite();
@@ -125,27 +218,64 @@ const PropertyCard = ({
         </div>
       </Link>
 
-      <CardContent className="p-4 space-y-2">
+      <CardContent className="p-5 space-y-3">
         <Link to={`/propiedad/${id}`} className="block" onClick={handleCardClick}>
-          <p className="text-2xl font-bold text-foreground mb-1">
-            {formatPrice(price)}
-          </p>
+          {/* Precio y precio por m² */}
+          <div className="mb-3">
+            <p className="text-2xl font-bold text-foreground">
+              {formatPrice(price)}
+            </p>
+            {sqft && (
+              <p className="text-xs text-muted-foreground">
+                {formatPrice(Math.round(price / sqft))}/m²
+              </p>
+            )}
+          </div>
           
-          {/* Zillow-style characteristics */}
-          <p className="text-sm text-muted-foreground">
-            {bedrooms && <span className="font-medium">{bedrooms} bd</span>}
-            {bedrooms && bathrooms && <span className="mx-1.5">|</span>}
-            {bathrooms && <span className="font-medium">{bathrooms} ba</span>}
-            {(bedrooms || bathrooms) && sqft && <span className="mx-1.5">|</span>}
-            {sqft && <span className="font-medium">{sqft} m²</span>}
-            {(bedrooms || bathrooms || sqft) && <span className="mx-1.5">-</span>}
-            <span className="font-medium">{getTypeLabel()}</span>
-            <span> {listingType === 'renta' ? 'en renta' : 'en venta'}</span>
+          {/* Características con iconos claros */}
+          <div className="flex items-center gap-4 text-sm mb-3">
+            {bedrooms && (
+              <div className="flex items-center gap-1.5">
+                <Bed className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{bedrooms}</span>
+              </div>
+            )}
+            {bathrooms && (
+              <div className="flex items-center gap-1.5">
+                <Bath className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{bathrooms}</span>
+              </div>
+            )}
+            {parking && parking > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Car className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{parking}</span>
+              </div>
+            )}
+            {sqft && (
+              <div className="flex items-center gap-1.5">
+                <Square className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{sqft}m²</span>
+              </div>
+            )}
+          </div>
+
+          {/* Título y tipo */}
+          <p className="font-medium line-clamp-1 mb-2">
+            {getTypeLabel()} en {municipality}
           </p>
 
-          <p className="text-sm text-muted-foreground line-clamp-1">
-            {address}, {municipality}, {state}
+          {/* Dirección */}
+          <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
+            {address}, {state}
           </p>
+          
+          {/* Días en el mercado */}
+          {createdAt && (
+            <p className="text-xs text-muted-foreground">
+              {getDaysOnMarket()}
+            </p>
+          )}
         </Link>
       </CardContent>
     </Card>

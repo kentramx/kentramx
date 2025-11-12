@@ -1472,9 +1472,11 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                               parking={property.parking || undefined}
                               sqft={property.sqft || undefined}
                               imageUrl={property.images?.[0]?.url}
+                              images={property.images}
                               isHovered={hoveredProperty?.id === property.id}
                               agentId={property.agent_id}
                               isFeatured={property.is_featured}
+                              createdAt={property.created_at || undefined}
                             />
                           </div>
                         );
