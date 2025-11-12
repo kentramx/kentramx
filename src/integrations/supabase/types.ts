@@ -968,6 +968,8 @@ export type Database = {
           colonia: string | null
           created_at: string | null
           description: string | null
+          duplicate_warning: boolean | null
+          duplicate_warning_data: Json | null
           expires_at: string | null
           has_inappropriate_images: boolean | null
           has_manipulated_images: boolean | null
@@ -983,6 +985,7 @@ export type Database = {
           parking: number | null
           price: number
           price_history: Json | null
+          requires_manual_review: boolean | null
           sqft: number | null
           state: string
           status: Database["public"]["Enums"]["property_status"] | null
@@ -1007,6 +1010,8 @@ export type Database = {
           colonia?: string | null
           created_at?: string | null
           description?: string | null
+          duplicate_warning?: boolean | null
+          duplicate_warning_data?: Json | null
           expires_at?: string | null
           has_inappropriate_images?: boolean | null
           has_manipulated_images?: boolean | null
@@ -1022,6 +1027,7 @@ export type Database = {
           parking?: number | null
           price: number
           price_history?: Json | null
+          requires_manual_review?: boolean | null
           sqft?: number | null
           state: string
           status?: Database["public"]["Enums"]["property_status"] | null
@@ -1046,6 +1052,8 @@ export type Database = {
           colonia?: string | null
           created_at?: string | null
           description?: string | null
+          duplicate_warning?: boolean | null
+          duplicate_warning_data?: Json | null
           expires_at?: string | null
           has_inappropriate_images?: boolean | null
           has_manipulated_images?: boolean | null
@@ -1061,6 +1069,7 @@ export type Database = {
           parking?: number | null
           price?: number
           price_history?: Json | null
+          requires_manual_review?: boolean | null
           sqft?: number | null
           state?: string
           status?: Database["public"]["Enums"]["property_status"] | null

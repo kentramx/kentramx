@@ -9,11 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, X, Plus, Trash2, Video, AlertTriangle, FileText } from 'lucide-react';
 import { z } from 'zod';
 import { LocationSearch } from '@/components/LocationSearch';
 import { ColoniaAutocomplete } from '@/components/ColoniaAutocomplete';
+import { usePropertyTitleValidation } from '@/hooks/usePropertyTitleValidation';
+import { ImageAnalysisPreview } from '@/components/ImageAnalysisPreview';
 
 const propertySchema = z.object({
   description: z.string().trim().min(20, 'La descripción debe tener al menos 20 caracteres').max(2000, 'La descripción no puede exceder 2000 caracteres'),
@@ -71,6 +74,30 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
   const [amenities, setAmenities] = useState<Array<{ category: string; items: string[] }>>([]);
   const [newAmenityCategory, setNewAmenityCategory] = useState('');
   const [newAmenityItem, setNewAmenityItem] = useState<{ [key: string]: string }>({});
+  const [imageAnalysisResults, setImageAnalysisResults] = useState<any>(null);
+
+  // Calcular título automático para validación en tiempo real
+  const propertyTypeLabel = {
+    casa: 'Casa',
+    departamento: 'Departamento',
+    terreno: 'Terreno',
+    oficina: 'Oficina',
+    local: 'Local Comercial',
+    bodega: 'Bodega',
+    edificio: 'Edificio',
+    rancho: 'Rancho'
+  }[formData.type] || 'Propiedad';
+
+  const locationText = formData.colonia || formData.municipality;
+  const autoTitle = formData.type && locationText ? `${propertyTypeLabel} en ${locationText}` : '';
+
+  // Validar duplicados en tiempo real
+  const titleValidation = usePropertyTitleValidation(
+    autoTitle,
+    formData.municipality,
+    formData.state,
+    property?.id
+  );
 
   const PREDEFINED_CATEGORIES = [
     'Interior',
@@ -318,6 +345,20 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
         }
       }
 
+      // Preparar información de duplicado si se detectó
+      const duplicateWarningData = titleValidation.isDuplicate ? {
+        detected_at: new Date().toISOString(),
+        duplicate_count: titleValidation.duplicateCount,
+        similar_properties: titleValidation.existingProperties.map(p => ({
+          id: p.id,
+          title: p.title,
+          address: p.address,
+          price: p.price,
+          status: p.status,
+          agent_id: p.agent_id
+        }))
+      } : null;
+
       // Create or update property
       if (property) {
         const { error } = await supabase
@@ -331,8 +372,11 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
           ...validatedData,
           title: autoTitle,
           agent_id: user?.id,
-          status: 'pendiente_aprobacion', // Nueva propiedad = pendiente
+          status: 'pausada', // Siempre enviar a moderación
           last_renewed_at: new Date().toISOString(),
+          duplicate_warning: titleValidation.isDuplicate,
+          duplicate_warning_data: duplicateWarningData,
+          requires_manual_review: titleValidation.isDuplicate,
           ...aiModerationData, // Agregar datos de moderación IA si existen
         };
 
@@ -405,6 +449,9 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
             if (analysisError) {
               console.error('Image analysis error:', analysisError);
             } else if (analysisResult?.success && analysisResult?.results) {
+              // Guardar resultados para preview
+              setImageAnalysisResults(analysisResult);
+
               // Guardar resultados en image_ai_analysis
               const analysisInserts = analysisResult.results.map((result: any) => ({
                 image_id: result.imageId,
@@ -428,18 +475,26 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
               if (insertError) {
                 console.error('Error saving image analysis:', insertError);
               } else {
-                // Mostrar feedback sobre calidad de imágenes
+                // Marcar para revisión manual si hay problemas
                 const summary = analysisResult.summary;
+                if (summary.hasIssues) {
+                  await supabase
+                    .from('properties')
+                    .update({ requires_manual_review: true })
+                    .eq('id', propertyId);
+                }
+
+                // Mostrar feedback sobre calidad de imágenes
                 if (summary.inappropriateCount > 0 || summary.manipulatedCount > 0) {
                   toast({
                     title: '⚠️ Problemas detectados en imágenes',
-                    description: `Se detectaron ${summary.inappropriateCount} imágenes inapropiadas y ${summary.manipulatedCount} manipuladas. Tu propiedad será revisada cuidadosamente.`,
+                    description: `Se detectaron problemas en las imágenes. Tu propiedad será revisada manualmente por un moderador.`,
                     variant: 'destructive',
                   });
                 } else if (summary.lowQualityCount > 0) {
                   toast({
                     title: '📸 Mejorar calidad de imágenes',
-                    description: `${summary.lowQualityCount} imágenes tienen baja calidad. Considera reemplazarlas con fotos más nítidas y bien iluminadas.`,
+                    description: `${summary.lowQualityCount} imágenes tienen baja calidad. Un moderador las revisará.`,
                   });
                 } else if (summary.averageQuality >= 80) {
                   toast({
@@ -457,10 +512,18 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
       }
 
       if (!property) {
-        toast({
-          title: '✅ Propiedad enviada',
-          description: 'Tu propiedad ha sido enviada para revisión. Un administrador la aprobará pronto.',
-        });
+        if (titleValidation.isDuplicate) {
+          toast({
+            title: '⚠️ Propiedad en revisión manual',
+            description: `Tu propiedad fue creada pero detectamos ${titleValidation.duplicateCount} propiedad${titleValidation.duplicateCount === 1 ? '' : 'es'} similar${titleValidation.duplicateCount === 1 ? '' : 'es'}. Un moderador la revisará pronto.`,
+            duration: 6000,
+          });
+        } else {
+          toast({
+            title: '✅ Propiedad enviada',
+            description: 'Tu propiedad ha sido enviada para revisión. Un administrador la aprobará pronto.',
+          });
+        }
       } else {
         toast({
           title: '✅ Guardado',
@@ -654,20 +717,7 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
                   Título generado automáticamente:
                 </p>
                 <p className="text-sm font-semibold text-foreground truncate">
-                  {(() => {
-                    const propertyTypeLabel = {
-                      casa: 'Casa',
-                      departamento: 'Departamento',
-                      terreno: 'Terreno',
-                      oficina: 'Oficina',
-                      local: 'Local Comercial',
-                      bodega: 'Bodega',
-                      edificio: 'Edificio',
-                      rancho: 'Rancho'
-                    }[formData.type] || 'Propiedad';
-                    const locationText = formData.colonia || formData.municipality;
-                    return `${propertyTypeLabel} en ${locationText}`;
-                  })()}
+                  {autoTitle}
                 </p>
                 {!formData.colonia && formData.municipality && (
                   <p className="text-xs text-amber-600 dark:text-amber-500 flex items-center gap-1">
@@ -677,6 +727,32 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
                 )}
               </div>
             </div>
+          )}
+          
+          {/* Warning de título duplicado */}
+          {titleValidation.isDuplicate && !property && (
+            <Alert variant="destructive" className="md:col-span-2">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>⚠️ Posible propiedad duplicada detectada</AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">
+                  Se encontr{titleValidation.duplicateCount === 1 ? 'ó' : 'aron'} <strong>{titleValidation.duplicateCount}</strong> propiedad{titleValidation.duplicateCount === 1 ? '' : 'es'} similar{titleValidation.duplicateCount === 1 ? '' : 'es'}:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-sm mb-3">
+                  {titleValidation.existingProperties.map(prop => (
+                    <li key={prop.id}>
+                      {prop.address} - ${prop.price.toLocaleString()} 
+                      <Badge variant="outline" className="ml-2">{prop.status}</Badge>
+                    </li>
+                  ))}
+                </ul>
+                <Alert className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800 mt-2">
+                  <AlertDescription className="text-sm">
+                    <strong>📝 Nota:</strong> Tu propiedad será enviada a <strong>revisión manual</strong> para verificar que no sea un duplicado. Los moderadores compararán ambas propiedades antes de aprobar.
+                  </AlertDescription>
+                </Alert>
+              </AlertDescription>
+            </Alert>
           )}
         </div>
 
@@ -984,6 +1060,14 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
           </div>
         </div>
       </div>
+
+      {/* Preview de análisis de imágenes */}
+      {imageAnalysisResults && (
+        <ImageAnalysisPreview 
+          summary={imageAnalysisResults.summary}
+          results={imageAnalysisResults.results}
+        />
+      )}
 
       <div className="flex gap-4">
         <Button type="submit" disabled={loading} className="flex-1">

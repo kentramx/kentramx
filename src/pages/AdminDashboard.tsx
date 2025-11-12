@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle, Eye, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -131,7 +131,7 @@ const AdminDashboard = () => {
           images (url, position),
           profiles!properties_agent_id_fkey (name, email)
         `)
-        .eq('status', 'pendiente_aprobacion')
+        .eq('status', 'pausada')
         .order('created_at', { ascending: false });
 
       if (activeTab === 'nuevas') {
@@ -141,6 +141,8 @@ const AdminDashboard = () => {
       } else if (activeTab === 'antiguas') {
         const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
         query = query.lt('created_at', threeDaysAgo);
+      } else if (activeTab === 'warnings') {
+        query = query.eq('requires_manual_review', true);
       }
 
       const { data, error } = await query;
@@ -165,20 +167,20 @@ const AdminDashboard = () => {
       const { count: newCount } = await (supabase as any)
         .from('properties')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pendiente_aprobacion')
+        .eq('status', 'pausada')
         .eq('resubmission_count', 0);
       
       const { count: resubmittedCount } = await (supabase as any)
         .from('properties')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pendiente_aprobacion')
+        .eq('status', 'pausada')
         .gt('resubmission_count', 0);
       
       const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
       const { count: oldCount } = await (supabase as any)
         .from('properties')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pendiente_aprobacion')
+        .eq('status', 'pausada')
         .lt('created_at', threeDaysAgo);
       
       const { count: approvedToday } = await (supabase as any)
@@ -498,6 +500,16 @@ const AdminDashboard = () => {
                                   hasInappropriate={property.has_inappropriate_images}
                                   hasManipulated={property.has_manipulated_images}
                                 />
+                                {property.duplicate_warning && (
+                                  <Badge variant="destructive" className="animate-pulse">
+                                    ⚠️ POSIBLE DUPLICADO
+                                  </Badge>
+                                )}
+                                {property.requires_manual_review && (
+                                  <Badge variant="outline" className="border-orange-500 text-orange-700">
+                                    Revisión Manual
+                                  </Badge>
+                                )}
                               </div>
                               <p className="text-sm mt-2">
                                 <strong>Agente:</strong> {property.profiles?.name || 'N/A'}
@@ -744,6 +756,103 @@ const AdminDashboard = () => {
           <TabsContent value="metricas">
             <AdminModerationMetrics />
           </TabsContent>
+
+          <TabsContent value="warnings" className="space-y-4">
+            {properties.length === 0 ? (
+              <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  No hay propiedades con warnings pendientes
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {properties.map((property) => (
+                  <Card key={property.id} className="border-orange-200 bg-orange-50/30">
+                    <CardContent className="pt-6">
+                      <div className="flex gap-4">
+                        {property.images?.[0] && (
+                          <img
+                            src={property.images[0].url}
+                            alt={property.title}
+                            className="h-32 w-32 rounded object-cover"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="font-semibold text-lg">{property.title}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {property.municipality}, {property.state}
+                              </p>
+                              <div className="flex gap-2 mt-2 flex-wrap">
+                                <Badge variant="outline">{property.type}</Badge>
+                                <Badge variant="outline">{property.listing_type}</Badge>
+                                {property.duplicate_warning && (
+                                  <Badge variant="destructive" className="animate-pulse">
+                                    ⚠️ POSIBLE DUPLICADO
+                                  </Badge>
+                                )}
+                                <AIPreModerationBadge 
+                                  score={property.ai_moderation_score}
+                                  status={property.ai_moderation_status}
+                                  notes={property.ai_moderation_notes}
+                                  moderatedAt={property.ai_moderated_at}
+                                />
+                                <ImageQualityBadge 
+                                  averageQuality={property.images_quality_avg}
+                                  analyzedCount={property.images_analyzed_count}
+                                  hasInappropriate={property.has_inappropriate_images}
+                                  hasManipulated={property.has_manipulated_images}
+                                />
+                              </div>
+                              <p className="text-sm mt-2">
+                                <strong>Agente:</strong> {property.profiles?.name || 'N/A'}
+                              </p>
+                              <p className="text-sm">
+                                <strong>Precio:</strong> {new Intl.NumberFormat('es-MX', {
+                                  style: 'currency',
+                                  currency: 'MXN',
+                                }).format(property.price)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleApprove(property)}
+                            disabled={processing}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Aprobar
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setRejectProperty(property)}
+                            disabled={processing}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Rechazar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewProperty(property)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Ver Detalles
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -755,6 +864,53 @@ const AdminDashboard = () => {
           </DialogHeader>
           {viewProperty && (
             <div className="space-y-4">
+              {/* Warning de duplicado */}
+              {viewProperty?.duplicate_warning && viewProperty?.duplicate_warning_data && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-5 w-5" />
+                  <AlertTitle className="text-lg">⚠️ ADVERTENCIA: Posible Propiedad Duplicada</AlertTitle>
+                  <AlertDescription>
+                    <p className="mb-3 font-medium">
+                      Sistema detectó {viewProperty.duplicate_warning_data.duplicate_count} propiedad{viewProperty.duplicate_warning_data.duplicate_count === 1 ? '' : 'es'} similar{viewProperty.duplicate_warning_data.duplicate_count === 1 ? '' : 'es'} en la misma zona:
+                    </p>
+                    
+                    <div className="space-y-3 mb-4">
+                      {viewProperty.duplicate_warning_data.similar_properties.map((dupProp: any) => (
+                        <Card key={dupProp.id} className="bg-yellow-50 border-yellow-200">
+                          <CardContent className="pt-4 pb-3">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <p className="font-semibold">{dupProp.title}</p>
+                                <p className="text-sm text-muted-foreground">{dupProp.address}</p>
+                              </div>
+                              <Badge variant="outline">{dupProp.status}</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <p className="text-lg font-bold text-primary">
+                                ${dupProp.price.toLocaleString('es-MX')}
+                              </p>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => window.open(`/propiedad/${dupProp.id}`, '_blank')}
+                              >
+                                Ver Propiedad <Eye className="ml-2 h-4 w-4" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                    
+                    <Alert className="bg-blue-50 border-blue-200">
+                      <AlertDescription className="text-sm text-blue-900">
+                        <strong>👤 Acción requerida:</strong> Verifica manualmente si esta propiedad es realmente un duplicado de las listadas arriba. Si es duplicado, rechaza con motivo "Propiedad duplicada". Si es diferente, aprueba normalmente.
+                      </AlertDescription>
+                    </Alert>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <QualityChecklist property={viewProperty} />
               
               {/* Análisis de Imágenes con IA */}
