@@ -15,8 +15,7 @@ export const whatsappSchema = z.object({
     }, {
       message: "Solo se permiten números"
     }),
-  whatsapp_enabled: z.boolean().default(true),
-  whatsapp_business_hours: z.string().max(100).optional()
+  whatsapp_enabled: z.boolean().default(true)
 }).refine((data) => {
   // Validar según el país seleccionado
   const country = getCountryByCode(data.country_code);
@@ -47,13 +46,19 @@ export type WhatsAppFormData = z.infer<typeof whatsappSchema>;
  * Formatea un número de teléfono para WhatsApp con código de país
  * @param number - Número de teléfono local (sin código de país)
  * @param countryCode - Código del país (ej: "MX", "US", "ES")
- * @returns Número formateado con código de país
+ * @returns Número formateado con código de país en formato E.164
  */
 export const formatWhatsAppNumber = (number: string, countryCode: string = "MX"): string => {
   if (!number) return '';
   
   const country = getCountryByCode(countryCode);
-  const cleaned = number.replace(/\D/g, '');
+  let cleaned = number.replace(/\D/g, '');
+  
+  // Evitar duplicar el dialCode si ya existe
+  const dialCodeDigits = country.dialCode.replace('+', '');
+  if (cleaned.startsWith(dialCodeDigits)) {
+    cleaned = cleaned.substring(dialCodeDigits.length);
+  }
   
   return `${country.dialCode}${cleaned}`;
 };

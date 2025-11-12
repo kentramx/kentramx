@@ -54,8 +54,7 @@ export const WhatsAppConfigSection = ({ userId, initialData, onDataRefresh }: Wh
     defaultValues: {
       country_code: initialCountryCode,
       whatsapp_number: initialLocalNumber,
-      whatsapp_enabled: initialData?.whatsapp_enabled ?? true,
-      whatsapp_business_hours: initialData?.whatsapp_business_hours || ""
+      whatsapp_enabled: initialData?.whatsapp_enabled ?? true
     }
   });
 
@@ -110,8 +109,7 @@ export const WhatsAppConfigSection = ({ userId, initialData, onDataRefresh }: Wh
         .from("profiles")
         .update({
           whatsapp_number: fullNumber,
-          whatsapp_enabled: data.whatsapp_enabled,
-          whatsapp_business_hours: data.whatsapp_business_hours || null
+          whatsapp_enabled: data.whatsapp_enabled
         })
         .eq("id", userId);
 
@@ -242,23 +240,6 @@ export const WhatsAppConfigSection = ({ userId, initialData, onDataRefresh }: Wh
                   </p>
                 </div>
               )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="whatsapp_business_hours">
-                Horario de atención (opcional)
-              </Label>
-              <Input
-                id="whatsapp_business_hours"
-                type="text"
-                placeholder="Lun-Vie 9:00-18:00, Sáb 10:00-14:00"
-                {...register("whatsapp_business_hours")}
-                disabled={isLoading}
-                maxLength={100}
-              />
-              <p className="text-sm text-muted-foreground">
-                Indica cuándo estás disponible para responder consultas
-              </p>
             </div>
 
             <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
