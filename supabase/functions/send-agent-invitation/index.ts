@@ -53,9 +53,16 @@ serve(async (req) => {
     }
 
     // Obtener información de suscripción incluyendo límite de agentes
-    const { data: subscription } = await supabase
-      .rpc('get_user_subscription_info', { user_uuid: agency.owner_id })
-      .single();
+    const { data: subscription, error: subError } = await supabase
+      .rpc('get_user_subscription_info', { user_uuid: agency.owner_id });
+    
+    if (subError) {
+      console.error('Error fetching subscription:', subError);
+      return new Response(
+        JSON.stringify({ error: 'Error al verificar suscripción' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!subscription || !subscription.has_subscription) {
       return new Response(
