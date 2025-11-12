@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { planId, billingCycle, successUrl, cancelUrl } = await req.json();
+    const { planId, billingCycle, successUrl, cancelUrl, upsells = [] } = await req.json();
 
     console.log('Creating checkout session for:', {
       userId: user.id,
@@ -101,15 +101,30 @@ Deno.serve(async (req) => {
       console.log('Created new Stripe customer:', customerId);
     }
 
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      payment_method_types: ['card'],
-      customer: customerId,
-      line_items: [{
+    // Build line items (plan + upsells)
+    const lineItems = [
+      {
         price: priceId,
         quantity: 1,
-      }],
+      },
+      ...upsells.map((upsell: any) => ({
+        price: upsell.stripePriceId,
+        quantity: 1,
+      })),
+    ];
+
+    // Determine mode: subscription if there are recurring items, payment for one-time only
+    const hasRecurring = true; // Plan is always recurring
+    const mode = hasRecurring ? 'subscription' : 'payment';
+
+    console.log('Creating checkout with line items:', lineItems);
+
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create({
+      mode,
+      payment_method_types: ['card'],
+      customer: customerId,
+      line_items: lineItems,
       success_url: successUrl,
       cancel_url: cancelUrl,
       client_reference_id: user.id,
@@ -117,13 +132,16 @@ Deno.serve(async (req) => {
         plan_id: planId,
         user_id: user.id,
         billing_cycle: billingCycle,
+        has_upsells: upsells.length > 0 ? 'true' : 'false',
       },
-      subscription_data: {
-        metadata: {
-          plan_id: planId,
-          user_id: user.id,
+      ...(mode === 'subscription' ? {
+        subscription_data: {
+          metadata: {
+            plan_id: planId,
+            user_id: user.id,
+          },
         },
-      },
+      } : {}),
     });
 
     console.log('Checkout session created:', session.id);

@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Check, Info, Rocket, Zap, Crown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTracking } from '@/hooks/useTracking';
+import { UpsellDialog } from '@/components/UpsellDialog';
 
 const PricingAgente = () => {
   const { user } = useAuth();
@@ -103,6 +104,9 @@ const PricingAgente = () => {
     },
   ];
 
+  const [upsellDialogOpen, setUpsellDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+
   const handleSelectPlan = async (planId: string) => {
     if (!user) {
       navigate('/auth?redirect=/pricing-agente');
@@ -119,6 +123,14 @@ const PricingAgente = () => {
       currency: 'MXN',
     });
 
+    // Open upsell dialog instead of going directly to checkout
+    setSelectedPlan({ ...plan, planId, planPrice });
+    setUpsellDialogOpen(true);
+  };
+
+  const handleConfirmWithUpsells = async (selectedUpsells: any[]) => {
+    if (!selectedPlan) return;
+
     try {
       toast({
         title: 'Procesando...',
@@ -129,8 +141,9 @@ const PricingAgente = () => {
       
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: {
-          planId,
+          planId: selectedPlan.planId,
           billingCycle: pricingPeriod === 'annual' ? 'yearly' : 'monthly',
+          upsells: selectedUpsells,
           successUrl: `${window.location.origin}/payment-success?payment=success`,
           cancelUrl: `${window.location.origin}/pricing-agente?payment=canceled`,
         },
@@ -401,6 +414,18 @@ const PricingAgente = () => {
           </div>
         </div>
       </main>
+
+      {/* Upsell Dialog */}
+      {selectedPlan && (
+        <UpsellDialog
+          open={upsellDialogOpen}
+          onOpenChange={setUpsellDialogOpen}
+          planName={selectedPlan.name || ''}
+          planPrice={selectedPlan.planPrice || 0}
+          billingCycle={pricingPeriod === 'annual' ? 'yearly' : 'monthly'}
+          onConfirm={handleConfirmWithUpsells}
+        />
+      )}
     </div>
   );
 };
