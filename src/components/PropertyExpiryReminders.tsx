@@ -10,7 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Bell, CheckCircle, AlertTriangle, Clock, TrendingUp, Timer, BarChart3 } from 'lucide-react';
+import { Loader2, Bell, CheckCircle, AlertTriangle, Clock, TrendingUp, Timer, BarChart3, Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { format, differenceInHours, differenceInDays, startOfMonth, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -408,22 +409,68 @@ export const PropertyExpiryReminders = ({ agentId }: PropertyExpiryRemindersProp
 
   if (reminders.length === 0) {
     return (
-      <Card className="p-8">
-        <div className="text-center">
-          <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">
-            Sin recordatorios
-          </h3>
-          <p className="text-muted-foreground">
-            No has recibido recordatorios de expiración aún. Te notificaremos cuando tus propiedades estén próximas a expirar.
-          </p>
-        </div>
-      </Card>
+      <div className="space-y-6">
+        {/* Alert Informativo sobre el sistema de renovación */}
+        <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-900 dark:text-blue-100 font-semibold">
+            Sistema de Renovación Mensual
+          </AlertTitle>
+          <AlertDescription className="text-blue-800 dark:text-blue-200 text-sm space-y-2">
+            <p>
+              <strong>Tus propiedades requieren renovación cada 30 días</strong> para mantenerlas activas y visibles en búsquedas.
+            </p>
+            <div className="space-y-1 pl-4">
+              <p>✓ Recibirás recordatorios automáticos por email <strong>7, 3 y 1 día</strong> antes de la expiración</p>
+              <p>✓ Puedes renovar con <strong>un solo click</strong> desde la pestaña "Mis Propiedades"</p>
+              <p>✓ Si no renuevas, tu propiedad se <strong>pausará automáticamente</strong> pero podrás reactivarla cuando quieras</p>
+              <p>✓ La renovación es <strong>gratuita y toma solo 1 segundo</strong></p>
+            </div>
+            <p className="text-xs mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+              💡 <strong>Tip:</strong> Este sistema garantiza que todas las propiedades en la plataforma tienen información actualizada y el agente está activamente gestionando sus publicaciones.
+            </p>
+          </AlertDescription>
+        </Alert>
+
+        <Card className="p-8">
+          <div className="text-center">
+            <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Sin recordatorios aún
+            </h3>
+            <p className="text-muted-foreground">
+              Cuando tus propiedades estén próximas a expirar (7, 3 y 1 día antes), recibirás recordatorios automáticos por email y aparecerán aquí.
+            </p>
+          </div>
+        </Card>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Alert Informativo sobre el sistema de renovación */}
+      <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertTitle className="text-blue-900 dark:text-blue-100 font-semibold">
+          Sistema de Renovación Mensual
+        </AlertTitle>
+        <AlertDescription className="text-blue-800 dark:text-blue-200 text-sm space-y-2">
+          <p>
+            <strong>Tus propiedades requieren renovación cada 30 días</strong> para mantenerlas activas y visibles en búsquedas.
+          </p>
+          <div className="space-y-1 pl-4">
+            <p>✓ Recibirás recordatorios automáticos por email <strong>7, 3 y 1 día</strong> antes de la expiración</p>
+            <p>✓ Puedes renovar con <strong>un solo click</strong> desde la pestaña "Mis Propiedades"</p>
+            <p>✓ Si no renuevas, tu propiedad se <strong>pausará automáticamente</strong> pero podrás reactivarla cuando quieras</p>
+            <p>✓ La renovación es <strong>gratuita y toma solo 1 segundo</strong></p>
+          </div>
+          <p className="text-xs mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+            💡 <strong>Tip:</strong> Este sistema garantiza que todas las propiedades en la plataforma tienen información actualizada y el agente está activamente gestionando sus publicaciones.
+          </p>
+        </AlertDescription>
+      </Alert>
+
       <div className="flex items-center gap-3">
         <Bell className="h-5 w-5 text-primary" />
         <div>
