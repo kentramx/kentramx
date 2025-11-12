@@ -209,6 +209,17 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ✅ VERIFICACIÓN DE EMAIL (solo para creación, no para edición)
+    if (!property && !user?.email_confirmed_at && !user?.confirmed_at) {
+      toast({
+        title: '⚠️ Email no verificado',
+        description: 'Debes verificar tu email antes de publicar propiedades. Revisa tu bandeja de entrada.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {

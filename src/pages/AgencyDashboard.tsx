@@ -15,13 +15,15 @@ import { AgencyInventory } from '@/components/AgencyInventory';
 import { AgencyAnalytics } from '@/components/AgencyAnalytics';
 import { PropertyAssignmentHistory } from '@/components/PropertyAssignmentHistory';
 import { SubscriptionManagement } from '@/components/SubscriptionManagement';
+import { EmailVerificationRequired } from '@/components/EmailVerificationRequired';
 
 const AgencyDashboard = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isEmailVerified } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { isImpersonating, impersonatedRole, getDemoUserId, getDemoAgencyId } = useRoleImpersonation();
+  const emailVerified = isEmailVerified();
   const [loading, setLoading] = useState(true);
   const [agency, setAgency] = useState<any>(null);
   const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
@@ -190,6 +192,13 @@ const AgencyDashboard = () => {
         <div className="mb-6">
           <PlanStatusCard subscriptionInfo={subscriptionInfo} userRole="agency" />
         </div>
+
+        {/* Email Verification Banner */}
+        {!emailVerified && (
+          <div className="mb-6">
+            <EmailVerificationRequired />
+          </div>
+        )}
 
         <Card>
           <CardHeader>

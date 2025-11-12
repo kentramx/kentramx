@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +36,7 @@ import { RoleImpersonationSelector } from "./RoleImpersonationSelector";
 import { ImpersonationBanner } from "./ImpersonationBanner";
 import { useRoleImpersonation } from '@/hooks/useRoleImpersonation';
 const Navbar = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isEmailVerified } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const listingType = searchParams.get("listingType");
@@ -44,6 +45,7 @@ const Navbar = () => {
   const { userRole, loading: roleLoading } = useUserRole();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const { impersonatedRole, isImpersonating } = useRoleImpersonation();
+  const { toast } = useToast();
   const effectiveRole = (isImpersonating && impersonatedRole) ? impersonatedRole : userRole;
   const getUserInitials = () => {
     if (!user?.email) return "U";
@@ -68,6 +70,17 @@ const Navbar = () => {
   const handlePublicarClick = () => {
     if (!user) {
       navigate('/auth?redirect=/panel-agente&action=publicar');
+      return;
+    }
+
+    // Verificar email para agentes/inmobiliarias
+    if ((effectiveRole === 'agent' || effectiveRole === 'agency') && !isEmailVerified()) {
+      toast({
+        title: '⚠️ Email no verificado',
+        description: 'Verifica tu email antes de publicar propiedades',
+        variant: 'destructive',
+      });
+      navigate('/perfil?tab=profile');
       return;
     }
     

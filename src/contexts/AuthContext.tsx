@@ -13,6 +13,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error: any }>;
   updatePassword: (newPassword: string) => Promise<{ error: any }>;
   resendConfirmationEmail: (email: string) => Promise<{ error: any }>;
+  isEmailVerified: () => boolean;
   loading: boolean;
 }
 
@@ -141,8 +142,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error };
   };
 
+  const isEmailVerified = () => {
+    return user?.email_confirmed_at !== null || user?.confirmed_at !== null;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, signIn, signInWithGoogle, signUp, signOut, resetPassword, updatePassword, resendConfirmationEmail, loading }}>
+    <AuthContext.Provider value={{ user, session, signIn, signInWithGoogle, signUp, signOut, resetPassword, updatePassword, resendConfirmationEmail, isEmailVerified, loading }}>
       {children}
     </AuthContext.Provider>
   );

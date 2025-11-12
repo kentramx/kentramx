@@ -18,13 +18,15 @@ import { PlanStatusCard } from '@/components/PlanStatusCard';
 import { SubscriptionManagement } from '@/components/SubscriptionManagement';
 import { PropertyExpiryReminders } from '@/components/PropertyExpiryReminders';
 import { PlanMetricsCards } from '@/components/PlanMetricsCards';
+import { EmailVerificationRequired } from '@/components/EmailVerificationRequired';
 
 const AgentDashboard = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isEmailVerified } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { isImpersonating, impersonatedRole, getDemoUserId } = useRoleImpersonation();
+  const emailVerified = isEmailVerified();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(
@@ -322,6 +324,13 @@ const AgentDashboard = () => {
           featuredCount={featuredCount}
         />
 
+        {/* Email Verification Banner */}
+        {!emailVerified && (
+          <div className="mb-6">
+            <EmailVerificationRequired />
+          </div>
+        )}
+
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -343,7 +352,10 @@ const AgentDashboard = () => {
                 <TabsTrigger value="analytics">Analíticas</TabsTrigger>
                 <TabsTrigger value="reminders">Recordatorios</TabsTrigger>
                 <TabsTrigger value="subscription">Suscripción</TabsTrigger>
-                <TabsTrigger value="form">
+                <TabsTrigger 
+                  value="form" 
+                  disabled={!emailVerified && !editingProperty}
+                >
                   {editingProperty ? 'Editar' : 'Nueva'} Propiedad
                 </TabsTrigger>
               </TabsList>

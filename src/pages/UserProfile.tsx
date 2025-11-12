@@ -34,6 +34,8 @@ import {
   Lock,
   TrendingUp,
   Plus,
+  CheckCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -62,7 +64,7 @@ interface SavedSearch {
 }
 
 const UserProfile = () => {
-  const { user } = useAuth();
+  const { user, resendConfirmationEmail } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isAdmin, isSuperAdmin, adminRole, loading: adminLoading } = useAdminCheck();
@@ -72,6 +74,7 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [emailNotifications, setEmailNotifications] = useState(true);
+  const [resendingVerification, setResendingVerification] = useState(false);
   
   // Leer el parámetro tab de la URL
   const activeTab = searchParams.get('tab') || 'profile';
@@ -230,6 +233,27 @@ const UserProfile = () => {
     }
   };
 
+  const handleResendVerification = async () => {
+    if (!user?.email) return;
+
+    setResendingVerification(true);
+    const { error } = await resendConfirmationEmail(user.email);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo enviar el email de verificación",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Email enviado",
+        description: "Revisa tu bandeja de entrada para verificar tu email",
+      });
+    }
+    setResendingVerification(false);
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -331,6 +355,47 @@ const UserProfile = () => {
                         El correo electrónico no se puede modificar
                       </p>
                     </div>
+
+                    {/* Email Verification Status Card */}
+                    <Separator />
+                    {user?.email_confirmed_at || user?.confirmed_at ? (
+                      <Card className="border-green-200 bg-green-50 dark:bg-green-950">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            Email Verificado
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground">
+                            Tu dirección de email está verificada correctamente.
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                            Email No Verificado
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <p className="text-sm text-muted-foreground">
+                            Debes verificar tu email para publicar propiedades.
+                            Revisa tu bandeja de entrada y haz clic en el enlace de verificación.
+                          </p>
+                          <Button 
+                            onClick={handleResendVerification} 
+                            disabled={resendingVerification}
+                            size="sm"
+                          >
+                            {resendingVerification ? "Enviando..." : "Reenviar Email de Verificación"}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )}
+                    <Separator />
 
                     <div>
                       <Label>Rol</Label>
