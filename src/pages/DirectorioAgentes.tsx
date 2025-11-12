@@ -28,6 +28,7 @@ interface AgentData {
   avg_rating: number | null;
   total_reviews: number;
   is_verified: boolean;
+  phone_verified?: boolean;
   logo_url?: string;
   plan_name: string | null;
   plan_level: string | null;
@@ -84,6 +85,7 @@ const DirectorioAgentes = () => {
           id,
           name,
           is_verified,
+          phone_verified,
           properties(id, status, state, municipality),
           agent_reviews:agent_reviews!agent_id(rating)
         `);
@@ -176,6 +178,7 @@ const DirectorioAgentes = () => {
           avg_rating: avgRating,
           total_reviews: reviews.length,
           is_verified: profile.is_verified || false,
+          phone_verified: profile.phone_verified || false,
           plan_name: subscription?.subscription_plans?.display_name || "Sin Plan",
           plan_level: subscription?.subscription_plans?.name || null,
           badges,

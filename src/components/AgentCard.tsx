@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MapPin, Star, Home, ShieldCheck } from "lucide-react";
+import { MapPin, Star, Home, ShieldCheck, Smartphone } from "lucide-react";
 import AgentBadges from "@/components/AgentBadges";
 
 interface BadgeData {
@@ -24,6 +24,7 @@ interface AgentCardProps {
   avg_rating: number | null;
   total_reviews: number;
   is_verified: boolean;
+  phone_verified?: boolean;
   logo_url?: string;
   plan_name: string | null;
   plan_level: string | null;
@@ -40,6 +41,7 @@ const AgentCard = ({
   avg_rating,
   total_reviews,
   is_verified,
+  phone_verified,
   logo_url,
   plan_name,
   plan_level,
@@ -95,9 +97,18 @@ const AgentCard = ({
                 <h3 className="font-semibold text-lg leading-tight truncate">
                   {name}
                 </h3>
-                {is_verified && (
-                  <ShieldCheck className="h-5 w-5 text-primary flex-shrink-0" />
-                )}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {is_verified && (
+                    <div title="Perfil verificado">
+                      <ShieldCheck className="h-5 w-5 text-primary" />
+                    </div>
+                  )}
+                  {phone_verified && (
+                    <div title="Teléfono verificado">
+                      <Smartphone className="h-4 w-4 text-green-600" />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {plan_name && (

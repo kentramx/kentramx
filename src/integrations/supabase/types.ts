@@ -792,6 +792,10 @@ export type Database = {
           is_verified: boolean | null
           name: string
           phone: string | null
+          phone_verification_code: string | null
+          phone_verification_expires_at: string | null
+          phone_verified: boolean | null
+          phone_verified_at: string | null
           updated_at: string | null
           whatsapp_business_hours: string | null
           whatsapp_enabled: boolean | null
@@ -804,6 +808,10 @@ export type Database = {
           is_verified?: boolean | null
           name: string
           phone?: string | null
+          phone_verification_code?: string | null
+          phone_verification_expires_at?: string | null
+          phone_verified?: boolean | null
+          phone_verified_at?: string | null
           updated_at?: string | null
           whatsapp_business_hours?: string | null
           whatsapp_enabled?: boolean | null
@@ -816,6 +824,10 @@ export type Database = {
           is_verified?: boolean | null
           name?: string
           phone?: string | null
+          phone_verification_code?: string | null
+          phone_verification_expires_at?: string | null
+          phone_verified?: boolean | null
+          phone_verified_at?: string | null
           updated_at?: string | null
           whatsapp_business_hours?: string | null
           whatsapp_enabled?: boolean | null

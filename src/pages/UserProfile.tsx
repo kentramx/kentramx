@@ -16,6 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { DynamicBreadcrumbs } from "@/components/DynamicBreadcrumbs";
 import { WhatsAppConfigSection } from "@/components/WhatsAppConfigSection";
 import { TwoFactorAuth } from "@/components/TwoFactorAuth";
+import { PhoneVerification } from "@/components/PhoneVerification";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import {
   Loader2,
@@ -395,6 +396,14 @@ const UserProfile = () => {
                         </CardContent>
                       </Card>
                     )}
+                    <Separator />
+
+                    {/* Phone Verification Section */}
+                    <PhoneVerification
+                      phoneNumber={profile?.phone || null}
+                      phoneVerified={profile?.phone_verified || false}
+                      onPhoneVerified={fetchUserData}
+                    />
                     <Separator />
 
                     <div>
