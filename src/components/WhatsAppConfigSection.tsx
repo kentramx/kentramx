@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Phone, Info, Globe, MessageCircle, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { Phone, Info, Globe, MessageCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { whatsappSchema, type WhatsAppFormData, formatPhoneDisplay, formatWhatsAppNumber } from "@/utils/whatsapp";
 import { COUNTRY_CODES, detectCountryFromNumber, extractLocalNumber, getCountryByCode } from "@/data/countryCodes";
@@ -30,7 +30,7 @@ interface WhatsAppConfigSectionProps {
 export const WhatsAppConfigSection = ({ userId, initialData, onDataRefresh }: WhatsAppConfigSectionProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAutoVerifying, setIsAutoVerifying] = useState(false);
-  const [isManualVerifying, setIsManualVerifying] = useState(false);
+  
 
   // Detectar país del número inicial
   const initialCountryCode = initialData?.whatsapp_number 
@@ -96,42 +96,6 @@ export const WhatsAppConfigSection = ({ userId, initialData, onDataRefresh }: Wh
     }
   };
 
-  const handleManualVerify = async () => {
-    if (!initialData?.whatsapp_number) {
-      toast.error("Guarda tu número de WhatsApp primero");
-      return;
-    }
-
-    setIsManualVerifying(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('verify-whatsapp-number');
-
-      if (error) {
-        console.error('Error verifying WhatsApp:', error);
-        toast.error("Error al verificar WhatsApp");
-        return;
-      }
-
-      if (data.hasWhatsApp) {
-        toast.success("¡WhatsApp verificado exitosamente!", {
-          description: "Tu número tiene WhatsApp activo",
-        });
-      } else {
-        toast.error("WhatsApp no disponible", {
-          description: "Este número no tiene WhatsApp activo. Verifica el número o instala WhatsApp.",
-        });
-      }
-
-      if (onDataRefresh) {
-        onDataRefresh();
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast.error("Error al verificar WhatsApp");
-    } finally {
-      setIsManualVerifying(false);
-    }
-  };
 
   const onSubmit = async (data: WhatsAppFormData) => {
     setIsLoading(true);
@@ -362,27 +326,6 @@ export const WhatsAppConfigSection = ({ userId, initialData, onDataRefresh }: Wh
                     Tu número aún no está verificado. Verifica que tenga WhatsApp activo para mejorar tu credibilidad.
                   </AlertDescription>
                 </Alert>
-                <Button 
-                  onClick={handleManualVerify} 
-                  disabled={isManualVerifying || isLoading}
-                  variant="outline"
-                  className="w-full border-green-600 text-green-700 hover:bg-green-50"
-                >
-                  {isManualVerifying ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Verificando...
-                    </>
-                  ) : (
-                    <>
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      Verificar WhatsApp Ahora
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  La verificación confirma que este número tiene WhatsApp activo. No se enviará ningún mensaje.
-                </p>
               </>
             )}
           </div>
