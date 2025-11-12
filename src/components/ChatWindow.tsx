@@ -341,15 +341,45 @@ export const ChatWindow = ({
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Generar signed URL con expiración de 1 año (máximo permitido)
+      const { data: signedUrlData, error: urlError } = await supabase.storage
         .from('message-images')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 60 * 60 * 24 * 365); // 1 año en segundos
 
-      return publicUrl;
+      if (urlError) throw urlError;
+
+      return signedUrlData.signedUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error('Error al subir la imagen');
       return null;
+    }
+  };
+
+  // Generar signed URL para una imagen existente
+  const getSignedUrl = async (imageUrl: string): Promise<string> => {
+    try {
+      // Extraer el path del archivo de la URL
+      const url = new URL(imageUrl);
+      const pathMatch = imageUrl.match(/message-images\/(.+)$/);
+      
+      if (!pathMatch) return imageUrl;
+      
+      const filePath = pathMatch[1];
+      
+      const { data, error } = await supabase.storage
+        .from('message-images')
+        .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 año
+
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        return imageUrl;
+      }
+
+      return data.signedUrl;
+    } catch (error) {
+      console.error('Error generating signed URL:', error);
+      return imageUrl;
     }
   };
 
@@ -362,10 +392,26 @@ export const ChatWindow = ({
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages((data || []).map(msg => ({
-        ...msg,
-        message_type: msg.message_type as 'text' | 'image'
-      })));
+      
+      // Generar signed URLs para imágenes
+      const messagesWithSignedUrls = await Promise.all(
+        (data || []).map(async (msg) => {
+          if (msg.message_type === 'image' && msg.image_url) {
+            const signedUrl = await getSignedUrl(msg.image_url);
+            return {
+              ...msg,
+              message_type: msg.message_type as 'text' | 'image',
+              image_url: signedUrl
+            };
+          }
+          return {
+            ...msg,
+            message_type: msg.message_type as 'text' | 'image'
+          };
+        })
+      );
+      
+      setMessages(messagesWithSignedUrls);
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast.error('Error al cargar los mensajes');
