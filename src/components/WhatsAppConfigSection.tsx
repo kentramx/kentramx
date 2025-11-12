@@ -8,12 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Phone, Info, Globe } from "lucide-react";
+import { Phone, Info, Globe, MessageCircle, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { whatsappSchema, type WhatsAppFormData, formatPhoneDisplay, formatWhatsAppNumber } from "@/utils/whatsapp";
 import { COUNTRY_CODES, detectCountryFromNumber, extractLocalNumber, getCountryByCode } from "@/data/countryCodes";
-import { WhatsAppVerification } from "@/components/WhatsAppVerification";
 
 interface WhatsAppConfigSectionProps {
   userId: string;
@@ -30,6 +30,7 @@ interface WhatsAppConfigSectionProps {
 export const WhatsAppConfigSection = ({ userId, initialData, onDataRefresh }: WhatsAppConfigSectionProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAutoVerifying, setIsAutoVerifying] = useState(false);
+  const [isManualVerifying, setIsManualVerifying] = useState(false);
 
   // Detectar país del número inicial
   const initialCountryCode = initialData?.whatsapp_number 
@@ -92,6 +93,43 @@ export const WhatsAppConfigSection = ({ userId, initialData, onDataRefresh }: Wh
       // No mostrar error al usuario ya que es un proceso automático opcional
     } finally {
       setIsAutoVerifying(false);
+    }
+  };
+
+  const handleManualVerify = async () => {
+    if (!initialData?.whatsapp_number) {
+      toast.error("Guarda tu número de WhatsApp primero");
+      return;
+    }
+
+    setIsManualVerifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-whatsapp-number');
+
+      if (error) {
+        console.error('Error verifying WhatsApp:', error);
+        toast.error("Error al verificar WhatsApp");
+        return;
+      }
+
+      if (data.hasWhatsApp) {
+        toast.success("¡WhatsApp verificado exitosamente!", {
+          description: "Tu número tiene WhatsApp activo",
+        });
+      } else {
+        toast.error("WhatsApp no disponible", {
+          description: "Este número no tiene WhatsApp activo. Verifica el número o instala WhatsApp.",
+        });
+      }
+
+      if (onDataRefresh) {
+        onDataRefresh();
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error("Error al verificar WhatsApp");
+    } finally {
+      setIsManualVerifying(false);
     }
   };
 
@@ -274,19 +312,81 @@ export const WhatsAppConfigSection = ({ userId, initialData, onDataRefresh }: Wh
           </Button>
         </form>
 
-        {/* WhatsApp Verification Section */}
-        <div className="mt-6 pt-6 border-t">
-          <WhatsAppVerification
-            whatsappNumber={initialData?.whatsapp_number || null}
-            whatsappVerified={initialData?.whatsapp_verified || false}
-            whatsappVerifiedAt={initialData?.whatsapp_verified_at}
-            onVerificationComplete={() => {
-              if (onDataRefresh) {
-                onDataRefresh();
-              }
-            }}
-          />
-        </div>
+        {/* Estado de Verificación de WhatsApp */}
+        {initialData?.whatsapp_number && (
+          <div className="mt-6 pt-6 border-t space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  Estado de Verificación
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formatPhoneDisplay(initialData.whatsapp_number, detectCountryFromNumber(initialData.whatsapp_number))}
+                </p>
+              </div>
+              {initialData?.whatsapp_verified ? (
+                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                  <CheckCircle2 className="mr-1 h-3 w-3" />
+                  Verificado
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">
+                  <AlertTriangle className="mr-1 h-3 w-3" />
+                  No Verificado
+                </Badge>
+              )}
+            </div>
+
+            {initialData?.whatsapp_verified ? (
+              <Alert className="bg-green-50 border-green-200">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">
+                  Tu número tiene WhatsApp activo. Los usuarios podrán contactarte directamente desde tus propiedades.
+                  {initialData?.whatsapp_verified_at && (
+                    <span className="block text-xs text-green-700 mt-1">
+                      Verificado el {new Date(initialData.whatsapp_verified_at).toLocaleDateString('es-MX', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </span>
+                  )}
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                <Alert className="bg-orange-50 border-orange-200">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="text-orange-800">
+                    Tu número aún no está verificado. Verifica que tenga WhatsApp activo para mejorar tu credibilidad.
+                  </AlertDescription>
+                </Alert>
+                <Button 
+                  onClick={handleManualVerify} 
+                  disabled={isManualVerifying || isLoading}
+                  variant="outline"
+                  className="w-full border-green-600 text-green-700 hover:bg-green-50"
+                >
+                  {isManualVerifying ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verificando...
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Verificar WhatsApp Ahora
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  La verificación confirma que este número tiene WhatsApp activo. No se enviará ningún mensaje.
+                </p>
+              </>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
