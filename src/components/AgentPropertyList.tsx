@@ -244,6 +244,8 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo, agentId }: AgentPropertyL
           <TableHeader>
             <TableRow>
               <TableHead>Propiedad</TableHead>
+              <TableHead>Colonia</TableHead>
+              <TableHead>Ubicación</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Estado</TableHead>
@@ -273,16 +275,24 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo, agentId }: AgentPropertyL
                           </Badge>
                         )}
                       </div>
-                      {(property as any).colonia && (
-                        <p className="text-sm font-medium text-foreground/80">
-                          {(property as any).colonia}
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        {property.municipality}, {property.state}
-                      </p>
                     </div>
                   </div>
+                </TableCell>
+                <TableCell>
+                  {(property as any).colonia ? (
+                    <span className="font-medium text-foreground">
+                      {(property as any).colonia}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">
+                      No especificada
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {property.municipality}, {property.state}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">{property.type}</Badge>
