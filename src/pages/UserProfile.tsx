@@ -290,6 +290,10 @@ const UserProfile = () => {
               <User className="mr-2 h-4 w-4" />
               Información Personal
             </TabsTrigger>
+            <TabsTrigger value="verification">
+              <Shield className="mr-2 h-4 w-4" />
+              Verificación
+            </TabsTrigger>
             <TabsTrigger value="searches">
               <Search className="mr-2 h-4 w-4" />
               Búsquedas Guardadas
@@ -301,10 +305,6 @@ const UserProfile = () => {
             <TabsTrigger value="security">
               <Lock className="mr-2 h-4 w-4" />
               Seguridad
-            </TabsTrigger>
-            <TabsTrigger value="verification">
-              <Shield className="mr-2 h-4 w-4" />
-              Verificación
             </TabsTrigger>
             <TabsTrigger value="advanced">
               <Settings className="mr-2 h-4 w-4" />
