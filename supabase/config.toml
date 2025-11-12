@@ -35,3 +35,9 @@ verify_jwt = false
 
 [functions.send-agent-invitation]
 verify_jwt = true
+
+[functions.send-phone-verification]
+verify_jwt = true
+
+[functions.verify-phone-code]
+verify_jwt = true
