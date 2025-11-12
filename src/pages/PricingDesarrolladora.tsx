@@ -27,23 +27,41 @@ const PricingDesarrolladora = () => {
     }
 
     try {
-      // Construir el nombre completo del plan para la búsqueda en DB
+      // Verificar si ya tiene una suscripción activa
+      const { data: activeSub } = await supabase
+        .from('user_subscriptions')
+        .select('id, subscription_plans(name)')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+
+      if (activeSub) {
+        toast.error('Ya tienes una suscripción activa. Ve a tu dashboard para gestionar tu plan.');
+        navigate('/panel-desarrolladora');
+        return;
+      }
+
+      // Construir el nombre completo del plan
       const fullPlanName = `desarrolladora_${planSlug}`;
       
       // Buscar el plan en la base de datos
       const { data: plan, error: planError } = await supabase
         .from('subscription_plans')
-        .select('id, name')
+        .select('id, name, display_name, price_monthly, price_yearly')
         .eq('name', fullPlanName)
         .single();
 
       if (planError || !plan) {
-        toast.error("Plan no encontrado");
-        console.error('Error al buscar plan:', planError);
+        toast.error('No se pudo encontrar el plan seleccionado');
         return;
       }
 
-      // Llamar al edge function para crear la sesión de checkout
+      // Mostrar confirmación del plan
+      const price = billingCycle === 'monthly' ? plan.price_monthly : plan.price_yearly;
+      const period = billingCycle === 'monthly' ? 'mes' : 'año';
+      toast.success(`Redirigiendo al checkout de ${plan.display_name} - $${price} MXN/${period}`);
+
+      // Invocar el Edge Function para crear la sesión de checkout
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: {
           planId: plan.id,
@@ -53,17 +71,20 @@ const PricingDesarrolladora = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating checkout session:', error);
+        toast.error('Error al crear la sesión de pago. Por favor intenta de nuevo.');
+        return;
+      }
 
-      // Redirigir a Stripe Checkout
       if (data?.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {
-        toast.error("Error al generar la sesión de pago");
+        toast.error('No se pudo generar la URL de pago');
       }
     } catch (error) {
-      console.error('Error al crear checkout:', error);
-      toast.error("Error al procesar el pago. Intenta de nuevo.");
+      console.error('Error:', error);
+      toast.error('Ocurrió un error al procesar tu solicitud');
     }
   };
 
