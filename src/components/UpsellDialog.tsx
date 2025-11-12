@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -34,68 +35,15 @@ interface UpsellDialogProps {
   onConfirm: (selectedUpsells: Upsell[]) => Promise<void>;
 }
 
-const AGENT_UPSELLS: Upsell[] = [
-  {
-    id: 'property_slot',
-    name: 'Slot Adicional de Propiedad',
-    description: 'Agrega 1 propiedad activa adicional a tu plan',
-    price: 49,
-    stripePriceId: 'price_property_slot_monthly',
-    icon: Plus,
-    badge: 'Más Popular',
-    recurring: true,
-  },
-  {
-    id: 'featured_7days',
-    name: 'Destacar Propiedad 7 Días',
-    description: 'Destaca 1 propiedad por 7 días en resultados de búsqueda',
-    price: 59,
-    stripePriceId: 'price_featured_7days',
-    icon: Star,
-    recurring: false,
-  },
-];
-
-const AGENCY_UPSELLS: Upsell[] = [
-  {
-    id: 'extra_agents',
-    name: 'Agentes Adicionales',
-    description: 'Agrega +5 agentes a tu equipo inmobiliario',
-    price: 1500,
-    stripePriceId: 'price_extra_agents_monthly',
-    icon: Users,
-    badge: 'Más Popular',
-    recurring: true,
-  },
-  {
-    id: 'premium_training',
-    name: 'Capacitación Premium',
-    description: 'Sesión de capacitación personalizada para tu equipo (2 horas)',
-    price: 2500,
-    stripePriceId: 'price_premium_training',
-    icon: GraduationCap,
-    recurring: false,
-  },
-  {
-    id: 'custom_landing',
-    name: 'Landing Page Personalizada',
-    description: 'Página personalizada con tu branding para destacar tu inmobiliaria',
-    price: 3500,
-    stripePriceId: 'price_custom_landing',
-    icon: LayoutTemplate,
-    badge: 'Premium',
-    recurring: false,
-  },
-  {
-    id: 'advanced_analytics',
-    name: 'Reportes Avanzados',
-    description: 'Dashboard con métricas detalladas y análisis de rendimiento',
-    price: 800,
-    stripePriceId: 'price_advanced_analytics_monthly',
-    icon: BarChart3,
-    recurring: true,
-  },
-];
+// Mapeo de nombres de iconos a componentes de Lucide
+const ICON_MAP: Record<string, any> = {
+  Plus,
+  Star,
+  Users,
+  GraduationCap,
+  LayoutTemplate,
+  BarChart3,
+};
 
 export const UpsellDialog = ({
   open,
@@ -108,9 +56,47 @@ export const UpsellDialog = ({
 }: UpsellDialogProps) => {
   const [selectedUpsells, setSelectedUpsells] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [upsells, setUpsells] = useState<Upsell[]>([]);
+  const [loadingUpsells, setLoadingUpsells] = useState(true);
 
-  // Seleccionar upsells según tipo de usuario
-  const UPSELLS = userType === 'agent' ? AGENT_UPSELLS : AGENCY_UPSELLS;
+  // Cargar upsells desde la base de datos
+  useEffect(() => {
+    const fetchUpsells = async () => {
+      setLoadingUpsells(true);
+      try {
+        const { data, error } = await supabase
+          .from('upsells')
+          .select('*')
+          .eq('is_active', true)
+          .in('user_type', [userType, 'both'])
+          .order('display_order', { ascending: true });
+
+        if (error) throw error;
+
+        // Convertir datos de DB a formato Upsell
+        const formattedUpsells: Upsell[] = (data || []).map((item) => ({
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          price: Number(item.price),
+          stripePriceId: item.stripe_price_id,
+          icon: ICON_MAP[item.icon_name] || Plus,
+          badge: item.badge || undefined,
+          recurring: item.is_recurring,
+        }));
+
+        setUpsells(formattedUpsells);
+      } catch (error) {
+        console.error('Error loading upsells:', error);
+      } finally {
+        setLoadingUpsells(false);
+      }
+    };
+
+    if (open) {
+      fetchUpsells();
+    }
+  }, [open, userType]);
 
   const handleToggleUpsell = (upsellId: string) => {
     setSelectedUpsells((prev) =>
@@ -123,7 +109,7 @@ export const UpsellDialog = ({
   const handleConfirm = async () => {
     setLoading(true);
     try {
-      const selected = UPSELLS.filter((u) => selectedUpsells.includes(u.id));
+      const selected = upsells.filter((u) => selectedUpsells.includes(u.id));
       await onConfirm(selected);
     } catch (error) {
       console.error('Error confirming upsells:', error);
@@ -133,16 +119,28 @@ export const UpsellDialog = ({
   };
 
   const calculateTotal = () => {
-    const upsellsTotal = UPSELLS
+    const upsellsTotal = upsells
       .filter((u) => selectedUpsells.includes(u.id))
       .reduce((sum, u) => sum + (u.recurring ? u.price : 0), 0);
     
     return planPrice + upsellsTotal;
   };
 
-  const oneTimeTotal = UPSELLS
+  const oneTimeTotal = upsells
     .filter((u) => selectedUpsells.includes(u.id) && !u.recurring)
     .reduce((sum, u) => sum + u.price, 0);
+
+  if (loadingUpsells) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[600px]">
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -176,7 +174,12 @@ export const UpsellDialog = ({
           {/* Upsells */}
           <div className="space-y-3">
             <h4 className="text-sm font-medium">Extras Disponibles:</h4>
-            {UPSELLS.map((upsell) => {
+            {upsells.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No hay extras disponibles en este momento.
+              </p>
+            ) : (
+              upsells.map((upsell) => {
               const Icon = upsell.icon;
               const isSelected = selectedUpsells.includes(upsell.id);
               
@@ -217,13 +220,14 @@ export const UpsellDialog = ({
                   </div>
                 </div>
               );
-            })}
+            })
+            )}
           </div>
 
           {/* Total */}
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
             <div className="space-y-2">
-              {billingCycle === 'monthly' || selectedUpsells.some(id => UPSELLS.find(u => u.id === id)?.recurring) ? (
+              {billingCycle === 'monthly' || selectedUpsells.some(id => upsells.find(u => u.id === id)?.recurring) ? (
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Total Recurrente:</span>
                   <span className="text-xl font-bold">

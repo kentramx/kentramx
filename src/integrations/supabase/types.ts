@@ -1270,6 +1270,54 @@ export type Database = {
         }
         Relationships: []
       }
+      upsells: {
+        Row: {
+          badge: string | null
+          created_at: string
+          description: string
+          display_order: number
+          icon_name: string
+          id: string
+          is_active: boolean
+          is_recurring: boolean
+          name: string
+          price: number
+          stripe_price_id: string
+          updated_at: string
+          user_type: string
+        }
+        Insert: {
+          badge?: string | null
+          created_at?: string
+          description: string
+          display_order?: number
+          icon_name?: string
+          id?: string
+          is_active?: boolean
+          is_recurring?: boolean
+          name: string
+          price: number
+          stripe_price_id: string
+          updated_at?: string
+          user_type: string
+        }
+        Update: {
+          badge?: string | null
+          created_at?: string
+          description?: string
+          display_order?: number
+          icon_name?: string
+          id?: string
+          is_active?: boolean
+          is_recurring?: boolean
+          name?: string
+          price?: number
+          stripe_price_id?: string
+          updated_at?: string
+          user_type?: string
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           badge_code: string

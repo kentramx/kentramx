@@ -40,6 +40,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminFinancial from "./pages/AdminFinancial";
 import AdminKPIs from "./pages/AdminKPIs";
 import AdminMarketing from "./pages/AdminMarketing";
+import AdminUpsells from "./pages/AdminUpsells";
 import UnirseEquipo from "./pages/UnirseEquipo";
 import { Footer } from "@/components/Footer";
 
@@ -101,6 +102,7 @@ const AppContent = () => {
               <Route path="/admin/role-audit" element={<AdminRoleAudit />} />
               <Route path="/admin/subscription-changes" element={<AdminSubscriptionChanges />} />
               <Route path="/admin/notification-settings" element={<AdminNotificationSettings />} />
+              <Route path="/admin/upsells" element={<AdminUpsells />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
