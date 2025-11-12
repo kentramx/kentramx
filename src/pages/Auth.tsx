@@ -433,11 +433,11 @@ const Auth = () => {
 
             {view === 'verify' && (
               <div className="space-y-4">
-                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-4">
-                  <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                  <h3 className="font-semibold text-amber-900 mb-2">
                     Correo no verificado
                   </h3>
-                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                  <p className="text-sm text-amber-800">
                     Tu cuenta aún no ha sido verificada. Por favor revisa tu correo electrónico <strong>{unverifiedEmail}</strong> y haz clic en el enlace de confirmación.
                   </p>
                 </div>

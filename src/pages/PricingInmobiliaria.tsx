@@ -239,7 +239,7 @@ const PricingInmobiliaria = () => {
           </div>
 
           {/* Información importante */}
-          <Card className="mb-8 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+          <Card className="mb-8 bg-blue-50 border-blue-200">
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
                 <div className="bg-blue-500 text-white p-2 rounded-lg shrink-0">
@@ -325,7 +325,7 @@ const PricingInmobiliaria = () => {
           </div>
 
           {/* Nota de renovación */}
-          <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 mb-12">
+          <Card className="bg-amber-50 border-amber-200 mb-12">
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
                 <div className="bg-amber-500 text-white p-2 rounded-lg shrink-0">

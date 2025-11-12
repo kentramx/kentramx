@@ -434,13 +434,13 @@ const AdminSubscriptionChanges = () => {
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             {change.metadata?.bypassed_cooldown && (
-                              <Badge variant="outline" className="border-purple-500 text-purple-700 dark:text-purple-400">
+                              <Badge variant="outline" className="border-purple-500 text-purple-700">
                                 <Shield className="h-3 w-3 mr-1" />
                                 Bypass
                               </Badge>
                             )}
                             {change.metadata?.changed_by_admin && (
-                              <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-400">
+                              <Badge variant="outline" className="border-amber-500 text-amber-700">
                                 <Users className="h-3 w-3 mr-1" />
                                 Admin
                               </Badge>

@@ -47,32 +47,32 @@ const AIPreModerationBadge = ({
           variant: 'default' as const,
           icon: CheckCircle2,
           label: 'IA: Aprobar',
-          color: 'text-green-600 dark:text-green-400',
-          bgColor: 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800',
+          color: 'text-green-600',
+          bgColor: 'bg-green-50 border-green-200',
         };
       case 'review':
         return {
           variant: 'secondary' as const,
           icon: AlertCircle,
           label: 'IA: Revisar',
-          color: 'text-yellow-600 dark:text-yellow-400',
-          bgColor: 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800',
+          color: 'text-yellow-600',
+          bgColor: 'bg-yellow-50 border-yellow-200',
         };
       case 'reject':
         return {
           variant: 'destructive' as const,
           icon: XCircle,
           label: 'IA: Rechazar',
-          color: 'text-red-600 dark:text-red-400',
-          bgColor: 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800',
+          color: 'text-red-600',
+          bgColor: 'bg-red-50 border-red-200',
         };
       default:
         return {
           variant: 'outline' as const,
           icon: Brain,
           label: 'IA: Pendiente',
-          color: 'text-gray-600 dark:text-gray-400',
-          bgColor: 'bg-gray-50 dark:bg-gray-950 border-gray-200 dark:border-gray-800',
+          color: 'text-gray-600',
+          bgColor: 'bg-gray-50 border-gray-200',
         };
     }
   };

@@ -33,13 +33,13 @@ export const EmailVerificationRequired = () => {
   };
 
   return (
-    <Alert variant="destructive" className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
+    <Alert variant="destructive" className="border-yellow-500 bg-yellow-50">
       <AlertTriangle className="h-5 w-5 text-yellow-600" />
-      <AlertTitle className="text-yellow-900 dark:text-yellow-100">
+      <AlertTitle className="text-yellow-900">
         Verifica tu email para publicar propiedades
       </AlertTitle>
       <AlertDescription className="space-y-3">
-        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+        <p className="text-sm text-yellow-800">
           Para garantizar la seguridad de nuestra plataforma, debes verificar tu dirección de email antes de publicar propiedades.
           Revisa tu bandeja de entrada y haz clic en el enlace de verificación.
         </p>

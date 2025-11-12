@@ -94,32 +94,32 @@ const ImageQualityBadge = ({
         variant: 'default' as const,
         icon: Camera,
         label: 'Excelente',
-        color: 'text-green-600 dark:text-green-400',
-        bgColor: 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800',
+        color: 'text-green-600',
+        bgColor: 'bg-green-50 border-green-200',
       };
     } else if (quality >= 60) {
       return {
         variant: 'secondary' as const,
         icon: Camera,
         label: 'Buena',
-        color: 'text-blue-600 dark:text-blue-400',
-        bgColor: 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800',
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-50 border-blue-200',
       };
     } else if (quality >= 40) {
       return {
         variant: 'secondary' as const,
         icon: Camera,
         label: 'Regular',
-        color: 'text-yellow-600 dark:text-yellow-400',
-        bgColor: 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800',
+        color: 'text-yellow-600',
+        bgColor: 'bg-yellow-50 border-yellow-200',
       };
     } else {
       return {
         variant: 'destructive' as const,
         icon: AlertTriangle,
         label: 'Baja',
-        color: 'text-red-600 dark:text-red-400',
-        bgColor: 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800',
+        color: 'text-red-600',
+        bgColor: 'bg-red-50 border-red-200',
       };
     }
   };

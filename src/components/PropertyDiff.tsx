@@ -73,26 +73,26 @@ const PropertyDiff = ({ property }: PropertyDiffProps) => {
       </CardHeader>
       <CardContent className="space-y-4">
         {previousRejection && (
-          <div className="bg-red-50 dark:bg-red-950 p-3 rounded-md border border-red-200 dark:border-red-800">
-            <p className="text-sm font-semibold text-red-900 dark:text-red-100">
+          <div className="bg-red-50 p-3 rounded-md border border-red-200">
+            <p className="text-sm font-semibold text-red-900">
               Rechazo anterior:
             </p>
-            <p className="text-sm text-red-800 dark:text-red-200 mt-1">
+            <p className="text-sm text-red-800 mt-1">
               {previousRejection.label}
             </p>
             {previousRejection.details && (
-              <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+              <p className="text-xs text-red-700 mt-1">
                 {previousRejection.details}
               </p>
             )}
           </div>
         )}
 
-        <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md border border-blue-200 dark:border-blue-800">
-          <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+        <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+          <p className="text-sm font-semibold text-blue-900">
             El agente ha corregido y reenviado esta propiedad
           </p>
-          <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+          <p className="text-xs text-blue-700 mt-1">
             Revisa cuidadosamente que los problemas anteriores hayan sido resueltos
           </p>
         </div>

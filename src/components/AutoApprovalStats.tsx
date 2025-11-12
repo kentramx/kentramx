@@ -93,7 +93,7 @@ const AutoApprovalStats = () => {
               <Brain className="h-4 w-4" />
               <span>IA + Agente Confiable</span>
             </div>
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+            <div className="text-3xl font-bold text-green-600">
               {stats.auto_approved_by_ai}
             </div>
             <Badge variant="secondary" className="text-xs">
@@ -107,7 +107,7 @@ const AutoApprovalStats = () => {
               <CheckCircle2 className="h-4 w-4" />
               <span>Solo Agente Confiable</span>
             </div>
-            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+            <div className="text-3xl font-bold text-blue-600">
               {stats.auto_approved_legacy}
             </div>
             <Badge variant="outline" className="text-xs">
@@ -121,7 +121,7 @@ const AutoApprovalStats = () => {
               <TrendingUp className="h-4 w-4" />
               <span>Score Promedio IA</span>
             </div>
-            <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+            <div className="text-3xl font-bold text-yellow-600">
               {stats.avg_ai_score_auto_approved 
                 ? Math.round(stats.avg_ai_score_auto_approved) 
                 : 'N/A'}

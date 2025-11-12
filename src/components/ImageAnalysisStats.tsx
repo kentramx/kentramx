@@ -99,10 +99,10 @@ const ImageAnalysisStats = () => {
   const excellentRate = Math.round((stats.excellentQualityCount / stats.totalAnalyzed) * 100);
 
   return (
-    <Card className="border-purple-200/50 bg-gradient-to-br from-purple-50/50 to-transparent dark:from-purple-950/20">
+    <Card className="border-purple-200/50 bg-gradient-to-br from-purple-50/50 to-transparent">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Camera className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          <Camera className="h-5 w-5 text-purple-600" />
           <CardTitle>Análisis de Imágenes con IA</CardTitle>
         </div>
         <CardDescription>
@@ -118,7 +118,7 @@ const ImageAnalysisStats = () => {
               <ImageIcon className="h-4 w-4" />
               <span>Total Analizadas</span>
             </div>
-            <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+            <div className="text-3xl font-bold text-purple-600">
               {stats.totalAnalyzed}
             </div>
           </div>
@@ -129,7 +129,7 @@ const ImageAnalysisStats = () => {
               <TrendingUp className="h-4 w-4" />
               <span>Calidad Promedio</span>
             </div>
-            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+            <div className="text-3xl font-bold text-blue-600">
               {Math.round(stats.averageQuality)}
             </div>
             <Badge variant="secondary" className="text-xs">
@@ -143,7 +143,7 @@ const ImageAnalysisStats = () => {
               <Camera className="h-4 w-4" />
               <span>Calidad Excelente</span>
             </div>
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+            <div className="text-3xl font-bold text-green-600">
               {stats.excellentQualityCount}
             </div>
             <Badge variant="secondary" className="text-xs">
@@ -157,7 +157,7 @@ const ImageAnalysisStats = () => {
               <AlertTriangle className="h-4 w-4" />
               <span>Inapropiadas</span>
             </div>
-            <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+            <div className="text-3xl font-bold text-red-600">
               {stats.inappropriateCount}
             </div>
             {stats.inappropriateCount > 0 && (
@@ -173,11 +173,11 @@ const ImageAnalysisStats = () => {
               <Shield className="h-4 w-4" />
               <span>Manipuladas</span>
             </div>
-            <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+            <div className="text-3xl font-bold text-orange-600">
               {stats.manipulatedCount}
             </div>
             {stats.manipulatedCount > 0 && (
-              <Badge variant="secondary" className="text-xs bg-orange-100 dark:bg-orange-950">
+              <Badge variant="secondary" className="text-xs bg-orange-100">
                 {manipulatedRate}% del total
               </Badge>
             )}
@@ -213,7 +213,7 @@ const ImageAnalysisStats = () => {
         {/* Información del sistema */}
         <div className="mt-6 p-4 bg-muted/50 rounded-lg space-y-2">
           <div className="flex items-start gap-2">
-            <Camera className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5" />
+            <Camera className="h-5 w-5 text-purple-600 mt-0.5" />
             <div className="text-sm space-y-1">
               <p className="font-semibold">Sistema de Análisis Visual con IA</p>
               <p className="text-muted-foreground">

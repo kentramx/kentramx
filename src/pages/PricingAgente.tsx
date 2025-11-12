@@ -334,7 +334,7 @@ const PricingAgente = () => {
           </div>
 
           {/* Upsells */}
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800 mb-12">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 mb-12">
             <CardContent className="pt-6">
               <div className="text-center">
                 <h3 className="font-semibold text-2xl mb-4">

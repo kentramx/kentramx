@@ -377,12 +377,12 @@ export const ChangePlanDialog = ({
           <div className="space-y-6">
             {/* Admin Badge */}
             {userRole.isAdmin && (
-              <div className="p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+              <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
                 <div className="flex items-center gap-2">
                   <Badge className="bg-purple-600">
                     👑 Administrador
                   </Badge>
-                  <span className="text-sm text-purple-900 dark:text-purple-100">
+                  <span className="text-sm text-purple-900">
                     Puedes cambiar de plan sin restricciones
                   </span>
                 </div>
@@ -391,21 +391,21 @@ export const ChangePlanDialog = ({
 
             {/* Cooldown Warning */}
             {!cooldownInfo.canChange && cooldownInfo.daysRemaining && !userRole.isAdmin && (
-              <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-500 rounded-lg">
+              <div className="p-4 bg-amber-50 border-2 border-amber-500 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-amber-900 dark:text-amber-100">
+                    <p className="font-semibold text-amber-900">
                       Cambio de plan no disponible
                     </p>
-                    <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
+                    <p className="text-sm text-amber-800 mt-1">
                       Debes esperar <strong>{cooldownInfo.daysRemaining} día{cooldownInfo.daysRemaining > 1 ? 's' : ''}</strong> antes 
                       de cambiar de plan nuevamente. Próximo cambio disponible el{' '}
                       <strong>
                         {format(new Date(cooldownInfo.nextChangeDate!), "d 'de' MMMM, yyyy", { locale: es })}
                       </strong>.
                     </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
+                    <p className="text-xs text-amber-700 mt-2">
                       Esta restricción previene cambios frecuentes y abuso del sistema de prorrateo.
                     </p>
                   </div>
@@ -415,18 +415,18 @@ export const ChangePlanDialog = ({
 
             {/* Admin Override Notice */}
             {!cooldownInfo.canChange && cooldownInfo.daysRemaining && userRole.isAdmin && (
-              <div className="p-4 bg-purple-50 dark:bg-purple-950/20 border-2 border-purple-300 dark:border-purple-700 rounded-lg">
+              <div className="p-4 bg-purple-50 border-2 border-purple-300 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
+                  <AlertCircle className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-purple-900 dark:text-purple-100">
+                    <p className="font-semibold text-purple-900">
                       Período de cooldown detectado
                     </p>
-                    <p className="text-sm text-purple-800 dark:text-purple-200 mt-1">
+                    <p className="text-sm text-purple-800 mt-1">
                       El último cambio fue hace <strong>{30 - cooldownInfo.daysRemaining} días</strong>. 
                       Como administrador, puedes forzar el cambio ahora saltando el período de espera.
                     </p>
-                    <p className="text-xs text-purple-700 dark:text-purple-300 mt-2">
+                    <p className="text-xs text-purple-700 mt-2">
                       ⚠️ Este cambio quedará registrado en el log de auditoría.
                     </p>
                   </div>
@@ -546,7 +546,7 @@ export const ChangePlanDialog = ({
                         <div className="text-sm space-y-1">
                           {preview.isUpgrade && (
                             <>
-                              <p className="text-green-700 dark:text-green-400 font-medium">
+                              <p className="text-green-700 font-medium">
                                 ✓ Upgrade - Se cargará ahora
                               </p>
                               <p className="text-muted-foreground">
@@ -556,7 +556,7 @@ export const ChangePlanDialog = ({
                           )}
                           {preview.isDowngrade && (
                             <>
-                              <p className="text-blue-700 dark:text-blue-400 font-medium">
+                              <p className="text-blue-700 font-medium">
                                 ↓ Downgrade - Crédito aplicado
                               </p>
                               <p className="text-muted-foreground">
@@ -578,8 +578,8 @@ export const ChangePlanDialog = ({
 
             {/* Proration Notice */}
             {!selectedPlanId || selectedPlanId === currentPlanId ? (
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-900">
                   <strong>💡 Prorrateo automático:</strong> Si cambias a un plan más caro, solo pagarás 
                   la diferencia prorrateada por el tiempo restante. Si cambias a un plan más económico, 
                   el crédito se aplicará a tu próxima factura.

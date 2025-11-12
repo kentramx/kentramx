@@ -234,7 +234,7 @@ export const ChatWindow = ({
     return parts.map((part, index) => {
       if (part.toLowerCase() === query.toLowerCase()) {
         return (
-          <mark key={index} className="bg-yellow-300 dark:bg-yellow-600 rounded px-0.5">
+          <mark key={index} className="bg-yellow-300 rounded px-0.5">
             {part}
           </mark>
         );
@@ -594,7 +594,7 @@ export const ChatWindow = ({
                 </div>
               )}
               {pendingCount > 0 && (
-                <div className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 dark:bg-amber-950 px-2 py-1 rounded">
+                <div className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
                   <Clock className="w-3 h-3" />
                   <span>{pendingCount} pendiente{pendingCount > 1 ? 's' : ''}</span>
                 </div>

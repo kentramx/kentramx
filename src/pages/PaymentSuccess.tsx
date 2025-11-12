@@ -138,8 +138,8 @@ const PaymentSuccess = () => {
         <div className="max-w-3xl mx-auto">
           {/* Success Message */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/20 mb-6">
-              <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-500" />
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-6">
+              <CheckCircle2 className="h-12 w-12 text-green-600" />
             </div>
             <h1 className="text-4xl font-bold text-foreground mb-4">
               ¡Pago exitoso!
@@ -180,8 +180,8 @@ const PaymentSuccess = () => {
               </div>
 
               {/* Renewal Date */}
-              <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+              <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <Calendar className="h-5 w-5 text-blue-600" />
                 <div>
                   <p className="text-sm text-muted-foreground">Próxima renovación</p>
                   <p className="font-semibold">

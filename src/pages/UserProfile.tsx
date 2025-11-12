@@ -363,7 +363,7 @@ const UserProfile = () => {
                     {/* Email Verification Status Card */}
                     <Separator />
                     {user?.email_confirmed_at || user?.confirmed_at ? (
-                      <Card className="border-green-200 bg-green-50 dark:bg-green-950">
+                      <Card className="border-green-200 bg-green-50">
                         <CardHeader className="pb-3">
                           <CardTitle className="text-base flex items-center gap-2">
                             <CheckCircle className="h-5 w-5 text-green-600" />
@@ -377,7 +377,7 @@ const UserProfile = () => {
                         </CardContent>
                       </Card>
                     ) : (
-                      <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
+                      <Card className="border-yellow-500 bg-yellow-50">
                         <CardHeader className="pb-3">
                           <CardTitle className="text-base flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5 text-yellow-600" />

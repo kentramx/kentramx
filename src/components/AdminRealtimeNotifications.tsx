@@ -369,7 +369,7 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
                         {format(new Date(notification.timestamp), "d MMM yyyy, HH:mm", { locale: es })}
                       </p>
                       {notification.type === 'bypass' && (
-                        <Badge variant="outline" className="mt-2 border-purple-500 text-purple-700 dark:text-purple-400">
+                        <Badge variant="outline" className="mt-2 border-purple-500 text-purple-700">
                           <Shield className="h-3 w-3 mr-1" />
                           Bypass de Cooldown
                         </Badge>

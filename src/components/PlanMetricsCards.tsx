@@ -29,9 +29,9 @@ export const PlanMetricsCards = ({
       value: isUnlimited
         ? 'Sin límite'
         : `${activePropertiesCount} de ${propertiesLimit} usadas`,
-      bgColor: 'bg-slate-50 dark:bg-slate-900/20',
-      iconBg: 'bg-slate-200 dark:bg-slate-800',
-      iconColor: 'text-slate-700 dark:text-slate-300',
+      bgColor: 'bg-slate-50',
+      iconBg: 'bg-slate-200',
+      iconColor: 'text-slate-700',
     },
     {
       icon: Star,
@@ -39,17 +39,17 @@ export const PlanMetricsCards = ({
       value: featuredLimit === -1
         ? 'Sin límite'
         : `${featuredCount} de ${featuredLimit} usadas`,
-      bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-      iconBg: 'bg-purple-200 dark:bg-purple-800',
-      iconColor: 'text-purple-700 dark:text-purple-300',
+      bgColor: 'bg-purple-50',
+      iconBg: 'bg-purple-200',
+      iconColor: 'text-purple-700',
     },
     {
       icon: CheckCircle,
       label: 'Activas actualmente',
       value: `${activePropertiesCount} propiedades`,
-      bgColor: 'bg-green-50 dark:bg-green-900/20',
-      iconBg: 'bg-green-200 dark:bg-green-800',
-      iconColor: 'text-green-700 dark:text-green-300',
+      bgColor: 'bg-green-50',
+      iconBg: 'bg-green-200',
+      iconColor: 'text-green-700',
     },
     {
       icon: Calendar,
@@ -59,9 +59,9 @@ export const PlanMetricsCards = ({
           ? `${daysUntilRenewal} días`
           : 'Vencido'
         : 'No aplica',
-      bgColor: 'bg-orange-50 dark:bg-orange-900/20',
-      iconBg: 'bg-orange-200 dark:bg-orange-800',
-      iconColor: 'text-orange-700 dark:text-orange-300',
+      bgColor: 'bg-orange-50',
+      iconBg: 'bg-orange-200',
+      iconColor: 'text-orange-700',
     },
   ];
 

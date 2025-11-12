@@ -185,10 +185,10 @@ const PricingDesarrolladora = () => {
                 </div>
 
                 {/* Important Notice */}
-                <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+                <Card className="bg-amber-50 border-amber-200">
                   <CardContent className="pt-6">
                     <div className="flex items-start gap-3">
-                      <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+                      <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                       <p className="text-sm">
                         <strong>Importante:</strong> La pauta/publicidad la paga la desarrolladora 
                         (no está incluida en el precio del plan).
@@ -211,7 +211,7 @@ const PricingDesarrolladora = () => {
 
           {/* Additional Info Cards */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
-            <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+            <Card className="bg-blue-50 border-blue-200">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
                   <div className="bg-blue-500 text-white p-2 rounded-lg shrink-0">
@@ -230,7 +230,7 @@ const PricingDesarrolladora = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+            <Card className="bg-blue-50 border-blue-200">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
                   <div className="bg-blue-500 text-white p-2 rounded-lg shrink-0">

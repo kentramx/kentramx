@@ -226,9 +226,9 @@ const ImageAnalysisDetails = ({ propertyId }: ImageAnalysisDetailsProps) => {
 
         {/* Recomendación final */}
         {averageQuality >= 80 && !hasIssues && (
-          <Alert className="border-green-200 bg-green-50 dark:bg-green-950">
+          <Alert className="border-green-200 bg-green-50">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800 dark:text-green-200">
+            <AlertDescription className="text-green-800">
               <strong>Imágenes de excelente calidad.</strong> Cumplen con todos los estándares de la plataforma.
             </AlertDescription>
           </Alert>
