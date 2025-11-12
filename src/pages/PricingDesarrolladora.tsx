@@ -28,14 +28,14 @@ const PricingDesarrolladora = () => {
 
     try {
       // Verificar si ya tiene una suscripción activa
-      const { data: activeSub } = await supabase
+      const { data: activeSub, error: subError } = await supabase
         .from('user_subscriptions')
         .select('id, subscription_plans(name)')
         .eq('user_id', user.id)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
-      if (activeSub) {
+      if (activeSub && !subError) {
         toast.error('Ya tienes una suscripción activa. Ve a tu dashboard para gestionar tu plan.');
         navigate('/panel-desarrolladora');
         return;
