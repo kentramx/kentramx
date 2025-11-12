@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, Star, Bed, Bath, Car, Square } from "lucide-react";
+import { Heart, Star, Bed, Bath, Car, Square, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import propertyPlaceholder from "@/assets/property-placeholder.jpg";
 import { useTracking } from "@/hooks/useTracking";
@@ -110,6 +110,18 @@ const PropertyCard = ({
 
   const displayImages = images && images.length > 0 ? images : [{ url: imageUrl || propertyPlaceholder, position: 0 }];
 
+  const handlePrevImage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev === 0 ? displayImages.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev === displayImages.length - 1 ? 0 : prev + 1));
+  };
+
   return (
     <Card className={cn(
       "group overflow-hidden transition-all hover:shadow-lg",
@@ -124,6 +136,28 @@ const PropertyCard = ({
             decoding="async"
             className="h-full w-full object-cover transition-transform group-hover:scale-105"
           />
+          
+          {/* Navegación de imágenes - Solo visible si hay más de 1 imagen */}
+          {displayImages.length > 1 && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                onClick={handlePrevImage}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                onClick={handleNextImage}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </>
+          )}
           
           {/* Badge de Destacada */}
           {isFeatured && (
