@@ -9,7 +9,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Menu, Home, Search, Heart, PlusCircle, User, LogOut } from "lucide-react";
-import { ThemeToggle } from "./ThemeToggle";
 import { SocialLinks } from "./SocialLinks";
 
 export function MobileMenu() {
@@ -95,13 +94,6 @@ export function MobileMenu() {
               <Button className="w-full">Iniciar Sesión</Button>
             </Link>
           )}
-
-          <div className="pt-4 border-t border-border">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Tema</span>
-              <ThemeToggle />
-            </div>
-          </div>
 
           <div className="pt-4 border-t border-border">
             <div className="flex flex-col gap-2">

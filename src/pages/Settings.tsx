@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useTheme } from "next-themes";
 import { useUserRole } from "@/hooks/useUserRole";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -17,13 +16,9 @@ import { toast } from "sonner";
 import {
   Loader2,
   User,
-  Palette,
   Bell,
   Shield,
   Settings as SettingsIcon,
-  Moon,
-  Sun,
-  Laptop,
   ArrowLeft,
   Mail,
   Lock,
@@ -73,7 +68,6 @@ type PasswordFormData = z.infer<typeof passwordSchema>;
 const Settings = () => {
   const { user, updatePassword } = useAuth();
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -245,14 +239,10 @@ const Settings = () => {
           </div>
 
           <Tabs defaultValue="account" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="account">
                 <User className="mr-2 h-4 w-4" />
                 Cuenta
-              </TabsTrigger>
-              <TabsTrigger value="appearance">
-                <Palette className="mr-2 h-4 w-4" />
-                Apariencia
               </TabsTrigger>
               <TabsTrigger value="notifications">
                 <Bell className="mr-2 h-4 w-4" />
@@ -361,62 +351,6 @@ const Settings = () => {
                       </Button>
                     </form>
                   </Form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Appearance Tab */}
-            <TabsContent value="appearance" className="mt-6 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Tema de la Aplicación</CardTitle>
-                  <CardDescription>
-                    Elige cómo quieres ver la aplicación
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <RadioGroup value={theme} onValueChange={setTheme}>
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-3 rounded-lg border p-4 hover:bg-accent cursor-pointer">
-                        <RadioGroupItem value="light" id="light" />
-                        <Label htmlFor="light" className="flex items-center gap-3 cursor-pointer flex-1">
-                          <Sun className="h-5 w-5" />
-                          <div>
-                            <p className="font-medium">Modo Claro</p>
-                            <p className="text-sm text-muted-foreground">
-                              Interfaz clara y brillante
-                            </p>
-                          </div>
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-3 rounded-lg border p-4 hover:bg-accent cursor-pointer">
-                        <RadioGroupItem value="dark" id="dark" />
-                        <Label htmlFor="dark" className="flex items-center gap-3 cursor-pointer flex-1">
-                          <Moon className="h-5 w-5" />
-                          <div>
-                            <p className="font-medium">Modo Oscuro</p>
-                            <p className="text-sm text-muted-foreground">
-                              Interfaz oscura para reducir la fatiga visual
-                            </p>
-                          </div>
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-3 rounded-lg border p-4 hover:bg-accent cursor-pointer">
-                        <RadioGroupItem value="system" id="system" />
-                        <Label htmlFor="system" className="flex items-center gap-3 cursor-pointer flex-1">
-                          <Laptop className="h-5 w-5" />
-                          <div>
-                            <p className="font-medium">Sistema</p>
-                            <p className="text-sm text-muted-foreground">
-                              Usar la preferencia del sistema
-                            </p>
-                          </div>
-                        </Label>
-                      </div>
-                    </div>
-                  </RadioGroup>
                 </CardContent>
               </Card>
             </TabsContent>

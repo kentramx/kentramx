@@ -27,7 +27,6 @@ import { Badge } from "@/components/ui/badge";
 import { Home, Heart, User, PlusCircle, LogOut, Search, Building, GitCompare, Settings, DollarSign } from "lucide-react";
 import { MessageBadge } from "./MessageBadge";
 import { MobileMenu } from "./MobileMenu";
-import { ThemeToggle } from "./ThemeToggle";
 import { usePropertyCompare } from "@/hooks/usePropertyCompare";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { AdminRealtimeNotifications } from "./AdminRealtimeNotifications";
