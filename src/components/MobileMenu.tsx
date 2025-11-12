@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { Menu, Home, Search, Heart, PlusCircle, User, LogOut } from "lucide-react";
 import { SocialLinks } from "./SocialLinks";
+import kentraLogo from "@/assets/kentra-logo.png";
 
 export function MobileMenu() {
   const { user, signOut } = useAuth();
@@ -23,9 +24,8 @@ export function MobileMenu() {
       </SheetTrigger>
       <SheetContent side="right" className="w-72">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <Home className="h-5 w-5 text-primary" />
-            Kentra
+          <SheetTitle className="flex items-center justify-center">
+            <img src={kentraLogo} alt="Kentra" className="h-7" />
           </SheetTitle>
         </SheetHeader>
         

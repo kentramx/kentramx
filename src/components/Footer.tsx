@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { SocialLinks } from "./SocialLinks";
 import { NewsletterForm } from "./NewsletterForm";
+import kentraLogo from "@/assets/kentra-logo.png";
 
 export const Footer = () => {
   return (
@@ -9,7 +10,7 @@ export const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* Kentra Info */}
           <div>
-            <h3 className="text-xl font-bold mb-4 text-primary">Kentra</h3>
+            <img src={kentraLogo} alt="Kentra" className="h-8 mb-4" />
             <p className="text-sm text-muted-foreground mb-4">
               La plataforma líder en México para comprar, vender y rentar propiedades.
             </p>

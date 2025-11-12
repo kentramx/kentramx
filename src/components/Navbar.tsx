@@ -2,6 +2,7 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
+import kentraLogo from "@/assets/kentra-logo.png";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -125,9 +126,8 @@ const Navbar = () => {
           </div>
 
           {/* Center Logo - Always visible */}
-          <Link to="/" className="flex items-center space-x-2 shrink-0">
-            <Home className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold text-primary">Kentra</span>
+          <Link to="/" className="flex items-center shrink-0">
+            <img src={kentraLogo} alt="Kentra" className="h-8" />
           </Link>
 
           {/* Right Navigation - Desktop */}

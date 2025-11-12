@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { Home } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTracking } from '@/hooks/useTracking';
+import kentraLogo from '@/assets/kentra-logo.png';
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: 'Correo electrónico inválido' }),
@@ -361,7 +362,9 @@ const Auth = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl text-center">Kentra</CardTitle>
+            <div className="flex justify-center mb-4">
+              <img src={kentraLogo} alt="Kentra" className="h-10" />
+            </div>
             <CardDescription className="text-center">
               {view === 'forgot' && 'Recupera tu contraseña'}
               {view === 'reset' && 'Crea una nueva contraseña'}
