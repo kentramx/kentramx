@@ -142,7 +142,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email using Resend
     const emailResponse = await resend.emails.send({
-      from: "Kentra Admin <notificaciones@resend.dev>",
+      from: "Kentra Admin <noreply@updates.kentra.com.mx>",
       to: [adminEmail],
       subject: subject,
       html: html,

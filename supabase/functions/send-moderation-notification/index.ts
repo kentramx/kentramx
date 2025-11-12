@@ -198,7 +198,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("📮 Sending email via Resend...");
     const emailResponse = await resend.emails.send({
-      from: "Kentra <noreply@kentra.com.mx>",
+      from: "Kentra <noreply@updates.kentra.com.mx>",
       to: [agentEmail],
       subject: subject,
       html: html,

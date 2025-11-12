@@ -143,7 +143,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email using Resend
     const emailResponse = await resend.emails.send({
-      from: "Kentra <noreply@kentra.com.mx>",
+      from: "Kentra <noreply@updates.kentra.com.mx>",
       to: [userEmail],
       subject: "Tu tipo de cuenta en Kentra ha sido actualizado",
       html,

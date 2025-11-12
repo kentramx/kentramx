@@ -166,7 +166,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Send email via Resend
         const emailResponse = await resend.emails.send({
-          from: "Kentra <noreply@kentra.com.mx>",
+          from: "Kentra <noreply@updates.kentra.com.mx>",
           to: [agentEmail],
           subject: `⏰ Tu propiedad "${property.title}" expira en ${reminder.days} día${reminder.days > 1 ? 's' : ''}`,
           html: html,

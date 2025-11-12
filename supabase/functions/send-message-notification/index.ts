@@ -76,7 +76,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Enviar el email
     const emailResponse = await resend.emails.send({
-      from: "Notificaciones <onboarding@resend.dev>",
+      from: "Kentra <noreply@updates.kentra.com.mx>",
       to: [user.email],
       subject: emailSubject,
       html: `

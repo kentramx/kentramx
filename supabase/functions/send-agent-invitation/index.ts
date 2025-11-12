@@ -101,7 +101,7 @@ serve(async (req) => {
 
     // Enviar email de invitación
     const { error: emailError } = await resend.emails.send({
-      from: "Kentra <noreply@kentra.com.mx>",
+      from: "Kentra <noreply@updates.kentra.com.mx>",
       to: [email],
       subject: `${inviterName} te invita a unirte a ${agencyName} en Kentra`,
       html: `
