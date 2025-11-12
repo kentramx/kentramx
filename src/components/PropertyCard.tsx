@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, Star, MessageCircle, Phone, Eye, Bed, Bath, Car, Square, TrendingDown } from "lucide-react";
+import { Heart, Star, Bed, Bath, Car, Square } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import propertyPlaceholder from "@/assets/property-placeholder.jpg";
 import { useTracking } from "@/hooks/useTracking";
@@ -108,28 +108,11 @@ const PropertyCard = ({
     });
   };
 
-  const handleWhatsAppClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    window.open(`https://wa.me/?text=Me%20interesa%20esta%20propiedad:%20${window.location.origin}/propiedad/${id}`, '_blank');
-  };
-
-  const handleCallClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    toast({
-      title: "Contactar al agente",
-      description: "Verifica el teléfono del agente en la página de detalles",
-    });
-  };
-
   const displayImages = images && images.length > 0 ? images : [{ url: imageUrl || propertyPlaceholder, position: 0 }];
 
   return (
     <Card className={cn(
       "group overflow-hidden transition-all hover:shadow-lg",
-      listingType === 'renta' && "border-l-4 border-l-blue-500",
-      listingType === 'venta' && "border-l-4 border-l-green-500",
       isHovered && 'ring-2 ring-primary shadow-xl scale-[1.02]'
     )}>
       <Link to={`/propiedad/${id}`} onClick={handleCardClick}>
@@ -141,22 +124,6 @@ const PropertyCard = ({
             decoding="async"
             className="h-full w-full object-cover transition-transform group-hover:scale-105"
           />
-          
-          {/* Overlay con botones de acción al hover */}
-          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-10">
-            <Button size="sm" variant="secondary" onClick={handleWhatsAppClick}>
-              <MessageCircle className="h-4 w-4 mr-1" />
-              WhatsApp
-            </Button>
-            <Button size="sm" variant="secondary" onClick={handleCallClick}>
-              <Phone className="h-4 w-4 mr-1" />
-              Llamar
-            </Button>
-            <Button size="sm" variant="secondary">
-              <Eye className="h-4 w-4 mr-1" />
-              Ver
-            </Button>
-          </div>
           
           {/* Badge de Destacada */}
           {isFeatured && (
@@ -220,16 +187,11 @@ const PropertyCard = ({
 
       <CardContent className="p-5 space-y-3">
         <Link to={`/propiedad/${id}`} className="block" onClick={handleCardClick}>
-          {/* Precio y precio por m² */}
+          {/* Precio */}
           <div className="mb-3">
             <p className="text-2xl font-bold text-foreground">
               {formatPrice(price)}
             </p>
-            {sqft && (
-              <p className="text-xs text-muted-foreground">
-                {formatPrice(Math.round(price / sqft))}/m²
-              </p>
-            )}
           </div>
           
           {/* Características con iconos claros */}
