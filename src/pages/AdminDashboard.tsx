@@ -19,11 +19,7 @@ import { useAdminCheck } from '@/hooks/useAdminCheck';
 import QualityChecklist from '@/components/QualityChecklist';
 import PropertyDiff from '@/components/PropertyDiff';
 import AdminModerationMetrics from '@/components/AdminModerationMetrics';
-import AIPreModerationBadge from '@/components/AIPreModerationBadge';
 import AutoApprovalStats from '@/components/AutoApprovalStats';
-import ImageQualityBadge from '@/components/ImageQualityBadge';
-import ImageAnalysisDetails from '@/components/ImageAnalysisDetails';
-import ImageAnalysisStats from '@/components/ImageAnalysisStats';
 
 const REJECTION_REASONS = [
   { code: 'incomplete_info', label: 'Información incompleta' },
@@ -433,7 +429,6 @@ const AdminDashboard = () => {
         {/* Estadísticas de Auto-Aprobación Inteligente */}
         <div className="space-y-4 mb-6">
           <AutoApprovalStats />
-          <ImageAnalysisStats />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -488,18 +483,6 @@ const AdminDashboard = () => {
                                     Reenvío #{property.resubmission_count}
                                   </Badge>
                                 )}
-                                <AIPreModerationBadge 
-                                  score={property.ai_moderation_score}
-                                  status={property.ai_moderation_status}
-                                  notes={property.ai_moderation_notes}
-                                  moderatedAt={property.ai_moderated_at}
-                                />
-                                <ImageQualityBadge 
-                                  averageQuality={property.images_quality_avg}
-                                  analyzedCount={property.images_analyzed_count}
-                                  hasInappropriate={property.has_inappropriate_images}
-                                  hasManipulated={property.has_manipulated_images}
-                                />
                                 {property.duplicate_warning && (
                                   <Badge variant="destructive" className="animate-pulse">
                                     ⚠️ POSIBLE DUPLICADO
@@ -595,18 +578,6 @@ const AdminDashboard = () => {
                                     Reenvío #{property.resubmission_count}
                                   </Badge>
                                 )}
-                                <AIPreModerationBadge 
-                                  score={property.ai_moderation_score}
-                                  status={property.ai_moderation_status}
-                                  notes={property.ai_moderation_notes}
-                                  moderatedAt={property.ai_moderated_at}
-                                />
-                                <ImageQualityBadge 
-                                  averageQuality={property.images_quality_avg}
-                                  analyzedCount={property.images_analyzed_count}
-                                  hasInappropriate={property.has_inappropriate_images}
-                                  hasManipulated={property.has_manipulated_images}
-                                />
                               </div>
                               <p className="text-sm mt-2">
                                 <strong>Agente:</strong> {property.profiles?.name || 'N/A'}
@@ -692,18 +663,6 @@ const AdminDashboard = () => {
                                     Reenvío #{property.resubmission_count}
                                   </Badge>
                                 )}
-                                <AIPreModerationBadge 
-                                  score={property.ai_moderation_score}
-                                  status={property.ai_moderation_status}
-                                  notes={property.ai_moderation_notes}
-                                  moderatedAt={property.ai_moderated_at}
-                                />
-                                <ImageQualityBadge 
-                                  averageQuality={property.images_quality_avg}
-                                  analyzedCount={property.images_analyzed_count}
-                                  hasInappropriate={property.has_inappropriate_images}
-                                  hasManipulated={property.has_manipulated_images}
-                                />
                               </div>
                               <p className="text-sm mt-2">
                                 <strong>Agente:</strong> {property.profiles?.name || 'N/A'}
@@ -793,18 +752,6 @@ const AdminDashboard = () => {
                                     ⚠️ POSIBLE DUPLICADO
                                   </Badge>
                                 )}
-                                <AIPreModerationBadge 
-                                  score={property.ai_moderation_score}
-                                  status={property.ai_moderation_status}
-                                  notes={property.ai_moderation_notes}
-                                  moderatedAt={property.ai_moderated_at}
-                                />
-                                <ImageQualityBadge 
-                                  averageQuality={property.images_quality_avg}
-                                  analyzedCount={property.images_analyzed_count}
-                                  hasInappropriate={property.has_inappropriate_images}
-                                  hasManipulated={property.has_manipulated_images}
-                                />
                               </div>
                               <p className="text-sm mt-2">
                                 <strong>Agente:</strong> {property.profiles?.name || 'N/A'}
@@ -912,9 +859,6 @@ const AdminDashboard = () => {
               )}
 
               <QualityChecklist property={viewProperty} />
-              
-              {/* Análisis de Imágenes con IA */}
-              <ImageAnalysisDetails propertyId={viewProperty.id} />
               
               {viewProperty.resubmission_count > 0 && (
                 <PropertyDiff property={viewProperty} />

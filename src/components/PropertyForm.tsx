@@ -16,7 +16,6 @@ import { z } from 'zod';
 import { LocationSearch } from '@/components/LocationSearch';
 import { ColoniaAutocomplete } from '@/components/ColoniaAutocomplete';
 import { usePropertyTitleValidation } from '@/hooks/usePropertyTitleValidation';
-import { ImageAnalysisPreview } from '@/components/ImageAnalysisPreview';
 
 const propertySchema = z.object({
   description: z.string().trim().min(20, 'La descripción debe tener al menos 20 caracteres').max(2000, 'La descripción no puede exceder 2000 caracteres'),
@@ -74,7 +73,6 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
   const [amenities, setAmenities] = useState<Array<{ category: string; items: string[] }>>([]);
   const [newAmenityCategory, setNewAmenityCategory] = useState('');
   const [newAmenityItem, setNewAmenityItem] = useState<{ [key: string]: string }>({});
-  const [imageAnalysisResults, setImageAnalysisResults] = useState<any>(null);
 
   // Calcular título automático para validación en tiempo real
   const propertyTypeLabel = {
@@ -284,66 +282,6 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
       });
 
       let propertyId = property?.id;
-      let aiModerationData = null;
-
-      // 🤖 AI PRE-MODERATION para propiedades NUEVAS
-      if (!property) {
-        toast({
-          title: '🤖 Analizando con IA...',
-          description: 'Revisando la calidad de tu propiedad',
-        });
-
-        try {
-          const { data: aiResult, error: aiError } = await supabase.functions.invoke(
-            'ai-premoderate-property',
-            {
-              body: {
-                title: autoTitle,
-                description: validatedData.description,
-                price: validatedData.price,
-                type: validatedData.type,
-                listing_type: validatedData.listing_type,
-                address: validatedData.address,
-                municipality: validatedData.municipality,
-                state: validatedData.state,
-                bedrooms: validatedData.bedrooms,
-                bathrooms: validatedData.bathrooms,
-                sqft: validatedData.sqft,
-                amenities: validatedData.amenities,
-              }
-            }
-          );
-
-          if (aiError) {
-            console.error('AI pre-moderation error:', aiError);
-            // Continuar sin bloquear si falla la IA
-          } else if (aiResult?.success && aiResult?.result) {
-            aiModerationData = {
-              ai_moderation_score: aiResult.result.score,
-              ai_moderation_status: aiResult.result.status,
-              ai_moderation_notes: `${aiResult.result.notes}\n\nProblemas: ${aiResult.result.issues.join(', ')}\nSugerencias: ${aiResult.result.suggestions.join(', ')}`,
-              ai_moderated_at: new Date().toISOString(),
-            };
-
-            // Mostrar feedback al usuario
-            if (aiResult.result.status === 'reject') {
-              toast({
-                title: '⚠️ Atención',
-                description: `La IA detectó posibles problemas: ${aiResult.result.issues.join(', ')}. Tu propiedad será revisada por un moderador.`,
-                variant: 'destructive',
-              });
-            } else if (aiResult.result.status === 'pass' && aiResult.result.score >= 90) {
-              toast({
-                title: '✨ Excelente calidad',
-                description: `Tu propiedad obtuvo ${aiResult.result.score}/100. Alta probabilidad de aprobación rápida.`,
-              });
-            }
-          }
-        } catch (aiCatchError) {
-          console.error('AI invocation failed:', aiCatchError);
-          // Continuar sin bloquear
-        }
-      }
 
       // Preparar información de duplicado si se detectó
       const duplicateWarningData = titleValidation.isDuplicate ? {
@@ -377,7 +315,6 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
           duplicate_warning: titleValidation.isDuplicate,
           duplicate_warning_data: duplicateWarningData,
           requires_manual_review: titleValidation.isDuplicate,
-          ...aiModerationData, // Agregar datos de moderación IA si existen
         };
 
         const { data, error } = await supabase
@@ -422,91 +359,6 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
           
           if (imageData) {
             uploadedImages.push({ id: imageData.id, url: publicUrl });
-          }
-        }
-
-        // 🖼️ ANÁLISIS DE IMÁGENES CON IA (solo para propiedades nuevas)
-        if (!property && uploadedImages.length > 0) {
-          toast({
-            title: '🖼️ Analizando imágenes...',
-            description: 'Verificando calidad y contenido de las fotos',
-          });
-
-          try {
-            const { data: analysisResult, error: analysisError } = await supabase.functions.invoke(
-              'ai-analyze-images',
-              {
-                body: {
-                  images: uploadedImages.map(img => ({
-                    imageId: img.id,
-                    imageUrl: img.url,
-                    propertyId: propertyId,
-                  }))
-                }
-              }
-            );
-
-            if (analysisError) {
-              console.error('Image analysis error:', analysisError);
-            } else if (analysisResult?.success && analysisResult?.results) {
-              // Guardar resultados para preview
-              setImageAnalysisResults(analysisResult);
-
-              // Guardar resultados en image_ai_analysis
-              const analysisInserts = analysisResult.results.map((result: any) => ({
-                image_id: result.imageId,
-                property_id: propertyId,
-                quality_score: result.qualityScore,
-                resolution_score: result.resolutionScore,
-                lighting_score: result.lightingScore,
-                composition_score: result.compositionScore,
-                is_inappropriate: result.isInappropriate,
-                is_manipulated: result.isManipulated,
-                is_blurry: result.isBlurry,
-                is_dark: result.isDark,
-                detected_issues: result.detectedIssues,
-                ai_notes: result.aiNotes,
-              }));
-
-              const { error: insertError } = await supabase
-                .from('image_ai_analysis')
-                .insert(analysisInserts);
-
-              if (insertError) {
-                console.error('Error saving image analysis:', insertError);
-              } else {
-                // Marcar para revisión manual si hay problemas
-                const summary = analysisResult.summary;
-                if (summary.hasIssues) {
-                  await supabase
-                    .from('properties')
-                    .update({ requires_manual_review: true })
-                    .eq('id', propertyId);
-                }
-
-                // Mostrar feedback sobre calidad de imágenes
-                if (summary.inappropriateCount > 0 || summary.manipulatedCount > 0) {
-                  toast({
-                    title: '⚠️ Problemas detectados en imágenes',
-                    description: `Se detectaron problemas en las imágenes. Tu propiedad será revisada manualmente por un moderador.`,
-                    variant: 'destructive',
-                  });
-                } else if (summary.lowQualityCount > 0) {
-                  toast({
-                    title: '📸 Mejorar calidad de imágenes',
-                    description: `${summary.lowQualityCount} imágenes tienen baja calidad. Un moderador las revisará.`,
-                  });
-                } else if (summary.averageQuality >= 80) {
-                  toast({
-                    title: '✨ Excelente calidad de imágenes',
-                    description: `Tus fotos tienen una calidad promedio de ${summary.averageQuality}/100. ¡Bien hecho!`,
-                  });
-                }
-              }
-            }
-          } catch (analysisCatchError) {
-            console.error('Image analysis invocation failed:', analysisCatchError);
-            // Continuar sin bloquear
           }
         }
       }
@@ -1060,14 +912,6 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
           </div>
         </div>
       </div>
-
-      {/* Preview de análisis de imágenes */}
-      {imageAnalysisResults && (
-        <ImageAnalysisPreview 
-          summary={imageAnalysisResults.summary}
-          results={imageAnalysisResults.results}
-        />
-      )}
 
       <div className="flex gap-4">
         <Button type="submit" disabled={loading} className="flex-1">
