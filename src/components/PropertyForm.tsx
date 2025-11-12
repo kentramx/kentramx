@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, X, Plus, Trash2, Video, AlertTriangle } from 'lucide-react';
+import { Loader2, Upload, X, Plus, Trash2, Video, AlertTriangle, FileText } from 'lucide-react';
 import { z } from 'zod';
 import { LocationSearch } from '@/components/LocationSearch';
 
@@ -609,6 +609,38 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
             placeholder="Ej: Providencia"
             required
           />
+          {(formData.type && (formData.colonia || formData.municipality)) && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 border border-border/50 animate-fade-in">
+              <FileText className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+              <div className="space-y-1 flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Título generado automáticamente:
+                </p>
+                <p className="text-sm font-semibold text-foreground truncate">
+                  {(() => {
+                    const propertyTypeLabel = {
+                      casa: 'Casa',
+                      departamento: 'Departamento',
+                      terreno: 'Terreno',
+                      oficina: 'Oficina',
+                      local: 'Local Comercial',
+                      bodega: 'Bodega',
+                      edificio: 'Edificio',
+                      rancho: 'Rancho'
+                    }[formData.type] || 'Propiedad';
+                    const locationText = formData.colonia || formData.municipality;
+                    return `${propertyTypeLabel} en ${locationText}`;
+                  })()}
+                </p>
+                {!formData.colonia && formData.municipality && (
+                  <p className="text-xs text-amber-600 dark:text-amber-500 flex items-center gap-1">
+                    <span className="text-lg leading-none">⚠️</span>
+                    Agrega una colonia para un título más específico
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {showResidentialFields && (
