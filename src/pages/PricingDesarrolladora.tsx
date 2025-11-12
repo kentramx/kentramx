@@ -1,3 +1,8 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,18 +10,58 @@ import { Badge } from '@/components/ui/badge';
 import { Check, Building2, MapPin, BarChart3, Users, FileText, Award } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
 
 const PricingDesarrolladora = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
 
   const scrollToPlans = () => {
     document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSelectPlan = (planName: string) => {
-    // TODO: Implementar lógica de checkout cuando se conecte con Stripe
-    console.log('Plan seleccionado:', planName, 'Ciclo:', billingCycle);
+  const handleSelectPlan = async (planName: string) => {
+    if (!user) {
+      navigate('/auth?redirect=/pricing-desarrolladora');
+      return;
+    }
+
+    try {
+      // Buscar el plan en la base de datos
+      const { data: plan, error: planError } = await supabase
+        .from('subscription_plans')
+        .select('id, name')
+        .eq('name', planName)
+        .single();
+
+      if (planError || !plan) {
+        toast.error("Plan no encontrado");
+        console.error('Error al buscar plan:', planError);
+        return;
+      }
+
+      // Llamar al edge function para crear la sesión de checkout
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: {
+          planId: plan.id,
+          billingCycle: billingCycle === 'monthly' ? 'monthly' : 'yearly',
+          successUrl: `${window.location.origin}/payment-success?plan=${planName}`,
+          cancelUrl: `${window.location.origin}/pricing-desarrolladora`,
+        },
+      });
+
+      if (error) throw error;
+
+      // Redirigir a Stripe Checkout
+      if (data?.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        toast.error("Error al generar la sesión de pago");
+      }
+    } catch (error) {
+      console.error('Error al crear checkout:', error);
+      toast.error("Error al procesar el pago. Intenta de nuevo.");
+    }
   };
 
   return (

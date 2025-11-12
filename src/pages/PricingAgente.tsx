@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,13 +22,48 @@ const PricingAgente = () => {
     }
   };
 
-  const handleSelectPlan = (planName: string) => {
+  const handleSelectPlan = async (planName: string) => {
     if (!user) {
       navigate('/auth?redirect=/pricing-agente');
       return;
     }
-    // TODO: Implementar checkout
-    console.log('Plan seleccionado:', planName);
+
+    try {
+      // Buscar el plan en la base de datos
+      const { data: plan, error: planError } = await supabase
+        .from('subscription_plans')
+        .select('id, name')
+        .eq('name', planName)
+        .single();
+
+      if (planError || !plan) {
+        toast.error("Plan no encontrado");
+        console.error('Error al buscar plan:', planError);
+        return;
+      }
+
+      // Llamar al edge function para crear la sesión de checkout
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: {
+          planId: plan.id,
+          billingCycle: pricingPeriod === 'monthly' ? 'monthly' : 'yearly',
+          successUrl: `${window.location.origin}/payment-success?plan=${planName}`,
+          cancelUrl: `${window.location.origin}/pricing-agente`,
+        },
+      });
+
+      if (error) throw error;
+
+      // Redirigir a Stripe Checkout
+      if (data?.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        toast.error("Error al generar la sesión de pago");
+      }
+    } catch (error) {
+      console.error('Error al crear checkout:', error);
+      toast.error("Error al procesar el pago. Intenta de nuevo.");
+    }
   };
 
   const plans = [
