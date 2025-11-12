@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, Home as HomeIcon, Building2, TreePine, ArrowRight, SlidersHorizontal, Map, Briefcase, Store, Warehouse, Building, Tractor } from "lucide-react";
+import { Search, MapPin, Home as HomeIcon, Building2, TreePine, ArrowRight, SlidersHorizontal, Briefcase, Store, Warehouse, Building, Tractor } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import heroBackground from "@/assets/hero-background.jpg";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
@@ -13,8 +13,6 @@ import PropertyCard from "@/components/PropertyCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { NewsletterForm } from "@/components/NewsletterForm";
-import HomeMap from "@/components/HomeMap";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -87,15 +85,6 @@ const Home = () => {
     setSearchQuery(location.address);
   };
 
-  const handleMapLocationSelect = (location: {
-    address: string;
-    municipality: string;
-    state: string;
-    lat: number;
-    lng: number;
-  }) => {
-    handlePlaceSelect(location);
-  };
   const handleSearch = () => {
     const params = new URLSearchParams();
     
@@ -383,32 +372,13 @@ const Home = () => {
                 </CollapsibleContent>
               </Collapsible>
 
-              {/* Tabs para búsqueda por texto o mapa */}
-              <Tabs defaultValue="map" className="w-full">
-                <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-white/95">
-                  <TabsTrigger value="search" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    <Search className="mr-2 h-4 w-4" />
-                    Buscar
-                  </TabsTrigger>
-                  <TabsTrigger value="map" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    <Map className="mr-2 h-4 w-4" />
-                    Mapa
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="search" className="mt-4">
-                  <SearchBar
-                    onPlaceSelect={handlePlaceSelect}
-                    onSearch={handleSearch}
-                    placeholder="Ciudad, colonia o código postal"
-                    defaultValue={searchQuery}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="map" className="mt-4">
-                  <HomeMap height="450px" />
-                </TabsContent>
-              </Tabs>
+              {/* Barra de búsqueda */}
+              <SearchBar
+                onPlaceSelect={handlePlaceSelect}
+                onSearch={handleSearch}
+                placeholder="Ciudad, colonia o código postal"
+                defaultValue={searchQuery}
+              />
             </div>
           </div>
         </div>
