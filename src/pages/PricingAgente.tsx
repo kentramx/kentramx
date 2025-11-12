@@ -22,18 +22,21 @@ const PricingAgente = () => {
     }
   };
 
-  const handleSelectPlan = async (planName: string) => {
+  const handleSelectPlan = async (planSlug: string) => {
     if (!user) {
       navigate('/auth?redirect=/pricing-agente');
       return;
     }
 
     try {
+      // Construir el nombre completo del plan para la búsqueda en DB
+      const fullPlanName = `agente_${planSlug}`;
+      
       // Buscar el plan en la base de datos
       const { data: plan, error: planError } = await supabase
         .from('subscription_plans')
         .select('id, name')
-        .eq('name', planName)
+        .eq('name', fullPlanName)
         .single();
 
       if (planError || !plan) {
@@ -47,7 +50,7 @@ const PricingAgente = () => {
         body: {
           planId: plan.id,
           billingCycle: pricingPeriod === 'monthly' ? 'monthly' : 'yearly',
-          successUrl: `${window.location.origin}/payment-success?plan=${planName}`,
+          successUrl: `${window.location.origin}/payment-success?plan=${fullPlanName}`,
           cancelUrl: `${window.location.origin}/pricing-agente`,
         },
       });
