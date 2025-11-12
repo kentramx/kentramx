@@ -41,3 +41,6 @@ verify_jwt = true
 
 [functions.verify-phone-code]
 verify_jwt = true
+
+[functions.verify-whatsapp-number]
+verify_jwt = true

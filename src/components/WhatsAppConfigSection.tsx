@@ -13,6 +13,7 @@ import { Phone, Info, Globe } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { whatsappSchema, type WhatsAppFormData, formatPhoneDisplay, formatWhatsAppNumber } from "@/utils/whatsapp";
 import { COUNTRY_CODES, detectCountryFromNumber, extractLocalNumber, getCountryByCode } from "@/data/countryCodes";
+import { WhatsAppVerification } from "@/components/WhatsAppVerification";
 
 interface WhatsAppConfigSectionProps {
   userId: string;
@@ -20,10 +21,13 @@ interface WhatsAppConfigSectionProps {
     whatsapp_number?: string | null;
     whatsapp_enabled?: boolean | null;
     whatsapp_business_hours?: string | null;
+    whatsapp_verified?: boolean;
+    whatsapp_verified_at?: string | null;
   };
+  onDataRefresh?: () => void;
 }
 
-export const WhatsAppConfigSection = ({ userId, initialData }: WhatsAppConfigSectionProps) => {
+export const WhatsAppConfigSection = ({ userId, initialData, onDataRefresh }: WhatsAppConfigSectionProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Detectar país del número inicial
@@ -221,6 +225,20 @@ export const WhatsAppConfigSection = ({ userId, initialData }: WhatsAppConfigSec
             {isLoading ? "Guardando..." : "Guardar Configuración"}
           </Button>
         </form>
+
+        {/* WhatsApp Verification Section */}
+        <div className="mt-6 pt-6 border-t">
+          <WhatsAppVerification
+            whatsappNumber={initialData?.whatsapp_number || null}
+            whatsappVerified={initialData?.whatsapp_verified || false}
+            whatsappVerifiedAt={initialData?.whatsapp_verified_at}
+            onVerificationComplete={() => {
+              if (onDataRefresh) {
+                onDataRefresh();
+              }
+            }}
+          />
+        </div>
       </CardContent>
     </Card>
   );

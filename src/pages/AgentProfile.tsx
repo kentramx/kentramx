@@ -71,7 +71,7 @@ const AgentProfile = () => {
       // Fetch agent profile
       const { data: agentData, error: agentError } = await supabase
         .from("profiles")
-        .select("*, phone_verified")
+        .select("*, phone_verified, whatsapp_verified")
         .eq("id", id)
         .single();
 
@@ -194,6 +194,12 @@ const AgentProfile = () => {
                     <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200">
                       <Smartphone className="h-3 w-3" />
                       Teléfono Verificado
+                    </Badge>
+                  )}
+                  {agent.whatsapp_verified && (
+                    <Badge variant="outline" className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200">
+                      <MessageCircle className="h-3 w-3" />
+                      WhatsApp Verificado
                     </Badge>
                   )}
                 </div>

@@ -29,6 +29,7 @@ interface AgentData {
   total_reviews: number;
   is_verified: boolean;
   phone_verified?: boolean;
+  whatsapp_verified?: boolean;
   logo_url?: string;
   plan_name: string | null;
   plan_level: string | null;
@@ -86,6 +87,7 @@ const DirectorioAgentes = () => {
           name,
           is_verified,
           phone_verified,
+          whatsapp_verified,
           properties(id, status, state, municipality),
           agent_reviews:agent_reviews!agent_id(rating)
         `);
@@ -179,6 +181,7 @@ const DirectorioAgentes = () => {
           total_reviews: reviews.length,
           is_verified: profile.is_verified || false,
           phone_verified: profile.phone_verified || false,
+          whatsapp_verified: profile.whatsapp_verified || false,
           plan_name: subscription?.subscription_plans?.display_name || "Sin Plan",
           plan_level: subscription?.subscription_plans?.name || null,
           badges,
@@ -316,6 +319,11 @@ const DirectorioAgentes = () => {
         // 3. Badges (20%) - Reconocimientos y logros
         const badgeScore = getBadgeScore(agent.badges);
         score += Math.min(20, badgeScore / 2); // Normalizar a escala de 20
+        
+        // Bonus: WhatsApp verificado (+3 puntos)
+        if (agent.whatsapp_verified) {
+          score += 3;
+        }
         
         // 4. Active Properties (15%) - Inventario y actividad
         if (agent.active_properties >= 20) score += 15;

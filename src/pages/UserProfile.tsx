@@ -566,8 +566,11 @@ const UserProfile = () => {
                 initialData={{
                   whatsapp_number: profile?.whatsapp_number,
                   whatsapp_enabled: profile?.whatsapp_enabled,
-                  whatsapp_business_hours: profile?.whatsapp_business_hours
+                  whatsapp_business_hours: profile?.whatsapp_business_hours,
+                  whatsapp_verified: profile?.whatsapp_verified,
+                  whatsapp_verified_at: profile?.whatsapp_verified_at
                 }}
+                onDataRefresh={fetchUserData}
               />
             </div>
           </TabsContent>

@@ -800,6 +800,8 @@ export type Database = {
           whatsapp_business_hours: string | null
           whatsapp_enabled: boolean | null
           whatsapp_number: string | null
+          whatsapp_verified: boolean | null
+          whatsapp_verified_at: string | null
         }
         Insert: {
           created_at?: string | null
@@ -816,6 +818,8 @@ export type Database = {
           whatsapp_business_hours?: string | null
           whatsapp_enabled?: boolean | null
           whatsapp_number?: string | null
+          whatsapp_verified?: boolean | null
+          whatsapp_verified_at?: string | null
         }
         Update: {
           created_at?: string | null
@@ -832,6 +836,8 @@ export type Database = {
           whatsapp_business_hours?: string | null
           whatsapp_enabled?: boolean | null
           whatsapp_number?: string | null
+          whatsapp_verified?: boolean | null
+          whatsapp_verified_at?: string | null
         }
         Relationships: []
       }
