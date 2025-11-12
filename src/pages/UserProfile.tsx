@@ -19,6 +19,7 @@ import { TwoFactorAuth } from "@/components/TwoFactorAuth";
 import { PhoneVerification } from "@/components/PhoneVerification";
 import { IdentityVerification } from "@/components/IdentityVerification";
 import { AvatarUpload } from "@/components/AvatarUpload";
+import { ProfileCompleteness } from "@/components/ProfileCompleteness";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -329,6 +330,22 @@ const UserProfile = () => {
           </TabsList>
 
           <TabsContent value="profile" className="mt-6">
+            {/* Profile Completeness Indicator */}
+            <div className="mb-6">
+              <ProfileCompleteness 
+                profile={{
+                  avatar_url: profile?.avatar_url,
+                  bio: profile?.bio,
+                  city: profile?.city,
+                  state: profile?.state,
+                  is_verified: profile?.is_verified,
+                  phone_verified: profile?.phone_verified,
+                  whatsapp_verified: profile?.whatsapp_verified,
+                }}
+                emailVerified={!!user?.email_confirmed_at}
+              />
+            </div>
+
             <Card>
               <CardHeader>
                 <CardTitle>Información Personal</CardTitle>
