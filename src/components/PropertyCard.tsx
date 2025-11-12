@@ -16,6 +16,7 @@ interface PropertyCardProps {
   type: string;
   listingType?: string;
   address: string;
+  colonia?: string;
   municipality: string;
   state: string;
   bedrooms?: number;
@@ -39,6 +40,7 @@ const PropertyCard = ({
   type,
   listingType = 'venta',
   address,
+  colonia,
   municipality,
   state,
   bedrooms,
@@ -258,12 +260,12 @@ const PropertyCard = ({
 
           {/* Título y tipo */}
           <p className="font-medium line-clamp-1 mb-2">
-            {getTypeLabel()} en {municipality}
+            {getTypeLabel()} en {colonia || municipality}
           </p>
 
           {/* Dirección */}
           <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
-            {address}, {state}
+            {municipality}, {state}
           </p>
           
           {/* Días en el mercado */}

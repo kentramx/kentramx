@@ -20,6 +20,7 @@ const propertySchema = z.object({
   type: z.enum(['casa', 'departamento', 'terreno', 'oficina', 'local', 'bodega', 'edificio', 'rancho']),
   listing_type: z.enum(['venta', 'renta']),
   address: z.string().trim().min(5, 'La dirección debe tener al menos 5 caracteres').max(300, 'La dirección no puede exceder 300 caracteres'),
+  colonia: z.string().trim().min(2, 'La colonia es requerida').max(100, 'La colonia no puede exceder 100 caracteres'),
   municipality: z.string().trim().min(2, 'El municipio es requerido').max(100, 'El municipio no puede exceder 100 caracteres'),
   state: z.string().trim().min(2, 'El estado es requerido').max(100, 'El estado no puede exceder 100 caracteres'),
   bedrooms: z.number().optional(),
@@ -53,6 +54,7 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
     type: 'casa',
     listing_type: 'venta',
     address: '',
+    colonia: '',
     municipality: '',
     state: '',
     bedrooms: '',
@@ -93,6 +95,7 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
         type: property.type || 'casa',
         listing_type: property.listing_type || 'venta',
         address: property.address || '',
+        colonia: property.colonia || '',
         municipality: property.municipality || '',
         state: property.state || '',
         bedrooms: property.bedrooms?.toString() || '',
@@ -592,6 +595,17 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
                 lng: location.lng,
               });
             }}
+          />
+        </div>
+
+        <div className="space-y-2 md:col-span-2">
+          <Label htmlFor="colonia">Colonia*</Label>
+          <Input
+            id="colonia"
+            value={formData.colonia}
+            onChange={(e) => setFormData({ ...formData, colonia: e.target.value })}
+            placeholder="Ej: Providencia"
+            required
           />
         </div>
 
