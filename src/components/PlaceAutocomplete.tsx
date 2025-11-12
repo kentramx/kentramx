@@ -134,14 +134,8 @@ export const PlaceAutocomplete = ({
 
             onPlaceSelectRef.current(location);
             
-            // Validar si se capturó la colonia
-            if (!colonia) {
-              toast({
-                title: '⚠️ Colonia no detectada',
-                description: 'Por favor ingresa la colonia manualmente',
-                variant: 'destructive',
-              });
-            } else {
+            // Solo mostrar toast de éxito si se capturó todo
+            if (colonia && municipality && state) {
               toast({
                 title: '📍 Ubicación detectada',
                 description: `${colonia}, ${municipality}`,
@@ -222,14 +216,8 @@ export const PlaceAutocomplete = ({
 
         onPlaceSelectRef.current?.(location);
         
-        // Validar si se capturó la colonia
-        if (!location.colonia) {
-          toast({
-            title: '⚠️ Colonia no detectada',
-            description: 'Por favor ingresa la colonia manualmente en el campo siguiente',
-            variant: 'destructive',
-          });
-        } else {
+        // Solo mostrar toast de éxito si todo está completo
+        if (location.colonia && location.municipality && location.state) {
           toast({ 
             title: '📍 Ubicación seleccionada', 
             description: `${location.colonia}, ${location.municipality}` 
@@ -387,14 +375,8 @@ export const PlaceAutocomplete = ({
 
       onPlaceSelectRef.current?.(location);
       
-      // Validar si se capturó la colonia
-      if (!location.colonia) {
-        toast({
-          title: '⚠️ Colonia no detectada',
-          description: 'Por favor ingresa la colonia manualmente en el campo siguiente',
-          variant: 'destructive',
-        });
-      } else {
+      // Solo mostrar toast de éxito si todo está completo
+      if (location.colonia && location.municipality && location.state) {
         toast({ 
           title: '📍 Ubicación seleccionada', 
           description: `${location.colonia}, ${location.municipality}` 
