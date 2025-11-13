@@ -21,6 +21,7 @@ import { PlanMetricsCards } from '@/components/PlanMetricsCards';
 import { EmailVerificationRequired } from '@/components/EmailVerificationRequired';
 import { QuickUpsells } from '@/components/QuickUpsells';
 import { AgentUpsells } from '@/components/AgentUpsells';
+import { SubscriptionStatusBadge } from '@/components/SubscriptionStatusBadge';
 
 const AgentDashboard = () => {
   const { user, loading: authLoading, isEmailVerified } = useAuth();
@@ -362,12 +363,22 @@ const AgentDashboard = () => {
         />
 
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            Panel de {userRole === 'agency' ? 'Inmobiliaria' : 'Agente'}
-          </h1>
-          <p className="text-muted-foreground">
-            Gestiona tus propiedades en venta o renta
-          </p>
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <h1 className="text-4xl font-bold text-foreground mb-2">
+                Panel de {userRole === 'agency' ? 'Inmobiliaria' : 'Agente'}
+              </h1>
+              <p className="text-muted-foreground">
+                Gestiona tus propiedades en venta o renta
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <SubscriptionStatusBadge 
+                status={subscriptionInfo?.status || null}
+                currentPeriodEnd={subscriptionInfo?.current_period_end}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Plan Status Card */}
