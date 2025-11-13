@@ -79,6 +79,15 @@ Deno.serve(async (req) => {
           session.subscription as string
         );
 
+        // Validate timestamps before converting
+        const periodStart = subscription.current_period_start 
+          ? new Date(subscription.current_period_start * 1000).toISOString()
+          : new Date().toISOString();
+        
+        const periodEnd = subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000).toISOString()
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // Default: 30 días
+
         // Create or update subscription record
         const { error: subError } = await supabaseClient
           .from('user_subscriptions')
@@ -89,8 +98,8 @@ Deno.serve(async (req) => {
             stripe_customer_id: subscription.customer as string,
             status: 'active',
             billing_cycle: billingCycle || 'monthly',
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            current_period_start: periodStart,
+            current_period_end: periodEnd,
             cancel_at_period_end: false,
           }, {
             onConflict: 'user_id',
@@ -108,6 +117,12 @@ Deno.serve(async (req) => {
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
         console.log('Payment succeeded:', invoice.id);
+
+        // Verificar que exista subscription en el invoice
+        if (!invoice.subscription) {
+          console.error('No subscription found in invoice');
+          break;
+        }
 
         const subscription = await stripe.subscriptions.retrieve(
           invoice.subscription as string
@@ -164,13 +179,22 @@ Deno.serve(async (req) => {
           break;
         }
 
+        // Validate timestamps before converting
+        const periodStart = subscription.current_period_start 
+          ? new Date(subscription.current_period_start * 1000).toISOString()
+          : new Date().toISOString();
+        
+        const periodEnd = subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000).toISOString()
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
         // Update subscription status
         const { error: updateError } = await supabaseClient
           .from('user_subscriptions')
           .update({
             status: subscription.status,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            current_period_start: periodStart,
+            current_period_end: periodEnd,
             cancel_at_period_end: subscription.cancel_at_period_end,
           })
           .eq('stripe_subscription_id', subscription.id);
