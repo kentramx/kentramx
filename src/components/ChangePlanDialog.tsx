@@ -231,7 +231,20 @@ export const ChangePlanDialog = ({
         },
       });
 
-      if (response.error) throw response.error;
+      if (response.error) {
+        // Handle subscription canceled error
+        if (response.error.message?.includes('SUBSCRIPTION_CANCELED') || 
+            response.error.context?.body?.error === 'SUBSCRIPTION_CANCELED') {
+          toast({
+            title: 'Suscripción Cancelada',
+            description: 'Tu suscripción está cancelada. Debes reactivar tu suscripción antes de cambiar de plan.',
+            variant: 'destructive',
+          });
+          onOpenChange(false);
+          return;
+        }
+        throw response.error;
+      }
 
       setPreview(response.data);
     } catch (error) {
@@ -301,6 +314,18 @@ export const ChangePlanDialog = ({
       });
 
       if (response.error) {
+        // Handle subscription canceled error
+        if (response.error.message?.includes('SUBSCRIPTION_CANCELED') || 
+            response.error.context?.body?.error === 'SUBSCRIPTION_CANCELED') {
+          toast({
+            title: 'Suscripción Cancelada',
+            description: 'Tu suscripción está cancelada. Debes reactivar tu suscripción antes de cambiar de plan.',
+            variant: 'destructive',
+          });
+          onOpenChange(false);
+          return;
+        }
+        
         // Handle cooldown error specifically
         if (response.error.message?.includes('COOLDOWN_ACTIVE') || 
             response.error.context?.body?.error === 'COOLDOWN_ACTIVE') {

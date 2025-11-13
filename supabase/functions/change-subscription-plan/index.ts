@@ -229,6 +229,35 @@ Deno.serve(async (req) => {
       billingCycleAnchor: stripeSubscription.billing_cycle_anchor,
     });
 
+    // Validate subscription status - cannot change canceled subscriptions
+    if (stripeSubscription.status === 'canceled' || stripeSubscription.status === 'incomplete_expired') {
+      console.error('Cannot change plan for canceled subscription:', {
+        status: stripeSubscription.status,
+        subscriptionId: stripeSubscription.id,
+      });
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'SUBSCRIPTION_CANCELED',
+          message: 'Tu suscripción está cancelada. Debes reactivar tu suscripción antes de cambiar de plan.',
+          status: stripeSubscription.status,
+          details: 'No se pueden cambiar planes de suscripciones canceladas o expiradas.'
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Warn if subscription is in problematic state
+    if (stripeSubscription.status === 'incomplete' || stripeSubscription.status === 'unpaid') {
+      console.warn('Subscription in problematic state:', {
+        status: stripeSubscription.status,
+        subscriptionId: stripeSubscription.id,
+      });
+    }
+
     // If preview only, calculate proration without applying changes
     if (previewOnly) {
       // ⏰ DIAGNOSIS - Time Calculations
