@@ -203,6 +203,14 @@ const Navbar = () => {
                           </Link>
                         )}
                         {isSuperAdmin && (
+                          <Link to="/admin/system-health">
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                              Salud del Sistema
+                            </DropdownMenuItem>
+                          </Link>
+                        )}
+                        {isSuperAdmin && (
                           <>
                             <Link to="/admin/kpis">
                               <DropdownMenuItem className="cursor-pointer">
@@ -373,6 +381,14 @@ const Navbar = () => {
                               <DropdownMenuItem className="cursor-pointer">
                                 <Badge className="mr-2 bg-purple-600">Admin</Badge>
                                 Panel Financiero
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+                          {isSuperAdmin && (
+                            <Link to="/admin/system-health">
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                Salud del Sistema
                               </DropdownMenuItem>
                             </Link>
                           )}

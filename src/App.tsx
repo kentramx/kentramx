@@ -37,6 +37,7 @@ import AdminNotificationSettings from "./pages/AdminNotificationSettings";
 import AdminSubscriptionChanges from "./pages/AdminSubscriptionChanges";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminFinancial from "./pages/AdminFinancial";
+import AdminSystemHealth from "./pages/AdminSystemHealth";
 import AdminKPIs from "./pages/AdminKPIs";
 import AdminMarketing from "./pages/AdminMarketing";
 import AdminUpsells from "./pages/AdminUpsells";
@@ -96,6 +97,7 @@ const AppContent = () => {
               <Route path="/unirse-equipo" element={<UnirseEquipo />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/financiero" element={<AdminFinancial />} />
+              <Route path="/admin/system-health" element={<AdminSystemHealth />} />
               <Route path="/admin/kpis" element={<AdminKPIs />} />
               <Route path="/admin/marketing" element={<AdminMarketing />} />
               <Route path="/admin/roles" element={<AdminRoles />} />
