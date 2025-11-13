@@ -174,6 +174,56 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        console.log('Payment failed:', invoice.id);
+
+        if (!invoice.subscription) {
+          console.error('No subscription found in failed invoice');
+          break;
+        }
+
+        const subscription = await stripe.subscriptions.retrieve(
+          invoice.subscription as string
+        );
+
+        const userId = subscription.metadata?.user_id;
+
+        if (!userId) {
+          console.error('Missing user_id in subscription metadata');
+          break;
+        }
+
+        // Get subscription record with plan details
+        const { data: subRecord } = await supabaseClient
+          .from('user_subscriptions')
+          .select('*, subscription_plans(*)')
+          .eq('stripe_subscription_id', subscription.id)
+          .single();
+
+        if (subRecord) {
+          // Update to past_due status
+          await supabaseClient
+            .from('user_subscriptions')
+            .update({ status: 'past_due' })
+            .eq('id', subRecord.id);
+
+          // Send failure notification
+          await supabaseClient.functions.invoke('send-subscription-notification', {
+            body: {
+              userId: subRecord.user_id,
+              type: 'payment_failed',
+              metadata: {
+                planName: subRecord.subscription_plans.display_name,
+                amount: (invoice.amount_due / 100).toFixed(2),
+              },
+            },
+          });
+        }
+
+        break;
+      }
+
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
         console.log('Payment succeeded:', invoice.id);
@@ -195,19 +245,32 @@ Deno.serve(async (req) => {
           break;
         }
 
-        // Get subscription record
+        // Get subscription record with plan details
         const { data: subRecord } = await supabaseClient
           .from('user_subscriptions')
-          .select('id')
+          .select('*, subscription_plans(*)')
           .eq('stripe_subscription_id', subscription.id)
           .single();
+
+        if (!subRecord) {
+          console.error('Subscription record not found');
+          break;
+        }
+
+        // Reactivate if was past_due
+        if (subRecord.status === 'past_due') {
+          await supabaseClient
+            .from('user_subscriptions')
+            .update({ status: 'active' })
+            .eq('id', subRecord.id);
+        }
 
         // Record payment
         const { error: paymentError } = await supabaseClient
           .from('payment_history')
           .insert({
             user_id: userId,
-            subscription_id: subRecord?.id,
+            subscription_id: subRecord.id,
             stripe_payment_intent_id: invoice.payment_intent as string,
             amount: invoice.amount_paid / 100, // Convert from cents
             currency: invoice.currency.toUpperCase(),
@@ -224,6 +287,23 @@ Deno.serve(async (req) => {
         } else {
           console.log('Payment recorded successfully');
         }
+
+        // Send renewal success notification
+        await supabaseClient.functions.invoke('send-subscription-notification', {
+          body: {
+            userId: subRecord.user_id,
+            type: 'renewal_success',
+            metadata: {
+              planName: subRecord.subscription_plans.display_name,
+              amount: (invoice.amount_paid / 100).toFixed(2),
+              nextBillingDate: new Date(invoice.period_end * 1000).toLocaleDateString('es-MX', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              }),
+            },
+          },
+        });
 
         break;
       }

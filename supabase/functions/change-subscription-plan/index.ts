@@ -152,6 +152,48 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Validate downgrade limits - check if user will exceed property limits
+    const currentPlan = currentSub.subscription_plans;
+    const currentPrice = currentSub.billing_cycle === 'yearly'
+      ? Number(currentPlan.price_yearly)
+      : Number(currentPlan.price_monthly);
+    
+    const newPrice = billingCycle === 'yearly'
+      ? Number(newPlan.price_yearly)
+      : Number(newPlan.price_monthly);
+
+    const isDowngrade = newPrice < currentPrice;
+
+    if (isDowngrade && !previewOnly) {
+      // Check active properties count
+      const { count: activePropertiesCount, error: countError } = await supabaseClient
+        .from('properties')
+        .select('*', { count: 'exact', head: true })
+        .eq('agent_id', user.id)
+        .eq('status', 'activa');
+
+      const newPlanLimit = newPlan.features?.max_properties || 0;
+
+      if (countError) {
+        console.error('Error counting properties:', countError);
+      } else if (activePropertiesCount && activePropertiesCount > newPlanLimit) {
+        const excess = activePropertiesCount - newPlanLimit;
+        return new Response(
+          JSON.stringify({
+            error: 'EXCEEDS_PROPERTY_LIMIT',
+            message: `Tienes ${activePropertiesCount} propiedades activas, pero el plan ${newPlan.display_name} solo permite ${newPlanLimit}. Debes pausar o eliminar ${excess} ${excess === 1 ? 'propiedad' : 'propiedades'} antes de hacer el downgrade.`,
+            currentCount: activePropertiesCount,
+            newLimit: newPlanLimit,
+            excess,
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
       apiVersion: '2023-10-16',
@@ -254,15 +296,7 @@ Deno.serve(async (req) => {
     }
 
     // Log the subscription change
-    const currentPlan = currentSub.subscription_plans;
-    const currentPrice = currentSub.billing_cycle === 'yearly'
-      ? Number(currentPlan.price_yearly)
-      : Number(currentPlan.price_monthly);
-    
-    const newPrice = billingCycle === 'yearly'
-      ? Number(newPlan.price_yearly)
-      : Number(newPlan.price_monthly);
-
+    // Use previously calculated values instead of redeclaring
     const changeType = newPrice > currentPrice ? 'upgrade' : newPrice < currentPrice ? 'downgrade' : 'cycle_change';
 
     const { error: logError } = await supabaseClient
@@ -287,6 +321,49 @@ Deno.serve(async (req) => {
     }
 
     console.log('Subscription updated successfully');
+
+    // If downgrade, handle property limits
+    if (changeType === 'downgrade') {
+      const newPlanLimit = newPlan.features?.max_properties || 0;
+      
+      // Pause excess properties
+      const { data: activeProperties } = await supabaseClient
+        .from('properties')
+        .select('id')
+        .eq('agent_id', user.id)
+        .eq('status', 'activa')
+        .order('created_at', { ascending: false })
+        .range(newPlanLimit, 999);
+
+      let propertiesRemoved = 0;
+      if (activeProperties && activeProperties.length > 0) {
+        const propertyIds = activeProperties.map((p) => p.id);
+        await supabaseClient
+          .from('properties')
+          .update({ status: 'pausada' })
+          .in('id', propertyIds);
+        
+        propertiesRemoved = propertyIds.length;
+      }
+
+      // Send downgrade confirmation
+      await supabaseClient.functions.invoke('send-subscription-notification', {
+        body: {
+          userId: user.id,
+          type: 'downgrade_confirmed',
+          metadata: {
+            previousPlan: currentPlan.display_name,
+            newPlan: newPlan.display_name,
+            effectiveDate: new Date().toLocaleDateString('es-MX', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            }),
+            propertiesRemoved,
+          },
+        },
+      });
+    }
 
     return new Response(
       JSON.stringify({ 

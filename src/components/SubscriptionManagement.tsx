@@ -140,13 +140,9 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
   const handleCancelSubscription = async () => {
     setCanceling(true);
     try {
-      // TODO: Llamar a edge function o API de Stripe para cancelar
-      // Por ahora, solo actualizamos el flag local
-      const { error } = await supabase
-        .from('user_subscriptions')
-        .update({ cancel_at_period_end: true })
-        .eq('user_id', userId)
-        .eq('status', 'active');
+      const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+        method: 'POST',
+      });
 
       if (error) throw error;
 
@@ -166,6 +162,31 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
       });
     } finally {
       setCanceling(false);
+    }
+  };
+
+  const handleReactivateSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('reactivate-subscription', {
+        method: 'POST',
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Suscripción reactivada',
+        description: 'Tu suscripción continuará renovándose normalmente',
+      });
+
+      // Recargar datos
+      await fetchSubscriptionData();
+    } catch (error) {
+      console.error('Error reactivating subscription:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo reactivar la suscripción. Intenta de nuevo.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -304,7 +325,7 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
+                <div className="flex-1">
                   <p className="font-semibold text-amber-900">
                     Cancelación programada
                   </p>
@@ -313,6 +334,14 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
                     Podrás seguir usando el servicio hasta el{' '}
                     {format(new Date(subscription.current_period_end), "d 'de' MMMM, yyyy", { locale: es })}.
                   </p>
+                  <Button
+                    onClick={handleReactivateSubscription}
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 border-amber-600 text-amber-900 hover:bg-amber-100"
+                  >
+                    Reactivar Suscripción
+                  </Button>
                 </div>
               </div>
             </div>
