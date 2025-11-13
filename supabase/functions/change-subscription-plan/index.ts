@@ -346,6 +346,61 @@ Deno.serve(async (req) => {
         propertiesRemoved = propertyIds.length;
       }
 
+      // NUEVO: Manejar límite de destacadas al downgrade
+      const newFeaturedLimit = newPlan.features?.featured_listings || 0;
+      let featuredRemoved = 0;
+
+      // Contar destacadas activas actuales
+      const { data: activeFeatured, count: featuredCount } = await supabaseClient
+        .from('featured_properties')
+        .select('*', { count: 'exact' })
+        .eq('agent_id', user.id)
+        .eq('status', 'active')
+        .gt('end_date', new Date().toISOString());
+
+      // Si excede el nuevo límite, desactivar las más antiguas
+      if (featuredCount && featuredCount > newFeaturedLimit) {
+        const excessCount = featuredCount - newFeaturedLimit;
+        
+        // Obtener las destacadas más antiguas para desactivar
+        const { data: featuredToRemove } = await supabaseClient
+          .from('featured_properties')
+          .select('id')
+          .eq('agent_id', user.id)
+          .eq('status', 'active')
+          .gt('end_date', new Date().toISOString())
+          .order('start_date', { ascending: true })
+          .limit(excessCount);
+
+        if (featuredToRemove && featuredToRemove.length > 0) {
+          const featuredIds = featuredToRemove.map(f => f.id);
+          
+          await supabaseClient
+            .from('featured_properties')
+            .update({ status: 'removed_downgrade' })
+            .in('id', featuredIds);
+          
+          featuredRemoved = featuredIds.length;
+          console.log(`Removed ${featuredRemoved} excess featured properties on downgrade`);
+        }
+      }
+
+      // Actualizar contador mensual de destacadas si excede el nuevo límite
+      const { data: currentSub } = await supabaseClient
+        .from('user_subscriptions')
+        .select('featured_used_this_month')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+
+      if (currentSub && currentSub.featured_used_this_month > newFeaturedLimit) {
+        await supabaseClient
+          .from('user_subscriptions')
+          .update({ featured_used_this_month: newFeaturedLimit })
+          .eq('user_id', user.id)
+          .eq('status', 'active');
+      }
+
       // Send downgrade confirmation
       await supabaseClient.functions.invoke('send-subscription-notification', {
         body: {
@@ -360,6 +415,8 @@ Deno.serve(async (req) => {
               day: 'numeric',
             }),
             propertiesRemoved,
+            featuredRemoved,
+            newFeaturedLimit,
           },
         },
       });

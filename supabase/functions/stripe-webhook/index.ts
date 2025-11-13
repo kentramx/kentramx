@@ -202,10 +202,17 @@ Deno.serve(async (req) => {
           .single();
 
         if (subRecord) {
-          // Update to past_due status
+          // Update to past_due status with grace period tracking
           await supabaseClient
             .from('user_subscriptions')
-            .update({ status: 'past_due' })
+            .update({ 
+              status: 'past_due',
+              metadata: {
+                ...subRecord.metadata,
+                first_payment_failed_at: subRecord.metadata?.first_payment_failed_at || new Date().toISOString(),
+                payment_failure_count: (subRecord.metadata?.payment_failure_count || 0) + 1,
+              }
+            })
             .eq('id', subRecord.id);
 
           // Send failure notification
@@ -216,6 +223,7 @@ Deno.serve(async (req) => {
               metadata: {
                 planName: subRecord.subscription_plans.display_name,
                 amount: (invoice.amount_due / 100).toFixed(2),
+                graceDaysRemaining: 7,
               },
             },
           });

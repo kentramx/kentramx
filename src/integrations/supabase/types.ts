@@ -1410,6 +1410,36 @@ export type Database = {
         }
         Relationships: []
       }
+      trial_tracking: {
+        Row: {
+          created_at: string
+          device_fingerprint: string | null
+          id: string
+          ip_address: string | null
+          trial_started_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_fingerprint?: string | null
+          id?: string
+          ip_address?: string | null
+          trial_started_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_fingerprint?: string | null
+          id?: string
+          ip_address?: string | null
+          trial_started_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       upsells: {
         Row: {
           badge: string | null
@@ -1687,6 +1717,14 @@ export type Database = {
           featured_limit: number
           featured_used: number
           plan_name: string
+          reason: string
+        }[]
+      }
+      can_get_trial: {
+        Args: { p_device_fingerprint?: string; p_ip_address?: string }
+        Returns: {
+          can_trial: boolean
+          previous_trials: number
           reason: string
         }[]
       }

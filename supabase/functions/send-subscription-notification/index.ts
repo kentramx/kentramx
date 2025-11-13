@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface NotificationRequest {
   userId: string;
-  type: 'renewal_success' | 'payment_failed' | 'subscription_canceled' | 'subscription_expiring' | 'downgrade_confirmed';
+  type: 'renewal_success' | 'payment_failed' | 'subscription_canceled' | 'subscription_expiring' | 'downgrade_confirmed' | 'trial_expired' | 'trial_started' | 'subscription_suspended';
   metadata?: Record<string, any>;
 }
 
@@ -72,8 +72,9 @@ Deno.serve(async (req) => {
           <p>No pudimos procesar tu pago de suscripción.</p>
           <p><strong>Plan:</strong> ${metadata.planName}</p>
           <p><strong>Monto:</strong> $${metadata.amount} MXN</p>
-          <p>Por favor, actualiza tu método de pago en tu panel de control para continuar disfrutando de nuestros servicios.</p>
-          <p><a href="https://kentra.com.mx/perfil?tab=subscription">Actualizar método de pago</a></p>
+          <p><strong>⏰ Tienes ${metadata.graceDaysRemaining} días para actualizar tu método de pago</strong> antes de que tu cuenta sea suspendida.</p>
+          <p>Por favor, actualiza tu método de pago para continuar disfrutando de nuestros servicios sin interrupciones.</p>
+          <p><a href="https://kentra.com.mx/perfil?tab=subscription" style="background-color: #DC2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 16px;">Actualizar método de pago</a></p>
         `;
         break;
 
@@ -109,8 +110,87 @@ Deno.serve(async (req) => {
           <p><strong>Plan anterior:</strong> ${metadata.previousPlan}</p>
           <p><strong>Nuevo plan:</strong> ${metadata.newPlan}</p>
           <p><strong>Efectivo desde:</strong> ${metadata.effectiveDate}</p>
-          ${metadata.propertiesRemoved > 0 ? `<p><strong>⚠️ Importante:</strong> ${metadata.propertiesRemoved} propiedades fueron pausadas porque exceden el límite de tu nuevo plan.</p>` : ''}
+          ${metadata.propertiesRemoved > 0 ? `<p><strong>⚠️ Propiedades pausadas:</strong> ${metadata.propertiesRemoved} propiedades fueron pausadas porque exceden el límite de tu nuevo plan.</p>` : ''}
+          ${metadata.featuredRemoved > 0 ? `<p><strong>⚠️ Destacadas removidas:</strong> ${metadata.featuredRemoved} propiedades destacadas fueron desactivadas. Tu nuevo plan incluye hasta ${metadata.newFeaturedLimit} destacadas por mes.</p>` : ''}
           <p><a href="https://kentra.com.mx/panel-agente">Ir a mi panel</a></p>
+        `;
+        break;
+
+      case 'trial_started':
+        subject = '🎉 ¡Bienvenido a tu prueba gratuita de 14 días! - Kentra';
+        htmlContent = `
+          <h1>¡Tu período de prueba ha comenzado! 🎉</h1>
+          <p>Hola ${userName},</p>
+          <p>¡Bienvenido a Kentra! Tu período de prueba gratuito de <strong>14 días</strong> comienza ahora.</p>
+          
+          <h2>¿Qué incluye tu prueba?</h2>
+          <ul>
+            <li>✅ Publica hasta <strong>1 propiedad</strong></li>
+            <li>✅ Aparece en búsquedas de compradores</li>
+            <li>✅ Recibe leads directos a tu WhatsApp</li>
+            <li>✅ Crea tu perfil profesional</li>
+          </ul>
+          
+          <p><strong>⏰ Tu prueba expira el:</strong> ${metadata.expiryDate}</p>
+          
+          <p>Después de estos ${metadata.trialDays} días, podrás elegir el plan perfecto para hacer crecer tu negocio inmobiliario.</p>
+          
+          <p><a href="https://kentra.com.mx/panel-agente?tab=form" style="background-color: #7C3AED; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 16px;">Publicar mi primera propiedad</a></p>
+          
+          <p>Si tienes alguna pregunta, estamos aquí para ayudarte.</p>
+          <p>¡Mucho éxito! 🚀<br>Equipo Kentra</p>
+        `;
+        break;
+
+      case 'trial_expired':
+        subject = '⏰ Tu período de prueba ha finalizado - Kentra';
+        htmlContent = `
+          <h1>Tu período de prueba de 14 días ha finalizado</h1>
+          <p>Hola ${userName},</p>
+          <p>Tu período de prueba gratuito en Kentra ha expirado el ${metadata.expiredDate}.</p>
+          <p><strong>¿Qué significa esto?</strong></p>
+          <ul>
+            <li>Tus propiedades han sido pausadas temporalmente</li>
+            <li>Ya no aparecerán en las búsquedas hasta que actives un plan</li>
+            <li>Puedes reactivarlas en cualquier momento contratando un plan</li>
+          </ul>
+          <p><strong>🎯 Elige el plan perfecto para ti:</strong></p>
+          <ul>
+            <li><strong>Plan Start ($249/mes):</strong> Hasta 4 propiedades activas</li>
+            <li><strong>Plan Pro ($599/mes):</strong> Hasta 12 propiedades + 2 destacadas/mes</li>
+            <li><strong>Plan Elite ($999/mes):</strong> Hasta 30 propiedades + 6 destacadas/mes</li>
+          </ul>
+          <p><a href="https://kentra.com.mx/pricing-agente" style="background-color: #7C3AED; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 16px;">Ver Planes y Precios</a></p>
+          <p>Si tienes alguna pregunta, estamos aquí para ayudarte.</p>
+          <p>Saludos,<br>Equipo Kentra</p>
+        `;
+        break;
+
+      case 'subscription_suspended':
+        subject = '🚨 Suscripción suspendida por pago fallido - Kentra';
+        htmlContent = `
+          <h1>Tu suscripción ha sido suspendida</h1>
+          <p>Hola ${userName},</p>
+          <p>Después de ${metadata.daysPastDue} días sin recibir el pago, tu suscripción al plan <strong>${metadata.planName}</strong> ha sido suspendida.</p>
+          
+          <p><strong>⚠️ ¿Qué significa esto?</strong></p>
+          <ul>
+            <li>Todas tus propiedades han sido pausadas</li>
+            <li>Ya no aparecen en búsquedas</li>
+            <li>No puedes publicar nuevas propiedades</li>
+          </ul>
+          
+          <p><strong>✅ ¿Cómo reactivar tu cuenta?</strong></p>
+          <ol>
+            <li>Actualiza tu método de pago</li>
+            <li>Tu suscripción se reactivará automáticamente</li>
+            <li>Tus propiedades volverán a estar visibles</li>
+          </ol>
+          
+          <p><a href="https://kentra.com.mx/perfil?tab=subscription" style="background-color: #DC2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 16px;">Actualizar Método de Pago</a></p>
+          
+          <p>Si tienes alguna pregunta sobre tu cuenta, contáctanos.</p>
+          <p>Equipo Kentra</p>
         `;
         break;
 
