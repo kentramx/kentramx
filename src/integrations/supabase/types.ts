@@ -1678,12 +1678,12 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: {
           current_period_end: string
+          display_name: string
           featured_limit: number
           featured_used: number
           features: Json
           has_subscription: boolean
-          plan_display_name: string
-          plan_name: string
+          name: string
           properties_limit: number
           properties_used: number
           status: string
