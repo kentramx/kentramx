@@ -97,6 +97,15 @@ const PaymentSuccess = () => {
     }
   };
 
+  const handlePublishProperty = () => {
+    // Determinar a qué dashboard redirigir según el plan
+    if (subscription?.planName.includes('inmobiliaria')) {
+      navigate('/panel-inmobiliaria?tab=inventory');
+    } else {
+      navigate('/panel-agente?tab=form');
+    }
+  };
+
   const handleGoToDashboard = () => {
     // Determinar a qué dashboard redirigir según el plan
     if (subscription?.planName.includes('inmobiliaria')) {
@@ -297,30 +306,24 @@ const PaymentSuccess = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
-              onClick={handleGoToDashboard}
+              onClick={handlePublishProperty}
               className="gap-2"
             >
-              Ir a mi Dashboard
+              Publicar mi primera propiedad
               <ArrowRight className="h-5 w-5" />
             </Button>
             <Button
               size="lg"
               variant="outline"
-              onClick={() => navigate('/')}
+              onClick={handleGoToDashboard}
             >
-              Volver al inicio
+              Ver mi panel
             </Button>
           </div>
 
-          {/* Additional Info */}
-          <Card className="mt-8 bg-muted/50">
-            <CardContent className="pt-6">
-              <p className="text-sm text-center text-muted-foreground">
-                Recibirás un correo de confirmación con los detalles de tu suscripción.
-                Si tienes alguna pregunta, no dudes en contactarnos.
-              </p>
-            </CardContent>
-          </Card>
+            <p className="text-xs text-center text-muted-foreground mt-4">
+              Recibirás un correo de confirmación con los detalles de tu suscripción.
+            </p>
         </div>
       </main>
     </div>
