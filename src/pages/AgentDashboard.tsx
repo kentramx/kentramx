@@ -524,6 +524,28 @@ const AgentDashboard = () => {
           </Alert>
         )}
 
+        {/* Alerta de plan discontinuado */}
+        {subscriptionInfo && (!subscriptionInfo.name || subscriptionInfo.properties_limit === 0) && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-5 w-5" />
+            <AlertTitle className="text-lg font-semibold">
+              Plan Discontinuado
+            </AlertTitle>
+            <AlertDescription className="mt-2 flex items-center justify-between gap-4 flex-wrap">
+              <div className="text-sm flex-1 min-w-[300px]">
+                Tu plan actual ya no está disponible. Por favor contrata un nuevo plan para continuar publicando propiedades y acceder a todas las funcionalidades.
+              </div>
+              <Button 
+                onClick={handleGoToPricing} 
+                size="lg" 
+                className="bg-primary hover:bg-primary/90 shadow-lg"
+              >
+                Ver Planes Disponibles
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Plan Status Card */}
         <div className="mb-6">
           <PlanStatusCard subscriptionInfo={subscriptionInfo} userRole={userRole} />

@@ -3,17 +3,36 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
+import { useUserRole } from '@/hooks/useUserRole';
+import { Loader2 } from 'lucide-react';
 
 const Publicar = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { userRole, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
+    if (authLoading || roleLoading) return;
+
     // Si no está autenticado, redirigir a login con redirect
-    if (!loading && !user) {
+    if (!user) {
       navigate('/auth?redirect=/publicar');
+      return;
     }
-  }, [user, loading, navigate]);
+
+    // Si ya tiene rol asignado, redirigir a su dashboard correspondiente
+    if (userRole === 'agent') {
+      navigate('/panel-agente');
+      return;
+    }
+
+    if (userRole === 'agency') {
+      navigate('/panel-inmobiliaria');
+      return;
+    }
+
+    // Si es buyer, super_admin, o moderator, mostrar opciones de selección
+  }, [user, userRole, authLoading, roleLoading, navigate]);
 
   const options = [
     {
@@ -36,8 +55,13 @@ const Publicar = () => {
     },
   ];
 
-  if (loading) {
-    return null;
+  // Mostrar loader mientras se verifica autenticación y rol
+  if (authLoading || roleLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (

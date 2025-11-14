@@ -119,6 +119,17 @@ export async function validatePropertyLimits(
 
     const subscription = subInfo[0] as SubscriptionInfo;
 
+    // IMPORTANTE: Verificar si el plan fue eliminado
+    if (!subscription.name || subscription.properties_limit === 0) {
+      return {
+        canPublish: false,
+        reason: 'Tu plan actual ya no está disponible. Por favor contrata un nuevo plan para continuar publicando.',
+        currentCount: subscription.properties_used || 0,
+        maxAllowed: 0,
+        availableSlots: 0,
+      };
+    }
+
     // Validar estado de suscripción
     if (subscription.status === 'past_due') {
       return {

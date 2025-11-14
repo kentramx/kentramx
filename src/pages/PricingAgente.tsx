@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { createStripeCheckoutSession, checkActiveSubscription, getPlanBySlug } from '@/utils/stripeCheckout';
+import { createStripeCheckoutSession, getPlanBySlug } from '@/utils/stripeCheckout';
+import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import { CouponInput } from '@/components/CouponInput';
 import { SEOHead } from '@/components/SEOHead';
@@ -32,12 +33,24 @@ const PricingAgente = () => {
     }
 
     try {
-      // Verificar suscripción activa usando función centralizada
-      const { hasActive } = await checkActiveSubscription(user.id);
-      if (hasActive) {
-        toast.error('Ya tienes una suscripción activa. Ve a tu dashboard para gestionar tu plan.');
-        navigate('/panel-agente');
-        return;
+      // Verificar suscripción activa
+      const { data: activeSub } = await supabase
+        .from('user_subscriptions')
+        .select('*, subscription_plans(name)')
+        .eq('user_id', user.id)
+        .in('status', ['active', 'trialing'])
+        .maybeSingle();
+
+      if (activeSub) {
+        // Si tiene cancelación programada, permitir contratar nuevo plan
+        if (activeSub.cancel_at_period_end) {
+          toast.info('Tu suscripción actual está programada para cancelarse. Este nuevo plan la reemplazará.');
+        } else {
+          // Si tiene suscripción activa sin cancelación, redirigir al dashboard
+          toast.error('Ya tienes una suscripción activa. Ve a tu dashboard para cambiar de plan.');
+          navigate('/panel-agente');
+          return;
+        }
       }
 
       // Obtener plan usando función centralizada
