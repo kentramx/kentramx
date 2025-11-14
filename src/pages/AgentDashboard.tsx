@@ -586,7 +586,11 @@ const AgentDashboard = () => {
               </TabsList>
 
               <TabsContent value="list" className="mt-6">
-                <AgentPropertyList onEdit={handleEditProperty} subscriptionInfo={subscriptionInfo} />
+                <AgentPropertyList 
+                  onEdit={handleEditProperty} 
+                  subscriptionInfo={subscriptionInfo}
+                  onCreateProperty={handleNewProperty}
+                />
               </TabsContent>
 
               <TabsContent value="analytics" className="mt-6">

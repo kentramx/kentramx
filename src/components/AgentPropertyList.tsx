@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { RefreshCw, Star } from 'lucide-react';
 import { FeaturePropertyDialog } from './FeaturePropertyDialog';
+import { EmptyStatePublish } from './EmptyStatePublish';
 import {
   Table,
   TableBody,
@@ -35,9 +36,10 @@ interface AgentPropertyListProps {
   onEdit: (property: any) => void;
   subscriptionInfo?: any;
   agentId?: string;
+  onCreateProperty?: () => void;
 }
 
-const AgentPropertyList = ({ onEdit, subscriptionInfo, agentId }: AgentPropertyListProps) => {
+const AgentPropertyList = ({ onEdit, subscriptionInfo, agentId, onCreateProperty }: AgentPropertyListProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -226,14 +228,10 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo, agentId }: AgentPropertyL
 
   if (properties.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground mb-4">
-          No tienes propiedades registradas
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Crea tu primera propiedad usando el formulario
-        </p>
-      </div>
+      <EmptyStatePublish 
+        onCreateProperty={onCreateProperty || (() => {})}
+        role="agent"
+      />
     );
   }
 

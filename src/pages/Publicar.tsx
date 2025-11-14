@@ -1,27 +1,44 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 
 const Publicar = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    // Si no está autenticado, redirigir a login con redirect
+    if (!loading && !user) {
+      navigate('/auth?redirect=/publicar');
+    }
+  }, [user, loading, navigate]);
 
   const options = [
     {
       title: 'Soy Agente',
       description: 'Publico propiedades como agente independiente.',
       path: '/pricing-agente',
+      role: 'agent',
     },
     {
       title: 'Soy Inmobiliaria',
       description: 'Trabajo con un equipo de agentes y un inventario compartido.',
       path: '/pricing-inmobiliaria',
+      role: 'agency',
     },
     {
       title: 'Soy Desarrolladora',
       description: 'Promociono proyectos completos (torres, fraccionamientos).',
       path: '/pricing-desarrolladora',
+      role: 'agency',
     },
   ];
+
+  if (loading) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-white">
