@@ -74,7 +74,7 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
 
   const fetchSubscriptionData = async () => {
     try {
-      // Obtener suscripción actual (active, canceled, or expired)
+      // Obtener suscripción activa únicamente
       const { data: subData, error: subError } = await supabase
         .from('user_subscriptions')
         .select(`
@@ -93,7 +93,7 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
           )
         `)
         .eq('user_id', userId)
-        .in('status', ['active', 'canceled', 'expired', 'past_due'])
+        .in('status', ['active', 'trialing'])
         .order('current_period_end', { ascending: false })
         .limit(1)
         .maybeSingle();

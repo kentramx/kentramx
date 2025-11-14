@@ -104,22 +104,23 @@ export const ChangePlanDialog = ({
         .from('user_subscriptions')
         .select('status')
         .eq('user_id', userId)
-        .single();
+        .in('status', ['active', 'trialing'])
+        .order('current_period_end', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (error) throw error;
       
       if (data) {
         setSubscriptionStatus(data.status);
-        
-        // If subscription is canceled or expired, close dialog and show message
-        if (data.status === 'canceled' || data.status === 'expired') {
-          toast({
-            title: 'Suscripción no activa',
-            description: `Tu suscripción está ${data.status === 'canceled' ? 'cancelada' : 'expirada'}. Debes reactivar tu suscripción antes de cambiar de plan.`,
-            variant: 'destructive',
-          });
-          onOpenChange(false);
-        }
+      } else {
+        // No hay suscripción activa - cerrar diálogo
+        toast({
+          title: 'No hay suscripción activa',
+          description: 'Debes contratar un plan primero.',
+          variant: 'destructive',
+        });
+        onOpenChange(false);
       }
     } catch (error) {
       console.error('Error checking subscription status:', error);
@@ -265,17 +266,6 @@ export const ChangePlanDialog = ({
       if (response.error || (response.data && !response.data.success && response.data.error)) {
         const errorBody = response.error?.context?.body || response.data;
         
-        // Handle SUBSCRIPTION_CANCELED explicitly
-        if (errorBody?.error === 'SUBSCRIPTION_CANCELED') {
-          toast({
-            title: 'Suscripción no activa',
-            description: errorBody?.message || 'Tu suscripción está cancelada. Debes reactivar tu suscripción antes de cambiar de plan.',
-            variant: 'destructive',
-          });
-          onOpenChange(false);
-          return;
-        }
-        
         // Handle COOLDOWN_ACTIVE explicitly
         if (errorBody?.error === 'COOLDOWN_ACTIVE') {
           toast({
@@ -374,17 +364,6 @@ export const ChangePlanDialog = ({
       // Check for errors in response or success: false
       if (response.error || (response.data && !response.data.success && response.data.error)) {
         const errorBody = response.error?.context?.body || response.data;
-        
-        // Handle SUBSCRIPTION_CANCELED explicitly
-        if (errorBody?.error === 'SUBSCRIPTION_CANCELED') {
-          toast({
-            title: 'Suscripción no activa',
-            description: errorBody?.message || 'Tu suscripción está cancelada. Debes reactivar tu suscripción antes de cambiar de plan.',
-            variant: 'destructive',
-          });
-          onOpenChange(false);
-          return;
-        }
         
         // Handle COOLDOWN_ACTIVE explicitly
         if (errorBody?.error === 'COOLDOWN_ACTIVE') {
