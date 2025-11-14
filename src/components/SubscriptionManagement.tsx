@@ -171,6 +171,27 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
   };
 
   const handleReactivateSubscription = async () => {
+    // Validación previa: solo se puede reactivar si está activa con cancelación programada
+    if (!subscription) return;
+    
+    if (subscription.status === 'canceled' || subscription.status === 'expired') {
+      toast({
+        title: 'No se puede reactivar',
+        description: 'Esta suscripción ya está completamente cancelada. Debes contratar un nuevo plan.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (subscription.status !== 'active' || !subscription.cancel_at_period_end) {
+      toast({
+        title: 'No se puede reactivar',
+        description: 'Esta suscripción no tiene una cancelación programada.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('reactivate-subscription', {
         method: 'POST',
@@ -335,8 +356,8 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
             </div>
           </div>
 
-          {/* Cancelation Warning */}
-          {subscription.cancel_at_period_end && (
+          {/* Caso 2: Suscripción activa con cancelación programada */}
+          {subscription.status === 'active' && subscription.cancel_at_period_end && (
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -364,7 +385,7 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
 
           <Separator />
 
-          {/* Canceled Subscription Warning */}
+          {/* Caso 3: Suscripción totalmente cancelada */}
           {(subscription.status === 'canceled' || subscription.status === 'expired') && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
               <div className="flex items-start gap-3">
@@ -374,16 +395,14 @@ export const SubscriptionManagement = ({ userId }: SubscriptionManagementProps) 
                     Suscripción {subscription.status === 'canceled' ? 'cancelada' : 'expirada'}
                   </p>
                   <p className="text-sm text-red-800 mt-1">
-                    Tu suscripción está {subscription.status === 'canceled' ? 'cancelada' : 'expirada'}. 
-                    Reactívala para poder cambiar de plan o continuar publicando propiedades.
+                    Tu suscripción ha finalizado. Contrata un nuevo plan para seguir publicando propiedades.
                   </p>
                   <Button
-                    onClick={handleReactivateSubscription}
-                    variant="outline"
+                    onClick={() => navigate('/pricing-agente')}
                     size="sm"
-                    className="mt-3 border-red-600 text-red-900 hover:bg-red-100"
+                    className="mt-3"
                   >
-                    Reactivar Suscripción
+                    Contratar Nuevo Plan
                   </Button>
                 </div>
               </div>

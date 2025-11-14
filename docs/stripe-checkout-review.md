@@ -672,5 +672,214 @@ Error capturado gracefully, toast amigable, NO runtime error
 ---
 
 **Última actualización:** 14 de Noviembre, 2025  
-**Versión del documento:** 2.1 
-**Estado:** ✅ Segunda pasada completada + UX pulida para suscripciones canceladas
+**Versión del documento:** 2.2
+**Estado:** ✅ Tercera pasada completada - Flujo de suscripciones canceladas y reactivación optimizado
+
+---
+
+## 🔄 Manejo Correcto de Suscripciones Canceladas y Reactivación (v2.2)
+
+**Fecha:** 14 de Noviembre, 2025  
+**Objetivo:** Corregir UX de reactivación y permitir que usuarios con suscripciones canceladas puedan contratar nuevos planes
+
+### Problema Identificado
+
+El sistema mostraba incorrectamente un botón "Reactivar Suscripción" para suscripciones completamente canceladas, y bloqueaba a usuarios con suscripciones canceladas de contratar nuevos planes, generando bucles de error.
+
+### Reglas de Negocio Implementadas
+
+Ahora existen **3 estados claramente diferenciados**:
+
+#### Estado 1: Suscripción Activa Normal
+- `status = 'active'` o `'trialing'`
+- `cancel_at_period_end = false`
+- **UI:** Botones "Cambiar Plan" y "Cancelar Suscripción" habilitados
+- **Lógica:** Funcionamiento normal
+
+#### Estado 2: Suscripción Activa con Cancelación Programada
+- `status = 'active'`
+- `cancel_at_period_end = true`
+- **UI:** 
+  - Banner amarillo "Cancelación programada"
+  - Botón "Reactivar Suscripción" (revierte cancelación sin crear nueva suscripción)
+  - Botón "Cambiar Plan" deshabilitado
+- **Lógica:** Llamada a `reactivate-subscription` para revertir cancelación en Stripe
+
+#### Estado 3: Suscripción Totalmente Cancelada
+- `status = 'canceled'` o `'expired'`
+- **UI:**
+  - Banner rojo "Suscripción cancelada/expirada"
+  - Mensaje: "Tu suscripción ha finalizado. Contrata un nuevo plan para seguir publicando."
+  - Botón "Contratar Nuevo Plan" → redirección a `/pricing-agente`
+  - NO aparece botón "Reactivar Suscripción"
+  - Botón "Cambiar Plan" deshabilitado
+- **Lógica:** Usuario debe contratar un nuevo plan mediante checkout normal de Stripe
+
+### Cambios Implementados
+
+#### 1. `src/components/SubscriptionManagement.tsx`
+
+**Antes:**
+```tsx
+{subscription.cancel_at_period_end && (
+  // Banner para CUALQUIER suscripción con cancelación
+)}
+
+{(subscription.status === 'canceled' || subscription.status === 'expired') && (
+  // Botón "Reactivar Suscripción" ❌ INCORRECTO
+)}
+```
+
+**Después:**
+```tsx
+// Caso 2: Solo activas con cancelación programada
+{subscription.status === 'active' && subscription.cancel_at_period_end && (
+  // Banner amarillo + botón "Reactivar Suscripción" ✅
+)}
+
+// Caso 3: Suscripciones totalmente canceladas
+{(subscription.status === 'canceled' || subscription.status === 'expired') && (
+  // Banner rojo + botón "Contratar Nuevo Plan" ✅
+)}
+```
+
+**Validación en `handleReactivateSubscription`:**
+```tsx
+// Validación previa antes de llamar al backend
+if (subscription.status === 'canceled' || subscription.status === 'expired') {
+  toast({
+    title: 'No se puede reactivar',
+    description: 'Esta suscripción ya está completamente cancelada. Debes contratar un nuevo plan.',
+    variant: 'destructive',
+  });
+  return; // NO llama al backend
+}
+
+if (subscription.status !== 'active' || !subscription.cancel_at_period_end) {
+  toast({
+    title: 'No se puede reactivar',
+    description: 'Esta suscripción no tiene una cancelación programada.',
+    variant: 'destructive',
+  });
+  return;
+}
+
+// Solo llama al backend si pasa las validaciones ✅
+```
+
+#### 2. `src/utils/stripeCheckout.ts`
+
+**Cambio en validación anti-duplicados:**
+
+**Antes:**
+```tsx
+.in('status', ['active', 'trialing']) // Solo buscaba estos estados
+```
+
+**Después:**
+```tsx
+.in('status', ['active', 'trialing', 'past_due']) // Estados realmente activos
+
+// Permite checkout para usuarios con status:
+// - 'canceled'
+// - 'expired'
+// - 'incomplete_expired'
+```
+
+**Mejora en lógica:**
+```tsx
+if (activeSub) {
+  // Si intenta contratar el mismo plan activo
+  if (currentPlanName === params.planId) {
+    return { success: false, error: 'Ya tienes este plan activo...' };
+  }
+  
+  // Si tiene una suscripción activa de OTRO plan
+  return { 
+    success: false, 
+    error: 'Ya tienes una suscripción activa. Usa "Cambiar de Plan"...' 
+  };
+}
+// Si no tiene suscripción activa (canceled/expired), permite checkout ✅
+```
+
+**Documentación mejorada:**
+```tsx
+/**
+ * Valida si el usuario ya tiene una suscripción activa
+ * Estados considerados activos: 'active', 'trialing', 'past_due'
+ * Estados NO considerados activos: 'canceled', 'expired', 'incomplete_expired'
+ */
+```
+
+#### 3. `checkActiveSubscription` función actualizada
+
+```tsx
+// Ahora incluye el status en la respuesta
+return {
+  hasActive: !!activeSub,
+  planName: activeSub?.subscription_plans?.name,
+  status: activeSub?.status, // ✅ Nuevo campo
+};
+```
+
+### Flujo de Usuario Mejorado
+
+#### Escenario A: Usuario con suscripción activa decide cancelar
+1. Click en "Cancelar Suscripción"
+2. Confirmación en diálogo
+3. ✅ Estado cambia a: `active` + `cancel_at_period_end = true`
+4. UI muestra banner amarillo con opción de "Reactivar Suscripción"
+5. Usuario puede revertir cancelación fácilmente
+
+#### Escenario B: Suscripción llega al final del período
+1. ✅ Status cambia a `canceled` automáticamente (webhook de Stripe)
+2. UI muestra banner rojo
+3. Botón "Reactivar Suscripción" desaparece
+4. Aparece "Contratar Nuevo Plan"
+5. Usuario puede ir a pricing y contratar normalmente
+
+#### Escenario C: Usuario con suscripción cancelada intenta contratar nuevo plan
+1. Click en "Contratar Nuevo Plan" → redirección a `/pricing-agente`
+2. Selecciona plan y ciclo de facturación
+3. Click en "Contratar"
+4. ✅ Validación en `stripeCheckout.ts` permite checkout (no bloquea)
+5. Crea nueva sesión de Stripe
+6. Usuario completa pago
+7. Nueva suscripción se crea exitosamente
+
+### Criterios de Aceptación
+
+- ✅ Botón "Reactivar Suscripción" solo aparece cuando `status = 'active'` + `cancel_at_period_end = true`
+- ✅ Usuarios con `status = 'canceled'` ven botón "Contratar Nuevo Plan"
+- ✅ Validación en `handleReactivateSubscription` previene llamadas incorrectas al backend
+- ✅ Usuarios con suscripción cancelada pueden contratar nuevos planes sin errores
+- ✅ No hay bucles de error al intentar checkout después de cancelación
+- ✅ Protección anti-duplicados sigue funcionando para suscripciones activas
+
+### Archivos Modificados
+
+1. **`src/components/SubscriptionManagement.tsx`**
+   - Separación clara de los 3 estados de suscripción
+   - Validación previa en `handleReactivateSubscription`
+   - UI diferenciada para cada caso
+
+2. **`src/utils/stripeCheckout.ts`**
+   - Validación mejorada de estados activos vs cancelados
+   - Documentación clara de qué estados bloquean checkout
+   - Lógica explícita para prevenir duplicados solo en suscripciones activas
+
+3. **`checkActiveSubscription` función**
+   - Incluye status en respuesta
+   - Busca en múltiples estados activos: `['active', 'trialing', 'past_due']`
+
+### Testing Manual Recomendado
+
+1. ✅ Crear suscripción nueva → verificar funcionalidad normal
+2. ✅ Cancelar suscripción → verificar banner amarillo + "Reactivar"
+3. ✅ Reactivar suscripción cancelada programada → verificar que funciona
+4. ✅ Esperar a que termine período → verificar status pasa a `canceled`
+5. ✅ Con suscripción cancelada → verificar botón "Contratar Nuevo Plan"
+6. ✅ Contratar nuevo plan después de cancelación → verificar checkout funciona sin errores
+
+---
