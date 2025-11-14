@@ -23,26 +23,33 @@ export const createStripeCheckoutSession = async (
 
     // VALIDACIÓN: Verificar suscripción activa antes de crear checkout
     // Solo para suscripciones completas, no para upsells
+    // Permite checkout para usuarios con suscripciones: canceled, expired, incomplete_expired
     if (!params.upsellOnly) {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
         const { data: activeSub } = await supabase
           .from('user_subscriptions')
-          .select('id, subscription_plans(name)')
+          .select('id, status, subscription_plans(name)')
           .eq('user_id', user.id)
-          .in('status', ['active', 'trialing'])
+          .in('status', ['active', 'trialing', 'past_due'])
           .maybeSingle();
 
         if (activeSub) {
           const currentPlanName = activeSub.subscription_plans?.name;
-          // Si intenta contratar el mismo plan que ya tiene, prevenir
+          // Si intenta contratar el mismo plan que ya tiene activo, prevenir
           if (currentPlanName === params.planId) {
             return {
               success: false,
               error: 'Ya tienes este plan activo. Adminístralo desde tu panel de suscripción.',
             };
           }
+          
+          // Si tiene una suscripción activa de otro plan, sugerir cambio de plan
+          return {
+            success: false,
+            error: 'Ya tienes una suscripción activa. Usa la opción "Cambiar de Plan" desde tu panel.',
+          };
         }
       }
     }
@@ -89,16 +96,18 @@ export const createStripeCheckoutSession = async (
 
 /**
  * Valida si el usuario ya tiene una suscripción activa
+ * Estados considerados activos: 'active', 'trialing', 'past_due'
+ * Estados NO considerados activos: 'canceled', 'expired', 'incomplete_expired'
  */
 export const checkActiveSubscription = async (
   userId: string
-): Promise<{ hasActive: boolean; planName?: string }> => {
+): Promise<{ hasActive: boolean; planName?: string; status?: string }> => {
   try {
     const { data: activeSub, error: subError } = await supabase
       .from('user_subscriptions')
-      .select('id, subscription_plans(name)')
+      .select('id, status, subscription_plans(name)')
       .eq('user_id', userId)
-      .eq('status', 'active')
+      .in('status', ['active', 'trialing', 'past_due'])
       .maybeSingle();
 
     if (subError) {
@@ -109,6 +118,7 @@ export const checkActiveSubscription = async (
     return {
       hasActive: !!activeSub,
       planName: activeSub?.subscription_plans?.name,
+      status: activeSub?.status,
     };
   } catch (error) {
     console.error('Exception checking active subscription:', error);
