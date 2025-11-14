@@ -23,6 +23,7 @@ import { EmailVerificationRequired } from '@/components/EmailVerificationRequire
 import { QuickUpsells } from '@/components/QuickUpsells';
 import { AgentUpsells } from '@/components/AgentUpsells';
 import { SubscriptionStatusBadge } from '@/components/SubscriptionStatusBadge';
+import { createStripeCheckoutSession } from '@/utils/stripeCheckout';
 
 const AgentDashboard = () => {
   const { user, loading: authLoading, isEmailVerified } = useAuth();
@@ -386,33 +387,27 @@ const AgentDashboard = () => {
 
       if (upsellError || !upsell) throw new Error('Upsell no encontrado');
 
-      // Llamar a create-checkout-session SOLO con el upsell
-      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: {
-          upsellOnly: true,
-          upsells: [{
-            id: upsell.id,
-            stripePriceId: upsell.stripe_price_id,
-            name: upsell.name,
-            price: upsell.price,
-            isRecurring: upsell.is_recurring,
-          }],
-          successUrl: `${window.location.origin}/payment-success?type=upsell`,
-          cancelUrl: `${window.location.origin}/panel-agente?tab=services`,
-        },
+      // Usar función centralizada de checkout
+      const result = await createStripeCheckoutSession({
+        planId: '', // No se necesita para upsells
+        billingCycle: 'monthly', // No aplica para upsells
+        successUrl: `${window.location.origin}/payment-success?payment=success&type=upsell`,
+        cancelUrl: `${window.location.origin}/panel-agente?tab=services`,
+        upsells: [upsellId],
+        upsellOnly: true,
       });
 
-      if (error) throw error;
+      if (!result.success || !result.checkoutUrl) {
+        throw new Error(result.error || 'No se pudo crear la sesión de pago');
+      }
 
       // Redirigir a Stripe Checkout
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      }
-    } catch (error) {
+      window.location.href = result.checkoutUrl;
+    } catch (error: any) {
       console.error('Error comprando upsell:', error);
       toast({
         title: 'Error',
-        description: 'No se pudo iniciar el proceso de compra',
+        description: error.message || 'No se pudo iniciar el proceso de compra',
         variant: 'destructive',
       });
     } finally {
