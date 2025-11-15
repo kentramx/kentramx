@@ -415,139 +415,6 @@ const AdminDashboard = () => {
     }
   };
 
-    // Validate that at least one reason is selected and notes are provided
-    const hasSelectedReasons = Object.entries(rejectionReasons)
-      .some(([key, value]) => key !== 'notes' && value === true);
-    
-    if (!hasSelectedReasons || !rejectionReasons.notes.trim()) {
-      toast({
-        title: "Error",
-        description: "Selecciona al menos un motivo y agrega comentarios específicos para el agente",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      // Obtener datos actuales de la propiedad
-      const { data: currentProperty } = await supabase
-        .from('properties')
-        .select('resubmission_count, rejection_history, title')
-        .eq('id', rejectProperty.id)
-        .single();
-
-      const currentResubmissions = currentProperty?.resubmission_count || 0;
-      const currentHistory = currentProperty?.rejection_history || [];
-
-      // Format selected reasons as readable text
-      const selectedReasonsList = Object.entries(rejectionReasons)
-        .filter(([key, value]) => key !== 'notes' && value === true)
-        .map(([key]) => {
-          const reasonLabels: Record<string, string> = {
-            incompleteInfo: 'Información incompleta',
-            poorImages: 'Imágenes de baja calidad',
-            incorrectLocation: 'Ubicación incorrecta',
-            suspiciousPrice: 'Precio sospechoso',
-            inappropriateContent: 'Contenido inapropiado',
-            duplicateProperty: 'Propiedad duplicada'
-          };
-          return reasonLabels[key] || key;
-        });
-
-      const rejectionData = {
-        reasons: selectedReasonsList,
-        comments: rejectionReasons.notes,
-        rejected_at: new Date().toISOString(),
-        rejected_by: user?.id
-      };
-
-      // Crear registro del rechazo para el historial
-      const rejectionRecord = {
-        date: new Date().toISOString(),
-        reasons: selectedReasonsList,
-        comments: rejectionReasons.notes,
-        reviewed_by: user?.email,
-        resubmission_number: currentResubmissions + 1
-      };
-
-      // Actualizar historial (asegurarse de que sea un array)
-      const historyArray = Array.isArray(currentHistory) ? currentHistory : [];
-      const updatedHistory = [...historyArray, rejectionRecord];
-
-      const { error: updateError } = await supabase
-        .from('properties')
-        .update({
-          status: 'pausada',
-          rejection_history: updatedHistory,
-          resubmission_count: currentResubmissions + 1,
-        })
-        .eq('id', rejectProperty.id);
-
-      if (updateError) throw updateError;
-
-      const { error: historyError } = await (supabase as any)
-        .from('property_moderation_history')
-        .insert({
-          property_id: rejectProperty.id,
-          agent_id: rejectProperty.agent_id,
-          admin_id: user?.id,
-          action: 'rejected',
-          rejection_reason: rejectionData,
-          admin_notes: adminNotes || null,
-        });
-
-      if (historyError) throw historyError;
-
-      // Enviar notificación por email al agente
-      try {
-        const rejectionMessage = `Motivos: ${selectedReasonsList.join(', ')}\n\nComentarios del moderador:\n${rejectionReasons.notes}`;
-        
-        await supabase.functions.invoke('send-moderation-notification', {
-          body: {
-            agentId: rejectProperty.agent_id,
-            agentName: rejectProperty.profiles?.name || 'Agente',
-            propertyTitle: rejectProperty.title,
-            action: 'rejected',
-            rejectionReason: rejectionData,
-          },
-        });
-        console.log('Email notification sent successfully');
-      } catch (emailError) {
-        console.error('Error sending email notification:', emailError);
-        // No fallar el rechazo si el email falla
-      }
-
-      toast({
-        title: '❌ Rechazada',
-        description: 'La propiedad ha sido rechazada y el agente ha sido notificado por email',
-      });
-
-      setRejectProperty(null);
-      setRejectionReasons({
-        incompleteInfo: false,
-        poorImages: false,
-        incorrectLocation: false,
-        suspiciousPrice: false,
-        inappropriateContent: false,
-        duplicateProperty: false,
-        notes: ''
-      });
-      setAdminNotes('');
-      fetchProperties();
-      fetchMetrics();
-    } catch (error) {
-      console.error('Error rejecting property:', error);
-      toast({
-        title: 'Error',
-        description: 'No se pudo rechazar la propiedad',
-        variant: 'destructive',
-      });
-    } finally {
-      setProcessing(false);
-    }
-  };
-
   if (adminLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1258,8 +1125,7 @@ const AdminDashboard = () => {
         </DialogContent>
       </Dialog>
     </div>
-  </>
-);
+  );
 };
 
 export default AdminDashboard;
