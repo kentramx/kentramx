@@ -1910,15 +1910,6 @@ export type Database = {
           total_views: number
         }[]
       }
-      get_auto_approval_stats: {
-        Args: never
-        Returns: {
-          auto_approved_by_ai: number
-          auto_approved_legacy: number
-          avg_ai_score_auto_approved: number
-          total_auto_approved: number
-        }[]
-      }
       get_churn_metrics: {
         Args: { end_date?: string; start_date?: string }
         Returns: Json
@@ -1994,7 +1985,12 @@ export type Database = {
         | "rejected"
         | "resubmitted"
         | "auto_approved"
-      property_status: "activa" | "vendida" | "rentada" | "pausada"
+      property_status:
+        | "activa"
+        | "vendida"
+        | "rentada"
+        | "pausada"
+        | "pendiente_aprobacion"
       property_type:
         | "casa"
         | "departamento"
@@ -2148,7 +2144,13 @@ export const Constants = {
         "resubmitted",
         "auto_approved",
       ],
-      property_status: ["activa", "vendida", "rentada", "pausada"],
+      property_status: [
+        "activa",
+        "vendida",
+        "rentada",
+        "pausada",
+        "pendiente_aprobacion",
+      ],
       property_type: [
         "casa",
         "departamento",

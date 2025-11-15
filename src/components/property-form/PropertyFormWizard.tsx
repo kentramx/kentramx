@@ -109,6 +109,7 @@ export const PropertyFormWizard = ({ property, onSuccess, onCancel }: PropertyFo
       description: formData.description,
       video_url: formData.video_url || null,
       amenities: formData.amenities,
+      status: 'pendiente_aprobacion',
     };
 
     try {
