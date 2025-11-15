@@ -16,16 +16,36 @@ export const Step6Review = ({ formData, imageFiles, existingImages = [] }: Step6
   const totalImages = imageFiles.length + existingImages.length;
   const totalAmenities = formData.amenities.reduce((sum, cat) => sum + cat.items.length, 0);
 
+  // Generar título automático igual que en PropertyFormWizard
   const propertyTypeLabels: Record<string, string> = {
     casa: 'Casa',
     departamento: 'Departamento',
     terreno: 'Terreno',
+    local_comercial: 'Local Comercial',
     oficina: 'Oficina',
-    local: 'Local Comercial',
     bodega: 'Bodega',
     edificio: 'Edificio',
     rancho: 'Rancho',
+    penthouse: 'Penthouse',
+    villa: 'Villa',
+    estudio: 'Estudio',
+    townhouse: 'Townhouse',
+    cabaña: 'Cabaña',
+    hacienda: 'Hacienda',
+    loft: 'Loft',
   };
+  
+  const typeLabel = propertyTypeLabels[formData.type] || formData.type;
+  const listingTypeLabel = formData.for_sale && formData.for_rent 
+    ? 'en Venta/Renta' 
+    : formData.for_sale 
+      ? 'en Venta' 
+      : 'en Renta';
+  
+  // Usar colonia si está disponible, sino municipio como fallback
+  const generatedTitle = formData.colonia && formData.colonia.trim()
+    ? `${typeLabel} ${listingTypeLabel} en ${formData.colonia}`
+    : `${typeLabel} ${listingTypeLabel} en ${formData.municipality}`;
 
   const checklistItems = [
     { label: 'Tipo de listado', completed: formData.for_sale || formData.for_rent },
@@ -85,10 +105,12 @@ export const Step6Review = ({ formData, imageFiles, existingImages = [] }: Step6
       {/* Preview de la propiedad */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <Home className="w-5 h-5" />
-            Vista Previa de tu Propiedad
-          </h3>
+          <div className="space-y-2 mb-4">
+            <h3 className="text-xl font-bold">{generatedTitle}</h3>
+            <p className="text-sm text-muted-foreground">
+              Vista previa de cómo se mostrará tu propiedad
+            </p>
+          </div>
 
           {/* Badges de listado */}
           <div className="flex gap-2">
