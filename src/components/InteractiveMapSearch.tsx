@@ -27,7 +27,7 @@ export const InteractiveMapSearch = ({
 }: InteractiveMapSearchProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
+  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,15 +42,20 @@ export const InteractiveMapSearch = ({
 
         if (!isMounted || !mapRef.current) return;
 
-        const map = new google.maps.Map(mapRef.current, {
+        const { Map } = await google.maps.importLibrary('maps') as google.maps.MapsLibrary;
+        const { Geocoder } = await google.maps.importLibrary('geocoding') as google.maps.GeocodingLibrary;
+        const { AdvancedMarkerElement } = await google.maps.importLibrary('marker') as google.maps.MarkerLibrary;
+
+        const map = new Map(mapRef.current, {
           center: defaultCenter,
           zoom: defaultZoom,
           clickableIcons: false,
           gestureHandling: 'greedy',
+          mapId: 'KENTRA_INTERACTIVE_MAP',
         });
 
         mapInstanceRef.current = map;
-        geocoderRef.current = new google.maps.Geocoder();
+        geocoderRef.current = new Geocoder();
 
         // Agregar listener de clic en el mapa
         map.addListener('click', async (event: google.maps.MapMouseEvent) => {
@@ -61,10 +66,10 @@ export const InteractiveMapSearch = ({
 
           // Actualizar marcador
           if (markerRef.current) {
-            markerRef.current.setPosition({ lat, lng });
+            markerRef.current.position = { lat, lng };
           } else {
-            // Crear nuevo marcador estándar (sin AdvancedMarker)
-            markerRef.current = new google.maps.Marker({
+            // Crear nuevo marcador moderno
+            markerRef.current = new AdvancedMarkerElement({
               map,
               position: { lat, lng },
               title: 'Ubicación seleccionada',

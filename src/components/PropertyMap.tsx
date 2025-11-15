@@ -16,7 +16,7 @@ interface PropertyMapProps {
 export const PropertyMap = ({ address, lat, lng, height = '400px' }: PropertyMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
+  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const [isGoogleMapsReady, setIsGoogleMapsReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
@@ -38,43 +38,50 @@ export const PropertyMap = ({ address, lat, lng, height = '400px' }: PropertyMap
   useEffect(() => {
     if (!isGoogleMapsReady || !mapRef.current) return;
 
-    try {
-      // Initialize map if not already done
-      if (!mapInstanceRef.current) {
-        mapInstanceRef.current = new google.maps.Map(mapRef.current, {
-          center: { lat: lat || 20.6597, lng: lng || -103.3496 }, // Guadalajara default
-          zoom: lat && lng ? 15 : 11,
-          mapTypeControl: true,
-          streetViewControl: true,
-          fullscreenControl: true,
-        });
-      }
+    const initMap = async () => {
+      try {
+        // Initialize map if not already done
+        if (!mapInstanceRef.current) {
+          const { Map } = await google.maps.importLibrary('maps') as google.maps.MapsLibrary;
+          
+          mapInstanceRef.current = new Map(mapRef.current, {
+            center: { lat: lat || 20.6597, lng: lng || -103.3496 }, // Guadalajara default
+            zoom: lat && lng ? 15 : 11,
+            mapTypeControl: true,
+            streetViewControl: true,
+            fullscreenControl: true,
+            mapId: 'KENTRA_PROPERTY_MAP',
+          });
+        }
 
-      // Geocode if we have address but no coordinates
-      if (address && (!lat || !lng)) {
-        const geocoder = new google.maps.Geocoder();
+        // Geocode if we have address but no coordinates
+        if (address && (!lat || !lng)) {
+          const { Geocoder } = await google.maps.importLibrary('geocoding') as google.maps.GeocodingLibrary;
+          const geocoder = new Geocoder();
         
-        geocoder.geocode({ address }, (results, status) => {
-          if (status === 'OK' && results && results[0]) {
-            const location = results[0].geometry.location;
-            
-            mapInstanceRef.current?.setCenter(location);
-            mapInstanceRef.current?.setZoom(15);
+          geocoder.geocode({ address }, async (results, status) => {
+            if (status === 'OK' && results && results[0]) {
+              const location = results[0].geometry.location;
+              
+              mapInstanceRef.current?.setCenter(location);
+              mapInstanceRef.current?.setZoom(15);
 
-            if (markerRef.current) {
-              markerRef.current.setMap(null);
-            }
+              if (markerRef.current) {
+                markerRef.current.map = null;
+              }
 
-            markerRef.current = new google.maps.Marker({
-              position: location,
-              map: mapInstanceRef.current,
-              title: address,
-            });
+              const { AdvancedMarkerElement } = await google.maps.importLibrary('marker') as google.maps.MarkerLibrary;
 
-            toast({
-              title: "📍 Ubicación geocodificada",
-              description: "La dirección se mostró en el mapa correctamente",
-            });
+              markerRef.current = new AdvancedMarkerElement({
+                position: location,
+                map: mapInstanceRef.current,
+                title: address,
+              });
+
+              toast({
+                title: "📍 Ubicación geocodificada",
+                description: "La dirección se mostró en el mapa correctamente",
+              });
           } else {
             console.error('Geocoding failed:', status);
             
