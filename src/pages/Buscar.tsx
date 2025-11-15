@@ -1387,7 +1387,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
         </div>
 
         {/* Layout estilo Zillow: Mapa a la izquierda, lista a la derecha */}
-        <div className="flex flex-col lg:flex-row h-[calc(100vh-140px)]">
+        <div className="flex flex-col lg:flex-row lg:h-full" style={{ height: 'calc(100vh - 140px)' }}>
           {/* Toggle móvil para cambiar entre mapa y lista */}
           <div className="lg:hidden sticky top-0 z-20 bg-background border-b p-2">
             <div className="flex gap-2">
