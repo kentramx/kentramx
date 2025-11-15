@@ -784,6 +784,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       lng: p.lng as number,
       title: p.title,
       price: p.price,
+      currency: ('currency' in p ? (p.currency as string) : 'MXN') as 'MXN' | 'USD',
       bedrooms: p.bedrooms,
       bathrooms: p.bathrooms,
       images: p.images,
