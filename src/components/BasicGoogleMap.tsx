@@ -102,7 +102,9 @@ export function BasicGoogleMap({
         }
         clustererRef.current = null;
       }
-      markerRefs.current.forEach(m => m.setMap(null));
+      markerRefs.current.forEach(m => {
+        m.map = null;
+      });
       markerRefs.current.clear();
       mapRef.current = null;
     };
@@ -123,7 +125,9 @@ export function BasicGoogleMap({
     }
 
     // Limpiar marcadores anteriores
-    markerRefs.current.forEach(m => m.setMap(null));
+    markerRefs.current.forEach(m => {
+      m.map = null;
+    });
     markerRefs.current.clear();
 
     if (!markers || markers.length === 0) return;

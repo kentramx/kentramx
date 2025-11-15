@@ -82,59 +82,60 @@ export const PropertyMap = ({ address, lat, lng, height = '400px' }: PropertyMap
                 title: "📍 Ubicación geocodificada",
                 description: "La dirección se mostró en el mapa correctamente",
               });
-          } else {
-            console.error('Geocoding failed:', status);
-            
-            let errorMsg = '';
-            let solution = '';
+            } else {
+              console.error('Geocoding failed:', status);
+              
+              let errorMsg = '';
+              let solution = '';
 
-            switch (status) {
-              case 'ZERO_RESULTS':
-                errorMsg = '🔍 No se encontró la dirección';
-                solution = 'Verifica que la dirección sea correcta y completa';
-                break;
-              case 'OVER_QUERY_LIMIT':
-                errorMsg = '⚠️ Límite de geocodificación excedido';
-                solution = 'Espera un momento e intenta de nuevo. Considera habilitar facturación en Google Cloud';
-                break;
-              case 'REQUEST_DENIED':
-                errorMsg = '🚫 Solicitud de geocodificación denegada';
-                solution = 'Verifica que Geocoding API esté habilitada en Google Cloud Console';
-                break;
-              case 'INVALID_REQUEST':
-                errorMsg = '❌ Dirección inválida';
-                solution = 'La dirección proporcionada no es válida';
-                break;
-              default:
-                errorMsg = '⚠️ Error de geocodificación';
-                solution = `Error: ${status}`;
+              switch (status) {
+                case 'ZERO_RESULTS':
+                  errorMsg = '🔍 No se encontró la dirección';
+                  solution = 'Verifica que la dirección sea correcta y completa';
+                  break;
+                case 'OVER_QUERY_LIMIT':
+                  errorMsg = '⚠️ Límite de geocodificación excedido';
+                  solution = 'Espera un momento e intenta de nuevo. Considera habilitar facturación en Google Cloud';
+                  break;
+                case 'REQUEST_DENIED':
+                  errorMsg = '🚫 Solicitud de geocodificación denegada';
+                  solution = 'Verifica que Geocoding API esté habilitada en Google Cloud Console';
+                  break;
+                case 'INVALID_REQUEST':
+                  errorMsg = '❌ Dirección inválida';
+                  solution = 'La dirección proporcionada no es válida';
+                  break;
+                default:
+                  errorMsg = '⚠️ Error de geocodificación';
+                  solution = `Error: ${status}`;
+              }
+
+              toast({
+                title: errorMsg,
+                description: solution,
+                variant: "destructive",
+                duration: 8000,
+              });
             }
+          });
+        } else if (lat && lng) {
+          // We have coordinates, use them directly
+          const { AdvancedMarkerElement } = await google.maps.importLibrary('marker') as google.maps.MarkerLibrary;
+          const location = { lat, lng };
+          
+          mapInstanceRef.current?.setCenter(location);
+          mapInstanceRef.current?.setZoom(15);
 
-            toast({
-              title: errorMsg,
-              description: solution,
-              variant: "destructive",
-              duration: 8000,
-            });
+          if (markerRef.current) {
+            markerRef.current.map = null;
           }
-        });
-      } else if (lat && lng) {
-        // We have coordinates, use them directly
-        const location = { lat, lng };
-        
-        mapInstanceRef.current?.setCenter(location);
-        mapInstanceRef.current?.setZoom(15);
 
-        if (markerRef.current) {
-          markerRef.current.setMap(null);
+          markerRef.current = new AdvancedMarkerElement({
+            position: location,
+            map: mapInstanceRef.current,
+            title: address || 'Ubicación de la propiedad',
+          });
         }
-
-        markerRef.current = new google.maps.Marker({
-          position: location,
-          map: mapInstanceRef.current,
-          title: address || 'Ubicación de la propiedad',
-        });
-      }
     } catch (error) {
       console.error('Error creating map:', error);
       setMapError('Error al crear el mapa');
@@ -145,10 +146,13 @@ export const PropertyMap = ({ address, lat, lng, height = '400px' }: PropertyMap
         variant: "destructive",
       });
     }
+    };
+
+    initMap();
 
     return () => {
       if (markerRef.current) {
-        markerRef.current.setMap(null);
+        markerRef.current.map = null;
       }
     };
   }, [isGoogleMapsReady, address, lat, lng]);
