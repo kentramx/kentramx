@@ -920,6 +920,44 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     setSavedSearchSort(value as 'date' | 'name');
   };
 
+  const renderPagination = () => {
+    const totalPages = Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE);
+    const pages: (number | '...')[] = [];
+
+    // Siempre incluye primera página
+    pages.push(1);
+
+    if (currentPage > 3) pages.push('...');
+
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      pages.push(i);
+    }
+
+    if (currentPage < totalPages - 2) pages.push('...');
+    if (totalPages > 1) pages.push(totalPages);
+
+    return pages.map((page, idx) =>
+      page === '...'
+        ? (
+            <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+          )
+        : (
+            <Button
+              key={page as number}
+              variant={currentPage === page ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setCurrentPage(page as number);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="min-w-[2.5rem]"
+            >
+              {page}
+            </Button>
+          )
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
@@ -1606,43 +1644,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                       </Button>
                       
                       <div className="flex items-center gap-1">
-                        {(() => {
-                          const totalPages = Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE);
-                          const pages = [];
-                          
-                          // Mostrar siempre primera página
-                          pages.push(1);
-                          
-                          // Páginas alrededor de la actual
-                          if (currentPage > 3) pages.push('...');
-                          
-                          for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-                            pages.push(i);
-                          }
-                          
-                          // Mostrar siempre última página
-                          if (currentPage < totalPages - 2) pages.push('...');
-                          if (totalPages > 1) pages.push(totalPages);
-                          
-                          return pages.map((page, idx) => 
-                            page === '...' ? (
-                              <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
-                            ) : (
-                              <Button
-                                key={page}
-                                variant={currentPage === page ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => {
-                                  setCurrentPage(page as number);
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }}
-                                className="min-w-[2.5rem]"
-                              >
-                                {page}
-                              </Button>
-                            )
-                          );
-                        })()}
+                          {renderPagination()}
                       </div>
 
                       <Button
