@@ -116,7 +116,10 @@ export const PropertyFormWizard = ({ property, onSuccess, onCancel }: PropertyFo
         ? 'en Venta' 
         : 'en Renta';
     
-    const generatedTitle = `${typeLabel} ${listingTypeLabel} en ${formData.municipality}`;
+    // Usar colonia si está disponible, sino municipio como fallback
+    const generatedTitle = formData.colonia && formData.colonia.trim()
+      ? `${typeLabel} ${listingTypeLabel} en ${formData.colonia}`
+      : `${typeLabel} ${listingTypeLabel} en ${formData.municipality}`;
 
     // Calcular el precio principal basado en el tipo de listado
     const mainPrice = formData.for_sale && formData.sale_price 
