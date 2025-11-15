@@ -46,7 +46,8 @@ const Navbar = () => {
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const { impersonatedRole, isImpersonating } = useRoleImpersonation();
   const { toast } = useToast();
-  const effectiveRole = (isImpersonating && impersonatedRole) ? impersonatedRole : userRole;
+  // Solo permitir simulación si el usuario es realmente super admin
+  const effectiveRole = (isImpersonating && isSuperAdmin && impersonatedRole) ? impersonatedRole : userRole;
   const getUserInitials = () => {
     if (!user?.email) return "U";
     return user.email.charAt(0).toUpperCase();
