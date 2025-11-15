@@ -14,7 +14,7 @@ export const useProperty = (propertyId: string | undefined) => {
           images (url, position),
           agent:profiles!agent_id (
             id, name, phone, whatsapp_number, 
-            whatsapp_enabled, is_verified
+            whatsapp_enabled, is_verified, avatar_url
           )
         `)
         .eq('id', propertyId)

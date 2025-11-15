@@ -7,6 +7,7 @@ import { useSimilarProperties } from "@/hooks/useSimilarProperties";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { PropertyImageGallery } from "@/components/PropertyImageGallery";
 import { PropertyMap } from "@/components/PropertyMap";
 import PropertyCard from "@/components/PropertyCard";
@@ -38,6 +39,8 @@ import {
   GitCompare,
   CheckCircle2,
   X,
+  Star,
+  User,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
@@ -426,6 +429,104 @@ export function PropertyDetailSheet({ propertyId, open, onClose }: PropertyDetai
             </div>
           </div>
 
+          {/* Agent Contact Card - Prominent Position */}
+          {agent && (
+            <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent mb-6">
+              <CardContent className="p-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                  
+                  {/* Agent Avatar & Info */}
+                  <div className="flex items-center gap-3 flex-1">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={agent.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {agent.name?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link
+                          to={`/agente/${agent.id}`}
+                          className="font-semibold text-lg hover:text-primary transition-colors"
+                        >
+                          {agent.name}
+                        </Link>
+                        {agent.is_verified && (
+                          <Badge variant="secondary" className="text-xs">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Verificado
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                        {agentStats && agentStats.avgRating > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                            {agentStats.avgRating.toFixed(1)}
+                          </span>
+                        )}
+                        {agentStats && (
+                          <span>{agentStats.totalProperties} {agentStats.totalProperties === 1 ? 'propiedad' : 'propiedades'}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Contact Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                    {user ? (
+                      <>
+                        {agent.whatsapp_enabled && agent.whatsapp_number && (
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            onClick={handleContactWhatsApp}
+                          >
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            WhatsApp
+                          </Button>
+                        )}
+                        
+                        {agent.phone && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(`tel:${agent.phone}`, '_self')}
+                          >
+                            <Phone className="h-4 w-4 mr-2" />
+                            Llamar
+                          </Button>
+                        )}
+                        
+                        <ContactPropertyDialog
+                          property={property}
+                          agentId={agent.id}
+                        />
+                      </>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => navigate('/auth')}
+                        className="w-full md:w-auto"
+                      >
+                        <User className="h-4 w-4 mr-2" />
+                        Iniciar sesión para contactar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                
+                {user && (
+                  <p className="text-xs text-muted-foreground mt-3 text-center md:text-left">
+                    Tu información de contacto será compartida con el agente
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Specs - Horizontal Line (Zillow Style) */}
           <div className="flex flex-wrap items-center gap-6 pb-6 border-b border-border">
             {property.bedrooms && (
@@ -593,11 +694,11 @@ export function PropertyDetailSheet({ propertyId, open, onClose }: PropertyDetai
             </Card>
           )}
 
-          {/* Información del agente - Enhanced */}
+          {/* Reseñas y Perfil Completo del Agente */}
           {agent && (
             <Card>
               <CardHeader>
-                <CardTitle>Contactar Agente</CardTitle>
+                <CardTitle>Reseñas del Agente</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
