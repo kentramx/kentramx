@@ -858,12 +858,123 @@ const AdminDashboard = () => {
 
       {/* Dialog de vista detallada */}
       <Dialog open={!!viewProperty} onOpenChange={() => setViewProperty(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Revisión Detallada</DialogTitle>
           </DialogHeader>
           {viewProperty && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Información de la Propiedad */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Información de la Propiedad</h3>
+                
+                {/* Imágenes */}
+                {viewProperty.images && viewProperty.images.length > 0 && (
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Imágenes ({viewProperty.images.length})</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {viewProperty.images.slice(0, 6).map((image: any, index: number) => (
+                        <img
+                          key={index}
+                          src={image.url}
+                          alt={`${viewProperty.title} - ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Información básica */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Título</Label>
+                    <p className="text-sm mt-1">{viewProperty.title}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Precio</Label>
+                    <p className="text-sm mt-1 font-semibold text-primary">
+                      {new Intl.NumberFormat('es-MX', {
+                        style: 'currency',
+                        currency: viewProperty.currency || 'MXN',
+                      }).format(viewProperty.price)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Ubicación */}
+                <div>
+                  <Label className="text-sm font-medium">Ubicación</Label>
+                  <p className="text-sm mt-1">
+                    {viewProperty.address}
+                    {viewProperty.colonia && `, ${viewProperty.colonia}`}
+                    <br />
+                    {viewProperty.municipality}, {viewProperty.state}
+                  </p>
+                </div>
+
+                {/* Características */}
+                <div className="grid grid-cols-4 gap-4">
+                  {viewProperty.bedrooms && (
+                    <div>
+                      <Label className="text-sm font-medium">Recámaras</Label>
+                      <p className="text-sm mt-1">{viewProperty.bedrooms}</p>
+                    </div>
+                  )}
+                  {viewProperty.bathrooms && (
+                    <div>
+                      <Label className="text-sm font-medium">Baños</Label>
+                      <p className="text-sm mt-1">{viewProperty.bathrooms}</p>
+                    </div>
+                  )}
+                  {viewProperty.parking && (
+                    <div>
+                      <Label className="text-sm font-medium">Estacionamiento</Label>
+                      <p className="text-sm mt-1">{viewProperty.parking}</p>
+                    </div>
+                  )}
+                  {viewProperty.sqft && (
+                    <div>
+                      <Label className="text-sm font-medium">Superficie</Label>
+                      <p className="text-sm mt-1">{viewProperty.sqft} m²</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Descripción */}
+                {viewProperty.description && (
+                  <div>
+                    <Label className="text-sm font-medium">Descripción</Label>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{viewProperty.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {viewProperty.description.trim().split(/\s+/).filter((word: string) => word.length > 0).length} palabras
+                    </p>
+                  </div>
+                )}
+
+                {/* Amenidades */}
+                {viewProperty.amenities && Object.keys(viewProperty.amenities).length > 0 && (
+                  <div>
+                    <Label className="text-sm font-medium">Amenidades</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {Object.entries(viewProperty.amenities).map(([key, value]) => 
+                        value && (
+                          <Badge key={key} variant="secondary" className="text-xs">
+                            {key.replace(/_/g, ' ')}
+                          </Badge>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Agente */}
+                <div>
+                  <Label className="text-sm font-medium">Agente</Label>
+                  <p className="text-sm mt-1">{viewProperty.profiles?.name || 'N/A'}</p>
+                </div>
+              </div>
+
               {/* Warning de duplicado */}
               {viewProperty?.duplicate_warning && viewProperty?.duplicate_warning_data && (
                 <Alert variant="destructive">
