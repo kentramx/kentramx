@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, CheckCircle, XCircle, Eye, AlertTriangle } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, CheckCircle, XCircle, Eye, AlertTriangle, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -47,7 +49,6 @@ const AdminDashboard = () => {
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'nuevas');
   
-  const [rejectProperty, setRejectProperty] = useState<any>(null);
   const [rejectionReasons, setRejectionReasons] = useState<RejectionReasons>({
     incompleteInfo: false,
     poorImages: false,
@@ -58,6 +59,7 @@ const AdminDashboard = () => {
     notes: ''
   });
   const [adminNotes, setAdminNotes] = useState('');
+  const [isRejectionSectionOpen, setIsRejectionSectionOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   
   const [viewProperty, setViewProperty] = useState<any>(null);
@@ -106,8 +108,7 @@ const AdminDashboard = () => {
       if (e.key === 'a') {
         handleApprove(viewProperty);
       } else if (e.key === 'r') {
-        setRejectProperty(viewProperty);
-        setViewProperty(null);
+        setIsRejectionSectionOpen(true);
       } else if (e.key === 'ArrowRight') {
         goToNextProperty();
       }
@@ -277,7 +278,142 @@ const AdminDashboard = () => {
   };
 
   const handleReject = async () => {
-    if (!rejectProperty) return;
+    if (!viewProperty) return;
+
+    // Validate that at least one reason is selected and notes are provided
+    const hasSelectedReasons = Object.entries(rejectionReasons)
+      .some(([key, value]) => key !== 'notes' && value === true);
+    
+    if (!hasSelectedReasons || !rejectionReasons.notes.trim()) {
+      toast({
+        title: "Error",
+        description: "Selecciona al menos un motivo y agrega comentarios específicos para el agente",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      // Obtener datos actuales de la propiedad
+      const { data: currentProperty } = await supabase
+        .from('properties')
+        .select('resubmission_count, rejection_history, title')
+        .eq('id', viewProperty.id)
+        .single();
+
+      const currentResubmissions = currentProperty?.resubmission_count || 0;
+      const currentHistory = currentProperty?.rejection_history || [];
+
+      // Format selected reasons as readable text
+      const selectedReasonsList = Object.entries(rejectionReasons)
+        .filter(([key, value]) => key !== 'notes' && value === true)
+        .map(([key]) => {
+          const reasonLabels: Record<string, string> = {
+            incompleteInfo: 'Información incompleta',
+            poorImages: 'Imágenes de baja calidad',
+            incorrectLocation: 'Ubicación incorrecta',
+            suspiciousPrice: 'Precio sospechoso',
+            inappropriateContent: 'Contenido inapropiado',
+            duplicateProperty: 'Propiedad duplicada'
+          };
+          return reasonLabels[key] || key;
+        });
+
+      const rejectionData = {
+        reasons: selectedReasonsList,
+        comments: rejectionReasons.notes,
+        rejected_at: new Date().toISOString(),
+        rejected_by: user?.id
+      };
+
+      // Crear registro del rechazo para el historial
+      const rejectionRecord = {
+        date: new Date().toISOString(),
+        reasons: selectedReasonsList,
+        comments: rejectionReasons.notes,
+        reviewed_by: user?.email,
+        resubmission_number: currentResubmissions + 1
+      };
+
+      // Actualizar historial (asegurarse de que sea un array)
+      const historyArray = Array.isArray(currentHistory) ? currentHistory : [];
+      const updatedHistory = [...historyArray, rejectionRecord];
+
+      const { error: updateError } = await supabase
+        .from('properties')
+        .update({
+          status: 'pausada',
+          rejection_history: updatedHistory,
+          resubmission_count: currentResubmissions + 1,
+        })
+        .eq('id', viewProperty.id);
+
+      if (updateError) throw updateError;
+
+      const { error: historyError } = await (supabase as any)
+        .from('property_moderation_history')
+        .insert({
+          property_id: viewProperty.id,
+          agent_id: viewProperty.agent_id,
+          admin_id: user?.id,
+          action: 'rejected',
+          rejection_reason: rejectionData,
+          admin_notes: adminNotes || null,
+        });
+
+      if (historyError) throw historyError;
+
+      // Enviar notificación por email al agente
+      try {
+        const rejectionMessage = `Motivos: ${selectedReasonsList.join(', ')}\n\nComentarios del moderador:\n${rejectionReasons.notes}`;
+        
+        await supabase.functions.invoke('send-moderation-notification', {
+          body: {
+            agentId: viewProperty.agent_id,
+            agentName: viewProperty.profiles?.name || 'Agente',
+            propertyTitle: viewProperty.title,
+            action: 'rejected',
+            rejectionReason: rejectionData,
+          },
+        });
+        console.log('Email notification sent successfully');
+      } catch (emailError) {
+        console.error('Error sending email notification:', emailError);
+        // No fallar el rechazo si el email falla
+      }
+
+      toast({
+        title: '❌ Rechazada',
+        description: 'La propiedad ha sido rechazada y el agente ha sido notificado',
+        variant: 'destructive',
+      });
+
+      fetchProperties();
+      fetchMetrics();
+      setViewProperty(null);
+      setRejectionReasons({
+        incompleteInfo: false,
+        poorImages: false,
+        incorrectLocation: false,
+        suspiciousPrice: false,
+        inappropriateContent: false,
+        duplicateProperty: false,
+        notes: ''
+      });
+      setAdminNotes('');
+      setIsRejectionSectionOpen(false);
+    } catch (error) {
+      console.error('Error rejecting property:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo rechazar la propiedad',
+        variant: 'destructive',
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
 
     // Validate that at least one reason is selected and notes are provided
     const hasSelectedReasons = Object.entries(rejectionReasons)
@@ -572,11 +708,11 @@ const AdminDashboard = () => {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => setRejectProperty(property)}
+                            onClick={() => setViewProperty(property)}
                             disabled={processing}
                           >
                             <XCircle className="h-4 w-4 mr-1" />
-                            Rechazar
+                            Revisar
                           </Button>
                           <Button
                             variant="outline"
@@ -657,11 +793,11 @@ const AdminDashboard = () => {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => setRejectProperty(property)}
+                            onClick={() => setViewProperty(property)}
                             disabled={processing}
                           >
                             <XCircle className="h-4 w-4 mr-1" />
-                            Rechazar
+                            Revisar
                           </Button>
                           <Button
                             variant="outline"
@@ -742,11 +878,11 @@ const AdminDashboard = () => {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => setRejectProperty(property)}
+                            onClick={() => setViewProperty(property)}
                             disabled={processing}
                           >
                             <XCircle className="h-4 w-4 mr-1" />
-                            Rechazar
+                            Revisar
                           </Button>
                           <Button
                             variant="outline"
@@ -831,11 +967,11 @@ const AdminDashboard = () => {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => setRejectProperty(property)}
+                            onClick={() => setViewProperty(property)}
                             disabled={processing}
                           >
                             <XCircle className="h-4 w-4 mr-1" />
-                            Rechazar
+                            Revisar
                           </Button>
                           <Button
                             variant="outline"
@@ -856,11 +992,24 @@ const AdminDashboard = () => {
         </Tabs>
       </div>
 
-      {/* Dialog de vista detallada */}
-      <Dialog open={!!viewProperty} onOpenChange={() => setViewProperty(null)}>
+      {/* Dialog de Ver Detalles y Moderar */}
+      <Dialog open={!!viewProperty} onOpenChange={() => {
+        setViewProperty(null);
+        setAdminNotes('');
+        setRejectionReasons({
+          incompleteInfo: false,
+          poorImages: false,
+          incorrectLocation: false,
+          suspiciousPrice: false,
+          inappropriateContent: false,
+          duplicateProperty: false,
+          notes: ''
+        });
+        setIsRejectionSectionOpen(false);
+      }}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Revisión Detallada</DialogTitle>
+            <DialogTitle>Revisar Propiedad: {viewProperty?.title}</DialogTitle>
           </DialogHeader>
           {viewProperty && (
             <div className="space-y-6">
@@ -1028,8 +1177,41 @@ const AdminDashboard = () => {
                 <PropertyDiff property={viewProperty} />
               )}
 
+              <Separator className="my-6" />
+
+              {/* Sección de Motivos de Rechazo */}
+              <Collapsible 
+                open={isRejectionSectionOpen} 
+                onOpenChange={setIsRejectionSectionOpen}
+                className="border rounded-lg"
+              >
+                <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <span className="font-semibold">Motivos de Rechazo</span>
+                    <Badge variant="outline" className="ml-2">
+                      Requerido para rechazar
+                    </Badge>
+                  </div>
+                  <ChevronDown className={`h-5 w-5 transition-transform ${isRejectionSectionOpen ? 'rotate-180' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="p-4 pt-0">
+                    <RejectionReview 
+                      onRejectionReasonsChange={setRejectionReasons}
+                    />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              <Separator className="my-6" />
+
+              {/* Notas internas del moderador */}
               <div className="space-y-2">
-                <Label>Notas internas (opcional)</Label>
+                <Label>Notas internas del moderador (opcional)</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Estas notas solo son visibles para otros moderadores, no para el agente
+                </p>
                 <Textarea
                   placeholder="Notas para otros administradores..."
                   value={adminNotes}
@@ -1038,104 +1220,46 @@ const AdminDashboard = () => {
                 />
               </div>
 
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-2 justify-end pt-4">
                 <Button
                   variant="default"
                   onClick={() => handleApprove(viewProperty)}
                   disabled={processing}
+                  className="min-w-[120px]"
                 >
-                  <CheckCircle className="h-4 w-4 mr-1" />
+                  {processing ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                  )}
                   Aprobar
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={() => {
-                    setRejectProperty(viewProperty);
-                    setViewProperty(null);
-                  }}
-                  disabled={processing}
+                  onClick={handleReject}
+                  disabled={processing || !Object.entries(rejectionReasons).some(([key, value]) => key !== 'notes' && value === true) || !rejectionReasons.notes.trim()}
+                  className="min-w-[120px]"
+                  title={
+                    !Object.entries(rejectionReasons).some(([key, value]) => key !== 'notes' && value === true) || !rejectionReasons.notes.trim()
+                      ? 'Debes seleccionar al menos un motivo y agregar comentarios'
+                      : ''
+                  }
                 >
-                  <XCircle className="h-4 w-4 mr-1" />
-                  Rechazar
+                  {processing ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <XCircle className="h-4 w-4 mr-1" />
+                  )}
+                  Rechazar y Notificar
                 </Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Dialog de Rechazo */}
-      <Dialog open={!!rejectProperty} onOpenChange={() => {
-        setRejectProperty(null);
-        setRejectionReasons({
-          incompleteInfo: false,
-          poorImages: false,
-          incorrectLocation: false,
-          suspiciousPrice: false,
-          inappropriateContent: false,
-          duplicateProperty: false,
-          notes: ''
-        });
-      }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Rechazar Propiedad: {rejectProperty?.title}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Esta acción pausará la propiedad y notificará al agente
-              </AlertDescription>
-            </Alert>
-
-            <RejectionReview 
-              onRejectionReasonsChange={setRejectionReasons}
-            />
-
-            <div className="flex gap-2 pt-4">
-              <Button 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => {
-                  setRejectProperty(null);
-                  setRejectionReasons({
-                    incompleteInfo: false,
-                    poorImages: false,
-                    incorrectLocation: false,
-                    suspiciousPrice: false,
-                    inappropriateContent: false,
-                    duplicateProperty: false,
-                    notes: ''
-                  });
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button 
-                variant="destructive" 
-                className="flex-1"
-                onClick={handleReject}
-                disabled={processing}
-              >
-                {processing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Procesando...
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-4 w-4 mr-2" />
-                    Rechazar y Notificar
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
-  );
+  </>
+);
 };
 
 export default AdminDashboard;
