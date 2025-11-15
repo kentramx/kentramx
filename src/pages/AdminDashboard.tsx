@@ -269,7 +269,7 @@ const AdminDashboard = () => {
       console.error('Error approving property:', error);
       toast({
         title: 'Error',
-        description: 'No se pudo aprobar la propiedad',
+        description: (error as any)?.message || 'No se pudo aprobar la propiedad',
         variant: 'destructive',
       });
     } finally {
@@ -407,7 +407,7 @@ const AdminDashboard = () => {
       console.error('Error rejecting property:', error);
       toast({
         title: 'Error',
-        description: 'No se pudo rechazar la propiedad',
+        description: (error as any)?.message || 'No se pudo rechazar la propiedad',
         variant: 'destructive',
       });
     } finally {
