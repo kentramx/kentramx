@@ -36,7 +36,13 @@ interface Property {
   price: number;
   type: string;
   listing_type: string;
+  for_sale?: boolean;
+  for_rent?: boolean;
+  sale_price?: number | null;
+  rent_price?: number | null;
+  currency?: string;
   address: string;
+  colonia?: string;
   municipality: string;
   state: string;
   bedrooms?: number;
@@ -148,36 +154,42 @@ const Home = () => {
     const fetchFeaturedProperties = async () => {
       setIsLoadingProperties(true);
       try {
-        const { data, error } = await supabase
-          .from('properties')
-          .select(`
+      const { data, error } = await supabase
+        .from('properties')
+        .select(`
+          id,
+          title,
+          price,
+          type,
+          listing_type,
+          for_sale,
+          for_rent,
+          sale_price,
+          rent_price,
+          currency,
+          address,
+          colonia,
+          municipality,
+          state,
+          bedrooms,
+          bathrooms,
+          parking,
+          sqft,
+          lat,
+          lng,
+          agent_id,
+          created_at,
+          images (url, position),
+          featured_properties!left (
             id,
-            title,
-            price,
-            type,
-            listing_type,
-            address,
-            municipality,
-            state,
-            bedrooms,
-            bathrooms,
-            parking,
-            sqft,
-            lat,
-            lng,
-            agent_id,
-            created_at,
-            images (url, position),
-            featured_properties!left (
-              id,
-              status,
-              end_date
-            )
-          `)
-          .eq('status', 'activa')
-          .eq('listing_type', listingType)
-          .order('created_at', { ascending: false })
-          .limit(20);
+            status,
+            end_date
+          )
+        `)
+        .eq('status', 'activa')
+        .eq('listing_type', listingType)
+        .order('created_at', { ascending: false })
+        .limit(20);
 
         if (error) throw error;
         
@@ -462,7 +474,13 @@ const Home = () => {
                       price={property.price}
                       type={property.type}
                       listingType={property.listing_type}
+                      for_sale={property.for_sale}
+                      for_rent={property.for_rent}
+                      sale_price={property.sale_price}
+                      rent_price={property.rent_price}
+                      currency={property.currency}
                       address={property.address}
+                      colonia={property.colonia}
                       municipality={property.municipality}
                       state={property.state}
                       bedrooms={property.bedrooms}
