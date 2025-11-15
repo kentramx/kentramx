@@ -1,13 +1,12 @@
 import { Link } from "react-router-dom";
 import { SocialLinks } from "./SocialLinks";
-import { NewsletterForm } from "./NewsletterForm";
 import kentraLogo from "@/assets/kentra-logo.png";
 
 export const Footer = () => {
   return (
     <footer className="bg-muted/30 border-t border-border mt-16">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
           {/* Kentra Info */}
           <div>
             <img src={kentraLogo} alt="Kentra" className="h-8 mb-4" />
@@ -74,14 +73,6 @@ export const Footer = () => {
             </ul>
           </div>
 
-          {/* Newsletter */}
-          <div>
-            <h4 className="font-semibold mb-4">Newsletter</h4>
-            <p className="text-sm text-muted-foreground mb-4">
-              Recibe consejos, tendencias y las mejores propiedades en tu inbox.
-            </p>
-            <NewsletterForm />
-          </div>
         </div>
 
         {/* Copyright */}
