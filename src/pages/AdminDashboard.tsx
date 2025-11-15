@@ -19,7 +19,6 @@ import { useAdminCheck } from '@/hooks/useAdminCheck';
 import QualityChecklist from '@/components/QualityChecklist';
 import PropertyDiff from '@/components/PropertyDiff';
 import AdminModerationMetrics from '@/components/AdminModerationMetrics';
-import AutoApprovalStats from '@/components/AutoApprovalStats';
 import { ImageQualityReview, ImageQualityIssues } from '@/components/ImageQualityReview';
 
 const REJECTION_REASONS = [
@@ -474,11 +473,6 @@ const AdminDashboard = () => {
               <p className="text-sm text-muted-foreground">Rechazadas hoy</p>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Estadísticas de Auto-Aprobación Inteligente */}
-        <div className="space-y-4 mb-6">
-          <AutoApprovalStats />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>

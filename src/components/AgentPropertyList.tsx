@@ -299,7 +299,7 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo, agentId, onCreateProperty
                   {formatPrice(property.price)}
                 </TableCell>
                 <TableCell>
-                  {(property.status as any) === 'pendiente_aprobacion' ? (
+                  {property.status === 'pendiente_aprobacion' ? (
                     <Tooltip>
                       <TooltipTrigger>
                         <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
@@ -387,7 +387,7 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo, agentId, onCreateProperty
                       variant="ghost"
                       size="icon"
                       onClick={() => onEdit(property)}
-                      disabled={(property.status as any) === 'pendiente_aprobacion'}
+                      disabled={property.status === 'pendiente_aprobacion'}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -395,7 +395,7 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo, agentId, onCreateProperty
                       variant="ghost"
                       size="icon"
                       onClick={() => setDeleteId(property.id)}
-                      disabled={(property.status as any) === 'pendiente_aprobacion'}
+                      disabled={property.status === 'pendiente_aprobacion'}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
