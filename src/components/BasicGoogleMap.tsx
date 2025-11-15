@@ -371,22 +371,13 @@ export function BasicGoogleMap({
   useEffect(() => {
     markerRefs.current.forEach((marker, markerId) => {
       if (markerId === hoveredMarkerId) {
-        // Resaltar el marcador
+        // Aplicar animación bounce sin cambiar el ícono
         marker.setAnimation(google.maps.Animation.BOUNCE);
         marker.setZIndex(1000);
-        marker.setIcon({
-          path: google.maps.SymbolPath.CIRCLE,
-          fillColor: '#0ea5e9',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 3,
-          scale: 12,
-        });
       } else {
         // Restaurar el marcador a su estado normal
         marker.setAnimation(null);
         marker.setZIndex(undefined);
-        marker.setIcon(undefined);
       }
     });
   }, [hoveredMarkerId]);
