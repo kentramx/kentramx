@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { createStripeCheckoutSession, getPlanBySlug } from '@/utils/stripeCheckout';
+import { startSubscriptionCheckout, getCurrentSubscription } from '@/utils/stripeCheckout';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import { CouponInput } from '@/components/CouponInput';
@@ -33,54 +33,20 @@ const PricingAgente = () => {
     }
 
     try {
-      // Verificar suscripción activa
-      const { data: activeSub } = await supabase
-        .from('user_subscriptions')
-        .select('*, subscription_plans(name)')
-        .eq('user_id', user.id)
-        .in('status', ['active', 'trialing'])
-        .maybeSingle();
-
-      if (activeSub) {
-        // Si tiene cancelación programada, permitir contratar nuevo plan
-        if (activeSub.cancel_at_period_end) {
-          toast.info('Tu suscripción actual está programada para cancelarse. Este nuevo plan la reemplazará.');
-        } else {
-          // Si tiene suscripción activa sin cancelación, redirigir al dashboard
-          toast.error('Ya tienes una suscripción activa. Ve a tu dashboard para cambiar de plan.');
-          navigate('/panel-agente');
-          return;
-        }
-      }
-
-      // Obtener plan usando función centralizada
-      const { plan, error: planError } = await getPlanBySlug('agente', planSlug);
-      if (planError || !plan) {
-        toast.error(planError || 'No se pudo encontrar el plan seleccionado');
+      // Verificar si ya tiene suscripción
+      const { subscription } = await getCurrentSubscription();
+      if (subscription) {
+        toast.error('Ya tienes una suscripción activa. Ve a tu dashboard para gestionarla.');
+        navigate('/panel-agente');
         return;
       }
 
-      // Mostrar confirmación
-      const price = pricingPeriod === 'monthly' ? plan.price_monthly : plan.price_yearly;
-      const period = pricingPeriod === 'monthly' ? 'mes' : 'año';
-      toast.success(`Redirigiendo al checkout de ${plan.display_name} - $${price} MXN/${period}`);
-
-      // Crear sesión de checkout usando función centralizada
-      const result = await createStripeCheckoutSession({
-        planId: plan.id,
-        billingCycle: pricingPeriod === 'monthly' ? 'monthly' : 'yearly',
-        successUrl: `${window.location.origin}/payment-success?payment=success&plan=${plan.name}`,
-        cancelUrl: `${window.location.origin}/pricing-agente`,
-        couponCode: appliedCoupon,
-      });
+      // Iniciar checkout con el nuevo sistema
+      const billingCycle = pricingPeriod === 'monthly' ? 'monthly' : 'yearly';
+      const result = await startSubscriptionCheckout(`agente_${planSlug}`, billingCycle);
 
       if (!result.success) {
-        toast.error(result.error || 'Error al crear la sesión de pago');
-        return;
-      }
-
-      if (result.checkoutUrl) {
-        window.location.href = result.checkoutUrl;
+        toast.error(result.error || 'Error al iniciar el proceso de pago');
       }
     } catch (error) {
       console.error('Error:', error);

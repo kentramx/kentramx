@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { createStripeCheckoutSession, checkActiveSubscription, getPlanBySlug } from '@/utils/stripeCheckout';
+import { startSubscriptionCheckout, getCurrentSubscription } from '@/utils/stripeCheckout';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,41 +27,20 @@ const PricingInmobiliaria = () => {
     }
 
     try {
-      // Verificar suscripción activa
-      const { hasActive } = await checkActiveSubscription(user.id);
-      if (hasActive) {
-        toast.error('Ya tienes una suscripción activa. Ve a tu dashboard para gestionar tu plan.');
+      // Verificar si ya tiene suscripción
+      const { subscription } = await getCurrentSubscription();
+      if (subscription) {
+        toast.error('Ya tienes una suscripción activa. Ve a tu dashboard para gestionarla.');
         navigate('/panel-inmobiliaria');
         return;
       }
 
-      // Obtener plan
-      const { plan, error: planError } = await getPlanBySlug('inmobiliaria', planSlug);
-      if (planError || !plan) {
-        toast.error(planError || 'No se pudo encontrar el plan seleccionado');
-        return;
-      }
-
-      // Mostrar confirmación
-      const price = billingPeriod === 'monthly' ? plan.price_monthly : plan.price_yearly;
-      const period = billingPeriod === 'monthly' ? 'mes' : 'año';
-      toast.success(`Redirigiendo al checkout de ${plan.display_name} - $${price} MXN/${period}`);
-
-      // Crear sesión de checkout
-      const result = await createStripeCheckoutSession({
-        planId: plan.id,
-        billingCycle: billingPeriod === 'monthly' ? 'monthly' : 'yearly',
-        successUrl: `${window.location.origin}/payment-success?payment=success&plan=${plan.name}`,
-        cancelUrl: `${window.location.origin}/pricing-inmobiliaria`,
-      });
+      // Iniciar checkout con el nuevo sistema
+      const billingCycleValue = billingPeriod === 'monthly' ? 'monthly' : 'yearly';
+      const result = await startSubscriptionCheckout(`inmobiliaria_${planSlug}`, billingCycleValue);
 
       if (!result.success) {
-        toast.error(result.error || 'Error al crear la sesión de pago');
-        return;
-      }
-
-      if (result.checkoutUrl) {
-        window.location.href = result.checkoutUrl;
+        toast.error(result.error || 'Error al iniciar el proceso de pago');
       }
     } catch (error) {
       console.error('Error:', error);
