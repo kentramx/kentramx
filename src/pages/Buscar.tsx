@@ -839,6 +839,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       setMapCenter({ lat: 23.6345, lng: -102.5528 });
       setMapZoom(5);
     }
+  }, [searchCoordinates, hoveredProperty, hasLocationFilters, mapMarkers]);
 
   const getBreadcrumbItems = (): BreadcrumbItem[] => {
     const items: BreadcrumbItem[] = [
