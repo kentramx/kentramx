@@ -321,9 +321,14 @@ const PropertyCard = ({
             )}
           </div>
 
-          {/* Título y tipo */}
-          <p className="font-medium line-clamp-1 mb-2">
-            {getTypeLabel()} en {colonia || municipality}
+          {/* Título */}
+          <h3 className="font-semibold text-lg line-clamp-2 mb-1">
+            {title}
+          </h3>
+          
+          {/* Tipo de propiedad */}
+          <p className="text-sm text-muted-foreground mb-2">
+            {getTypeLabel()}
           </p>
 
           {/* Dirección */}
