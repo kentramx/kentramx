@@ -41,15 +41,22 @@ const ComparePage = () => {
       return;
     }
 
+    // Limit to max 10 properties to compare (Postgres IN clause limit)
+    const limitedList = compareList.slice(0, 10);
+    if (compareList.length > 10) {
+      toast.error("Máximo 10 propiedades para comparar");
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from("properties")
         .select(`
-          *,
+          id, title, price, currency, address, state, municipality,
+          bedrooms, bathrooms, parking, sqft, type, listing_type,
           images (url)
         `)
-        .in("id", compareList);
+        .in("id", limitedList);
 
       if (error) throw error;
 

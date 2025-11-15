@@ -197,11 +197,12 @@ const Home = () => {
           setFeaturedProperties([]);
         }
 
-        // Get recent properties (ordered by created_at DESC)
+        // Get recent properties - optimized with idx_properties_listing_status_created
         let recentQuery = supabase
           .from('properties')
           .select(`
-            *,
+            id, title, price, currency, address, state, municipality,
+            bedrooms, bathrooms, parking, sqft, type, listing_type, agent_id,
             images (url, position)
           `)
           .eq('status', 'activa')

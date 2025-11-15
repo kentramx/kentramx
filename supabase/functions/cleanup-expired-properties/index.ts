@@ -5,6 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const BATCH_SIZE = 100; // Process 100 properties at a time
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -24,80 +26,89 @@ Deno.serve(async (req) => {
 
     console.log('Starting cleanup of expired properties...');
 
-    // 1. Buscar propiedades expiradas
-    const { data: expiredProperties, error: fetchError } = await supabaseAdmin
-      .from('properties')
-      .select('id, agent_id, title, last_renewed_at, created_at, images(url)')
-      .lt('expires_at', new Date().toISOString());
+    let totalPaused = 0;
+    let hasMore = true;
+    let offset = 0;
 
-    if (fetchError) {
-      console.error('Error fetching expired properties:', fetchError);
-      throw fetchError;
-    }
+    // Process in batches to avoid OOM with 1M+ properties
+    while (hasMore) {
+      console.log(`Processing batch starting at offset ${offset}...`);
 
-    if (!expiredProperties || expiredProperties.length === 0) {
-      console.log('No expired properties found');
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          message: 'No expired properties found',
-          pausedCount: 0 
-        }),
-        { 
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+      // Fetch batch of expired properties - uses idx_properties_expires_at
+      const { data: expiredProperties, error: fetchError } = await supabaseAdmin
+        .from('properties')
+        .select('id, agent_id, title, last_renewed_at, created_at')
+        .eq('status', 'activa')
+        .lt('expires_at', new Date().toISOString())
+        .order('expires_at', { ascending: true })
+        .range(offset, offset + BATCH_SIZE - 1);
 
-    console.log(`Found ${expiredProperties.length} expired properties to pause`);
-
-    // 2. Guardar log y pausar propiedades (NO eliminar)
-    let pausedCount = 0;
-    for (const property of expiredProperties) {
-      try {
-        // Guardar log antes de pausar
-        const { error: logError } = await supabaseAdmin
-          .from('property_expiration_log')
-          .insert({
-            property_id: property.id,
-            agent_id: property.agent_id,
-            property_title: property.title,
-            last_renewed_at: property.last_renewed_at,
-            property_created_at: property.created_at,
-          });
-
-        if (logError) {
-          console.error(`Error logging property ${property.id}:`, logError);
-        }
-
-        // Pausar propiedad en lugar de eliminarla
-        const { error: pauseError } = await supabaseAdmin
-          .from('properties')
-          .update({ 
-            status: 'pausada',
-            rejection_reason: null // No es rechazo, es pausa por expiración
-          })
-          .eq('id', property.id);
-
-        if (pauseError) {
-          console.error(`Error pausing property ${property.id}:`, pauseError);
-        } else {
-          pausedCount++;
-          console.log(`✓ Paused expired property: ${property.title} (${property.id})`);
-        }
-      } catch (err) {
-        console.error(`Error processing property ${property.id}:`, err);
+      if (fetchError) {
+        console.error('Error fetching expired properties:', fetchError);
+        throw fetchError;
       }
+
+      if (!expiredProperties || expiredProperties.length === 0) {
+        console.log('No more expired properties found');
+        hasMore = false;
+        break;
+      }
+
+      console.log(`Found ${expiredProperties.length} expired properties in this batch`);
+
+      // Process batch
+      const propertyIds = expiredProperties.map(p => p.id);
+      
+      // Bulk insert logs
+      const logsToInsert = expiredProperties.map(property => ({
+        property_id: property.id,
+        agent_id: property.agent_id,
+        property_title: property.title,
+        last_renewed_at: property.last_renewed_at,
+        property_created_at: property.created_at,
+      }));
+
+      const { error: logError } = await supabaseAdmin
+        .from('property_expiration_log')
+        .insert(logsToInsert);
+
+      if (logError) {
+        console.error('Error bulk logging properties:', logError);
+      }
+
+      // Bulk update to pause
+      const { error: pauseError } = await supabaseAdmin
+        .from('properties')
+        .update({ 
+          status: 'pausada',
+        })
+        .in('id', propertyIds);
+
+      if (pauseError) {
+        console.error('Error bulk pausing properties:', pauseError);
+      } else {
+        totalPaused += expiredProperties.length;
+        console.log(`✓ Paused ${expiredProperties.length} properties in this batch`);
+      }
+
+      // If we got less than BATCH_SIZE, we're done
+      if (expiredProperties.length < BATCH_SIZE) {
+        hasMore = false;
+      } else {
+        offset += BATCH_SIZE;
+      }
+
+      // Small delay between batches to avoid overwhelming the database
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    console.log(`Cleanup completed. Paused ${pausedCount} properties.`);
+    console.log(`Cleanup completed. Total paused: ${totalPaused} properties.`);
 
     return new Response(
       JSON.stringify({ 
         success: true,
         message: 'Cleanup completed successfully',
-        pausedCount 
+        pausedCount: totalPaused
       }),
       { 
         status: 200,
