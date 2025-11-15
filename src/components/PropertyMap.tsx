@@ -38,101 +38,96 @@ export const PropertyMap = ({ address, lat, lng, height = '400px' }: PropertyMap
   useEffect(() => {
     if (!isGoogleMapsReady || !mapRef.current) return;
 
-    const initMap = async () => {
-      try {
-        // Initialize map if not already done
-        if (!mapInstanceRef.current) {
-          const { Map } = await google.maps.importLibrary('maps') as google.maps.MapsLibrary;
-          
-          mapInstanceRef.current = new Map(mapRef.current, {
-            center: { lat: lat || 20.6597, lng: lng || -103.3496 }, // Guadalajara default
-            zoom: lat && lng ? 15 : 11,
-            mapTypeControl: true,
-            streetViewControl: true,
-            fullscreenControl: true,
-            mapId: 'KENTRA_PROPERTY_MAP',
-          });
-        }
+    try {
+      // Initialize map if not already done
+      if (!mapInstanceRef.current) {
+        mapInstanceRef.current = new google.maps.Map(mapRef.current, {
+          center: { lat: lat || 20.6597, lng: lng || -103.3496 }, // Guadalajara default
+          zoom: lat && lng ? 15 : 11,
+          mapTypeControl: true,
+          streetViewControl: true,
+          fullscreenControl: true,
+        });
+      }
 
-        // Geocode if we have address but no coordinates
-        if (address && (!lat || !lng)) {
-          const { Geocoder } = await google.maps.importLibrary('geocoding') as google.maps.GeocodingLibrary;
-          const geocoder = new Geocoder();
+      // Geocode if we have address but no coordinates
+      if (address && (!lat || !lng)) {
+        const geocoder = new google.maps.Geocoder();
         
-          geocoder.geocode({ address }, async (results, status) => {
-            if (status === 'OK' && results && results[0]) {
-              const location = results[0].geometry.location;
-              
-              mapInstanceRef.current?.setCenter(location);
-              mapInstanceRef.current?.setZoom(15);
+        geocoder.geocode({ address }, (results, status) => {
+          if (status === 'OK' && results && results[0]) {
+            const location = results[0].geometry.location;
+            
+            mapInstanceRef.current?.setCenter(location);
+            mapInstanceRef.current?.setZoom(15);
 
-              if (markerRef.current) {
-                markerRef.current.setMap(null);
-              }
-
-              markerRef.current = new google.maps.Marker({
-                position: location,
-                map: mapInstanceRef.current,
-                title: address,
-              });
-
-              toast({
-                title: "📍 Ubicación geocodificada",
-                description: "La dirección se mostró en el mapa correctamente",
-              });
-            } else {
-              console.error('Geocoding failed:', status);
-              
-              let errorMsg = '';
-              let solution = '';
-
-              switch (status) {
-                case 'ZERO_RESULTS':
-                  errorMsg = '🔍 No se encontró la dirección';
-                  solution = 'Verifica que la dirección sea correcta y completa';
-                  break;
-                case 'OVER_QUERY_LIMIT':
-                  errorMsg = '⚠️ Límite de geocodificación excedido';
-                  solution = 'Espera un momento e intenta de nuevo. Considera habilitar facturación en Google Cloud';
-                  break;
-                case 'REQUEST_DENIED':
-                  errorMsg = '🚫 Solicitud de geocodificación denegada';
-                  solution = 'Verifica que Geocoding API esté habilitada en Google Cloud Console';
-                  break;
-                case 'INVALID_REQUEST':
-                  errorMsg = '❌ Dirección inválida';
-                  solution = 'La dirección proporcionada no es válida';
-                  break;
-                default:
-                  errorMsg = '⚠️ Error de geocodificación';
-                  solution = `Error: ${status}`;
-              }
-
-              toast({
-                title: errorMsg,
-                description: solution,
-                variant: "destructive",
-                duration: 8000,
-              });
+            if (markerRef.current) {
+              markerRef.current.setMap(null);
             }
-          });
-        } else if (lat && lng) {
-          // We have coordinates, use them directly
-          const location = { lat, lng };
-          
-          mapInstanceRef.current?.setCenter(location);
-          mapInstanceRef.current?.setZoom(15);
 
-          if (markerRef.current) {
-            markerRef.current.setMap(null);
+            markerRef.current = new google.maps.Marker({
+              position: location,
+              map: mapInstanceRef.current,
+              title: address,
+            });
+
+            toast({
+              title: "📍 Ubicación geocodificada",
+              description: "La dirección se mostró en el mapa correctamente",
+            });
+          } else {
+            console.error('Geocoding failed:', status);
+            
+            let errorMsg = '';
+            let solution = '';
+
+            switch (status) {
+              case 'ZERO_RESULTS':
+                errorMsg = '🔍 No se encontró la dirección';
+                solution = 'Verifica que la dirección sea correcta y completa';
+                break;
+              case 'OVER_QUERY_LIMIT':
+                errorMsg = '⚠️ Límite de geocodificación excedido';
+                solution = 'Espera un momento e intenta de nuevo. Considera habilitar facturación en Google Cloud';
+                break;
+              case 'REQUEST_DENIED':
+                errorMsg = '🚫 Solicitud de geocodificación denegada';
+                solution = 'Verifica que Geocoding API esté habilitada en Google Cloud Console';
+                break;
+              case 'INVALID_REQUEST':
+                errorMsg = '❌ Dirección inválida';
+                solution = 'La dirección proporcionada no es válida';
+                break;
+              default:
+                errorMsg = '⚠️ Error de geocodificación';
+                solution = `Error: ${status}`;
+            }
+
+            toast({
+              title: errorMsg,
+              description: solution,
+              variant: "destructive",
+              duration: 8000,
+            });
           }
+        });
+      } else if (lat && lng) {
+        // We have coordinates, use them directly
+        const location = { lat, lng };
+        
+        mapInstanceRef.current?.setCenter(location);
+        mapInstanceRef.current?.setZoom(15);
 
-          markerRef.current = new google.maps.Marker({
-            position: location,
-            map: mapInstanceRef.current,
-            title: address || 'Ubicación de la propiedad',
-          });
+        if (markerRef.current) {
+          markerRef.current.setMap(null);
         }
+
+        markerRef.current = new google.maps.Marker({
+          position: location,
+          map: mapInstanceRef.current,
+          title: address || 'Ubicación de la propiedad',
+        });
+      }
     } catch (error) {
       console.error('Error creating map:', error);
       setMapError('Error al crear el mapa');
@@ -143,9 +138,6 @@ export const PropertyMap = ({ address, lat, lng, height = '400px' }: PropertyMap
         variant: "destructive",
       });
     }
-    };
-
-    initMap();
 
     return () => {
       if (markerRef.current) {

@@ -69,15 +69,12 @@ export function BasicGoogleMap({
 
         await waitForSize(containerRef.current);
 
-        const { Map } = await google.maps.importLibrary('maps') as google.maps.MapsLibrary;
-
-        mapRef.current = new Map(containerRef.current, {
+        mapRef.current = new google.maps.Map(containerRef.current, {
           center,
           zoom,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
-          mapId: 'KENTRA_MAP', // Requerido para AdvancedMarkerElement
         });
 
         if (onReady && mapRef.current) onReady(mapRef.current);

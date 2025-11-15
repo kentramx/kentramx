@@ -42,10 +42,7 @@ export const InteractiveMapSearch = ({
 
         if (!isMounted || !mapRef.current) return;
 
-        const { Map } = await google.maps.importLibrary('maps') as google.maps.MapsLibrary;
-        const { Geocoder } = await google.maps.importLibrary('geocoding') as google.maps.GeocodingLibrary;
-
-        const map = new Map(mapRef.current, {
+        const map = new google.maps.Map(mapRef.current, {
           center: defaultCenter,
           zoom: defaultZoom,
           clickableIcons: false,
@@ -53,7 +50,7 @@ export const InteractiveMapSearch = ({
         });
 
         mapInstanceRef.current = map;
-        geocoderRef.current = new Geocoder();
+        geocoderRef.current = new google.maps.Geocoder();
 
         // Agregar listener de clic en el mapa
         map.addListener('click', async (event: google.maps.MapMouseEvent) => {
@@ -66,7 +63,7 @@ export const InteractiveMapSearch = ({
           if (markerRef.current) {
             markerRef.current.setPosition({ lat, lng });
           } else {
-            // Crear nuevo marcador
+            // Crear nuevo marcador estándar (sin AdvancedMarker)
             markerRef.current = new google.maps.Marker({
               map,
               position: { lat, lng },
