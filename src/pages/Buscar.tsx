@@ -911,6 +911,15 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     filters.municipio || filters.estado || 'Propiedades en México'
   );
 
+  // Handlers for form controls (defined outside JSX to avoid type parsing issues)
+  const handleOrdenChange = (value: string) => {
+    setFilters(prev => ({ ...prev, orden: value as Filters['orden'] }));
+  };
+
+  const handleSavedSearchSortChange = (value: string) => {
+    setSavedSearchSort(value as 'date' | 'name');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
@@ -931,7 +940,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                 <PlaceAutocomplete
                   key={`location-${locationDisplayValue || 'empty'}`}
                   onPlaceSelect={handlePlaceSelect}
-                  onInputChange={handleSearchInputChange as (value: string) => void}
+                  onInputChange={handleSearchInputChange}
                   placeholder="Ciudad, código postal..."
                   defaultValue={locationDisplayValue}
                   showIcon={true}
@@ -1080,7 +1089,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                       {/* Ordenar */}
                       <div className="space-y-3">
                         <h4 className="font-medium text-sm">Ordenar por</h4>
-                        <RadioGroup value={filters.orden} onValueChange={(value: any) => setFilters(prev => ({ ...prev, orden: value }))}>
+                        <RadioGroup value={filters.orden} onValueChange={handleOrdenChange}>
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="price_desc" id="price_desc_mobile" />
                             <Label htmlFor="price_desc_mobile">💰 Precio: Mayor a menor</Label>
@@ -1271,7 +1280,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                     <h4 className="font-medium text-sm">Ordenar propiedades por</h4>
                     <RadioGroup 
                       value={filters.orden} 
-                      onValueChange={(value: any) => setFilters(prev => ({ ...prev, orden: value }))}
+                      onValueChange={handleOrdenChange}
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="price_desc" id="price_desc" />
@@ -1671,7 +1680,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                           value={savedSearchQuery}
                           onChange={(e) => setSavedSearchQuery(e.target.value)}
                         />
-                        <Select value={savedSearchSort} onValueChange={(v: 'date' | 'name') => setSavedSearchSort(v)}>
+                        <Select value={savedSearchSort} onValueChange={handleSavedSearchSortChange}>
                           <SelectTrigger className="w-auto">
                             <SelectValue />
                           </SelectTrigger>
