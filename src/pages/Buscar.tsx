@@ -1439,6 +1439,16 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                   hoverFromMap.current = true;
                   const property = filteredProperties.find(p => p.id === markerId) as Property | undefined;
                   setHoveredProperty(property || null);
+                  
+                  // Auto-scroll al card correspondiente
+                  const cardElement = propertyCardRefs.current.get(markerId);
+                  if (cardElement) {
+                    cardElement.scrollIntoView({ 
+                      behavior: 'smooth', 
+                      block: 'center',
+                      inline: 'nearest'
+                    });
+                  }
                 } else {
                   setHoveredProperty(null);
                 }
