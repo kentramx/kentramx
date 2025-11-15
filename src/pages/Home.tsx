@@ -28,6 +28,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
+import { PropertyDetailSheet } from "@/components/PropertyDetailSheet";
+
 interface Property {
   id: string;
   title: string;
@@ -72,6 +74,19 @@ const Home = () => {
   const [bedrooms, setBedrooms] = useState("all");
   const [bathrooms, setBathrooms] = useState("all");
   const [parking, setParking] = useState("all");
+  
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  
+  const handlePropertyClick = (id: string) => {
+    setSelectedPropertyId(id);
+    setSheetOpen(true);
+  };
+  
+  const handleCloseSheet = () => {
+    setSheetOpen(false);
+    setSelectedPropertyId(null);
+  };
   
   const navigate = useNavigate();
 
@@ -453,6 +468,7 @@ const Home = () => {
                       agentId={property.agent_id}
                       isFeatured={property.is_featured}
                       createdAt={property.created_at}
+                      onCardClick={handlePropertyClick}
                     />
                   </div>
                 ))}

@@ -36,6 +36,7 @@ interface PropertyCardProps {
   agentId: string;
   isFeatured?: boolean;
   createdAt?: string;
+  onCardClick?: (id: string) => void;
 }
 
 const PropertyCard = ({
@@ -65,6 +66,7 @@ const PropertyCard = ({
   agentId,
   isFeatured = false,
   createdAt,
+  onCardClick,
 }: PropertyCardProps) => {
   const { toast } = useToast();
   const { trackGA4Event } = useTracking();
@@ -137,16 +139,28 @@ const PropertyCard = ({
     return days < 7;
   };
 
-  const handleCardClick = () => {
-    // Track selección de propiedad en GA4
-    trackGA4Event('select_item', {
-      item_id: id,
-      item_name: title,
-      item_category: type,
-      item_list_name: 'search_results',
-      value: price,
-      currency: 'MXN',
-    });
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (onCardClick) {
+      e.preventDefault();
+      trackGA4Event('select_item', {
+        item_id: id,
+        item_name: title,
+        item_category: type,
+        item_list_name: 'search_results',
+        value: price,
+        currency: 'MXN',
+      });
+      onCardClick(id);
+    } else {
+      trackGA4Event('select_item', {
+        item_id: id,
+        item_name: title,
+        item_category: type,
+        item_list_name: 'search_results',
+        value: price,
+        currency: 'MXN',
+      });
+    }
   };
 
   const displayImages = images && images.length > 0 
@@ -171,12 +185,15 @@ const PropertyCard = ({
     setCurrentImageIndex((prev) => (prev === displayImages.length - 1 ? 0 : prev + 1));
   };
 
+  const Wrapper = onCardClick ? 'div' : Link;
+  const wrapperProps = onCardClick 
+    ? { onClick: handleCardClick, className: cn("group overflow-hidden transition-all hover:shadow-lg cursor-pointer", isHovered && 'ring-2 ring-primary shadow-xl scale-[1.02]') }
+    : { to: `/propiedad/${id}`, onClick: handleCardClick, className: cn("group overflow-hidden transition-all hover:shadow-lg", isHovered && 'ring-2 ring-primary shadow-xl scale-[1.02]') };
+
   return (
-    <Card className={cn(
-      "group overflow-hidden transition-all hover:shadow-lg",
-      isHovered && 'ring-2 ring-primary shadow-xl scale-[1.02]'
-    )}>
-      <Link to={`/propiedad/${id}`} onClick={handleCardClick}>
+    <Card className="overflow-hidden">
+      {/* @ts-ignore */}
+      <Wrapper {...wrapperProps}>
         <div className="relative aspect-[4/3] overflow-hidden">
           <img
             src={getImageUrl(displayImages[currentImageIndex]?.url || propertyPlaceholder)}
@@ -262,10 +279,12 @@ const PropertyCard = ({
             </Button>
           )}
         </div>
-      </Link>
+      {/* @ts-ignore */}
+      </Wrapper>
 
       <CardContent className="p-5 space-y-3">
-        <Link to={`/propiedad/${id}`} className="block" onClick={handleCardClick}>
+        {/* @ts-ignore */}
+        <Wrapper {...wrapperProps}>
           {/* Precio */}
           <div className="mb-3">
             {getDisplayPrice()}
@@ -315,7 +334,8 @@ const PropertyCard = ({
               {getDaysOnMarket()}
             </p>
           )}
-        </Link>
+        {/* @ts-ignore */}
+        </Wrapper>
       </CardContent>
     </Card>
   );

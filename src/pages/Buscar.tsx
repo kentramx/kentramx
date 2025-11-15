@@ -68,6 +68,8 @@ interface Filters {
   orden: 'price_desc' | 'price_asc' | 'newest' | 'oldest' | 'bedrooms_desc' | 'sqft_desc';
 }
 
+import { PropertyDetailSheet } from '@/components/PropertyDetailSheet';
+
 const getTipoLabel = (tipo: string) => {
   const labels: Record<string, string> = {
     casa: '🏠 Casa',
@@ -92,6 +94,10 @@ const Buscar = () => {
   
   // Flag para prevenir sobrescritura durante sincronización URL -> estado
   const syncingFromUrl = useRef(false);
+  
+  // Estado para el Sheet de propiedad
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   
 // Rangos para VENTA (en millones)
 const SALE_MIN_PRICE = 0;
@@ -195,6 +201,36 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   
   // Estado para guardar coordenadas de la ubicación buscada
   const [searchCoordinates, setSearchCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  
+  // Sincronizar Sheet desde URL
+  useEffect(() => {
+    const propertyId = searchParams.get('propiedad');
+    if (propertyId) {
+      setSelectedPropertyId(propertyId);
+      setSheetOpen(true);
+    } else {
+      setSheetOpen(false);
+      setSelectedPropertyId(null);
+    }
+  }, [searchParams]);
+  
+  // Función para abrir Sheet
+  const handlePropertyClick = (id: string) => {
+    setSelectedPropertyId(id);
+    setSheetOpen(true);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('propiedad', id);
+    setSearchParams(newParams, { replace: true });
+  };
+  
+  // Función para cerrar Sheet
+  const handleCloseSheet = () => {
+    setSheetOpen(false);
+    setSelectedPropertyId(null);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('propiedad');
+    setSearchParams(newParams, { replace: true });
+  };
   
   // Sincronizar filters con searchParams cuando la URL cambia
   useEffect(() => {
@@ -624,12 +660,12 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     setIsFiltering(isFetching);
   }, [isFetching]);
 
-  const handlePropertyClick = (property: Property) => {
-    console.log('Clicked property:', property.id);
+  const handlePropertyHover = (property: Property) => {
+    setHoveredProperty(property);
   };
 
   const handleMarkerClick = (propertyId: string) => {
-    navigate(`/propiedad/${propertyId}`);
+    handlePropertyClick(propertyId);
   };
 
   const handleFavoriteClick = async (propertyId: string) => {
@@ -1513,6 +1549,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                               agentId={property.agent_id}
                               isFeatured={property.is_featured}
                               createdAt={property.created_at || undefined}
+                              onCardClick={handlePropertyClick}
                             />
                           </div>
                         );
@@ -1671,6 +1708,13 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
           </div>
         </div>
       </div>
+      
+      {/* Property Detail Sheet */}
+      <PropertyDetailSheet 
+        propertyId={selectedPropertyId}
+        open={sheetOpen}
+        onClose={handleCloseSheet}
+      />
     </div>
   );
 };
