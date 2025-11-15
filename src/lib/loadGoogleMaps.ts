@@ -1,9 +1,9 @@
 /// <reference types="google.maps" />
 /**
- * Carga dinámicamente la API de Google Maps con bibliotecas modulares
- * - Usa google.maps.importLibrary() para cargar módulos bajo demanda
+ * Carga dinámicamente la API de Google Maps con la librería Places
  * - Evita cargas duplicadas reutilizando una única promesa
  * - Emite eventos de ventana para componentes que escuchan (compatibilidad)
+ * - Carga las bibliotecas necesarias: places, marker, geocoding
  */
 let googleMapsPromise: Promise<typeof google.maps> | null = null;
 
@@ -47,9 +47,9 @@ export const loadGoogleMaps = (): Promise<typeof google.maps> => {
       // Evitar insertar múltiples scripts
       const existing = document.querySelector<HTMLScriptElement>('script[data-google-maps]');
       if (!existing) {
-        // Cargar el loader script principal con loading=async
+        // Cargar con loading=async para habilitar importLibrary() + bibliotecas iniciales
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async&language=es&region=MX`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async&libraries=places,marker,geocoding&language=es&region=MX`;
         script.async = true;
         script.defer = true;
         script.setAttribute('data-google-maps', 'true');
@@ -68,22 +68,8 @@ export const loadGoogleMaps = (): Promise<typeof google.maps> => {
       const checkInterval = setInterval(() => {
         if (window.google?.maps) {
           clearInterval(checkInterval);
-          
-          // Pre-cargar bibliotecas comunes en paralelo
-          Promise.all([
-            google.maps.importLibrary('places'),
-            google.maps.importLibrary('maps'),
-            google.maps.importLibrary('marker'),
-            google.maps.importLibrary('geocoding'),
-          ]).then(() => {
-            window.dispatchEvent(new Event('google-maps-loaded'));
-            resolve(window.google.maps);
-          }).catch((err) => {
-            const msg = 'Error cargando bibliotecas de Google Maps';
-            (window as any).googleMapsLoadError = msg;
-            window.dispatchEvent(new Event('google-maps-error'));
-            reject(new Error(msg));
-          });
+          window.dispatchEvent(new Event('google-maps-loaded'));
+          resolve(window.google.maps);
         }
       }, 50);
 
