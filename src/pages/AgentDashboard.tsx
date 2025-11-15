@@ -23,7 +23,7 @@ import { EmailVerificationRequired } from '@/components/EmailVerificationRequire
 import { QuickUpsells } from '@/components/QuickUpsells';
 import { AgentUpsells } from '@/components/AgentUpsells';
 import { SubscriptionStatusBadge } from '@/components/SubscriptionStatusBadge';
-import { createStripeCheckoutSession } from '@/utils/stripeCheckout';
+// Removed - upsells feature removed in v2.0
 
 const AgentDashboard = () => {
   const { user, loading: authLoading, isEmailVerified } = useAuth();
@@ -387,22 +387,13 @@ const AgentDashboard = () => {
 
       if (upsellError || !upsell) throw new Error('Upsell no encontrado');
 
-      // Usar función centralizada de checkout
-      const result = await createStripeCheckoutSession({
-        planId: '', // No se necesita para upsells
-        billingCycle: 'monthly', // No aplica para upsells
-        successUrl: `${window.location.origin}/payment-success?payment=success&type=upsell`,
-        cancelUrl: `${window.location.origin}/panel-agente?tab=services`,
-        upsells: [upsellId],
-        upsellOnly: true,
+      // Upsells feature disabled in v2.0 - users should upgrade their plan instead
+      toast({
+        title: 'Característica no disponible',
+        description: 'Por favor contacta a soporte para actualizar tu plan',
+        variant: 'default',
       });
-
-      if (!result.success || !result.checkoutUrl) {
-        throw new Error(result.error || 'No se pudo crear la sesión de pago');
-      }
-
-      // Redirigir a Stripe Checkout
-      window.location.href = result.checkoutUrl;
+      return;
     } catch (error: any) {
       console.error('Error comprando upsell:', error);
       toast({
