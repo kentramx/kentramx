@@ -64,97 +64,89 @@ Deno.serve(async (req) => {
       conversion_rate: 0,
     };
 
-    // Get property performance
+    // Get property performance - limit to prevent OOM with 1M+ properties
     const { data: propertiesData, error: propertiesError } = await supabaseClient
       .from('properties')
-      .select(`
-        title,
-        property_views!inner (id),
-        favorites (id),
-        conversations (id)
-      `)
-      .eq('agent_id', user.id);
+      .select('id, title')
+      .eq('agent_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1000); // Limit to 1000 most recent properties
 
     if (propertiesError) throw propertiesError;
 
-    // Process property performance data
     const propertyPerformance: PropertyPerformance[] = [];
-    const propertyMap = new Map();
-
-    propertiesData?.forEach((p: any) => {
-      if (!propertyMap.has(p.title)) {
-        propertyMap.set(p.title, {
-          title: p.title,
-          views: 0,
-          favorites: 0,
-          conversations: 0,
+    const propertyIds = propertiesData?.map(p => p.id) || [];
+    
+    if (propertyIds.length === 0) {
+      // No properties, return empty analytics
+      if (format === 'csv') {
+        const csv = generateEmptyCSV(stats);
+        return new Response(csv, {
+          status: 200,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'text/csv; charset=utf-8',
+            'Content-Disposition': `attachment; filename="analytics-report-${new Date().toISOString().split('T')[0]}.csv"`
+          },
+        });
+      } else {
+        return new Response(JSON.stringify({
+          stats,
+          propertyPerformance: [],
+          generatedAt: new Date().toISOString(),
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-    });
+    }
 
-    // Count views
-    propertiesData?.forEach((p: any) => {
-      if (p.property_views) {
-        const prop = propertyMap.get(p.title);
-        prop.views++;
-      }
-    });
+    // Create a map of property ID to title
+    const propertyTitleMap = new Map(propertiesData?.map(p => [p.id, p.title]) || []);
 
-    // Get actual counts
+    // Get counts with proper filtering by property IDs
     const { data: viewCounts } = await supabaseClient
       .from('property_views')
-      .select('property_id, properties!inner(title, agent_id)')
-      .eq('properties.agent_id', user.id);
+      .select('property_id')
+      .in('property_id', propertyIds);
 
     const viewMap = new Map();
     viewCounts?.forEach((v: any) => {
-      const title = v.properties?.title;
-      if (title) {
-        viewMap.set(title, (viewMap.get(title) || 0) + 1);
-      }
+      const propId = v.property_id;
+      viewMap.set(propId, (viewMap.get(propId) || 0) + 1);
     });
 
     // Get favorite counts
     const { data: favCounts } = await supabaseClient
       .from('favorites')
-      .select('property_id, properties!inner(title, agent_id)')
-      .eq('properties.agent_id', user.id);
+      .select('property_id')
+      .in('property_id', propertyIds);
 
     const favMap = new Map();
     favCounts?.forEach((f: any) => {
-      const title = f.properties?.title;
-      if (title) {
-        favMap.set(title, (favMap.get(title) || 0) + 1);
-      }
+      const propId = f.property_id;
+      favMap.set(propId, (favMap.get(propId) || 0) + 1);
     });
 
     // Get conversation counts
     const { data: convCounts } = await supabaseClient
       .from('conversations')
-      .select('property_id, properties!inner(title, agent_id)')
-      .eq('agent_id', user.id);
+      .select('property_id')
+      .in('property_id', propertyIds);
 
     const convMap = new Map();
     convCounts?.forEach((c: any) => {
-      const title = c.properties?.title;
-      if (title) {
-        convMap.set(title, (convMap.get(title) || 0) + 1);
-      }
+      const propId = c.property_id;
+      convMap.set(propId, (convMap.get(propId) || 0) + 1);
     });
 
-    // Combine all data
-    const allTitles = new Set([
-      ...viewMap.keys(),
-      ...favMap.keys(),
-      ...convMap.keys(),
-    ]);
-
-    allTitles.forEach((title) => {
+    // Build final array with aggregated data
+    propertiesData?.forEach((property: any) => {
       propertyPerformance.push({
-        title,
-        views: viewMap.get(title) || 0,
-        favorites: favMap.get(title) || 0,
-        conversations: convMap.get(title) || 0,
+        title: property.title,
+        views: viewMap.get(property.id) || 0,
+        favorites: favMap.get(property.id) || 0,
+        conversations: convMap.get(property.id) || 0,
       });
     });
 
@@ -188,8 +180,8 @@ Deno.serve(async (req) => {
           'Content-Disposition': `attachment; filename="analytics-report-${new Date().toISOString().split('T')[0]}.csv"`,
         },
       });
-    } else if (format === 'json') {
-      // Return JSON format for client-side PDF generation
+    } else {
+      // Return JSON format
       const reportData = {
         stats,
         propertyPerformance,
@@ -203,20 +195,30 @@ Deno.serve(async (req) => {
         },
       });
     }
-
-    return new Response(JSON.stringify({ error: 'Invalid format' }), {
-      status: 400,
+  } catch (error: any) {
+    console.error('Error in export-analytics function:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (error) {
-    console.error('Error exporting analytics:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
   }
 });
+
+function generateEmptyCSV(stats: AgentStats): string {
+  const csvLines = [
+    'REPORTE DE ANALÍTICAS DEL AGENTE',
+    '',
+    'ESTADÍSTICAS GENERALES',
+    'Métrica,Valor',
+    `Total de Propiedades,${stats.total_properties}`,
+    `Propiedades Activas,${stats.active_properties}`,
+    `Total de Vistas,${stats.total_views}`,
+    `Total de Favoritos,${stats.total_favorites}`,
+    `Total de Conversaciones,${stats.total_conversations}`,
+    `Tasa de Conversión,${stats.conversion_rate}%`,
+    '',
+    'RENDIMIENTO POR PROPIEDAD',
+    'No hay propiedades para mostrar',
+  ];
+  return csvLines.join('\n');
+}

@@ -131,12 +131,13 @@ const AdminDashboard = () => {
     let query = (supabase as any)
       .from('properties')
       .select(`
-        *,
+        id, title, price, address, state, municipality, status,
+        ai_moderation_status, ai_moderation_score, created_at,
+        resubmission_count, rejection_history,
         images (url, position),
         profiles!properties_agent_id_fkey (id, name)
-      `)
-      .eq('status', 'pendiente_aprobacion')
-      .order('created_at', { ascending: false });
+      `, { count: 'exact' })
+      .eq('status', 'pendiente_aprobacion');
 
       if (activeTab === 'nuevas') {
         query = query.eq('resubmission_count', 0);
@@ -148,6 +149,11 @@ const AdminDashboard = () => {
       } else if (activeTab === 'warnings') {
         query = query.eq('requires_manual_review', true);
       }
+
+      // Add pagination limit - uses idx_properties_status_created
+      query = query
+        .order('created_at', { ascending: false })
+        .limit(100); // Load first 100, implement pagination later
 
       const { data, error } = await query;
       if (error) throw error;
