@@ -2,12 +2,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { loadGoogleMaps } from '@/lib/loadGoogleMaps';
 import { MarkerClusterer, GridAlgorithm } from '@googlemaps/markerclusterer';
+import { useCurrencyConversion } from '@/hooks/useCurrencyConversion';
 
 type LatLng = { lat: number; lng: number };
 type BasicMarker = LatLng & { 
   id?: string;
   title?: string;
   price?: number;
+  currency?: 'MXN' | 'USD';
   bedrooms?: number | null;
   bathrooms?: number | null;
   images?: { url: string; position: number }[];
@@ -50,6 +52,7 @@ export function BasicGoogleMap({
   const clustererRef = useRef<MarkerClusterer | null>(null);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { formatPrice } = useCurrencyConversion();
 
   const waitForSize = async (el: HTMLElement, tries = 60, delayMs = 50) => {
     for (let i = 0; i < tries; i++) {
@@ -136,9 +139,25 @@ export function BasicGoogleMap({
     for (const m of markers) {
       if (typeof m.lat !== 'number' || typeof m.lng !== 'number' || !m.id) continue;
       
+      // Formatear el precio para el label
+      const priceLabel = m.price ? formatPrice(m.price, m.currency || 'MXN') : '';
+      
       const marker = new google.maps.Marker({ 
         position: { lat: m.lat, lng: m.lng },
         animation: undefined,
+        icon: {
+          path: 'M 0,0',
+          scale: 1,
+          fillOpacity: 0,
+          strokeWeight: 0,
+        },
+        label: {
+          text: priceLabel,
+          className: 'custom-price-marker',
+          fontSize: '13px',
+          fontWeight: '600',
+        },
+        optimized: false,
       });
       
       // Guardar referencia del marcador con su id

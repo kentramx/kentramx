@@ -88,6 +88,30 @@ All colors MUST be HSL.
   display: inline-block !important;
 }
 
+/* Custom price markers estilo Airbnb */
+.custom-price-marker {
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1.5px solid hsl(var(--border)) !important;
+  border-radius: 20px !important;
+  padding: 6px 12px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.custom-price-marker:hover {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+  z-index: 1000 !important;
+  border-color: hsl(var(--primary)) !important;
+}
+
 /* Forzar ancho del web component de Google Places */
 gmp-place-autocomplete {
   display: block;

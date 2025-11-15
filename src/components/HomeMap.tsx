@@ -42,6 +42,7 @@ const HomeMap = ({ height = "450px" }: { height?: string }) => {
       lng: p.lng as number,
       title: p.title,
       price: p.price,
+      currency: ('currency' in p ? (p.currency as string) : 'MXN') as 'MXN' | 'USD',
       bedrooms: p.bedrooms,
       bathrooms: p.bathrooms,
       images: p.images,
