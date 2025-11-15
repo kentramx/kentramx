@@ -66,7 +66,7 @@ type AccountFormData = z.infer<typeof accountSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
 const Settings = () => {
-  const { user, updatePassword } = useAuth();
+  const { user, updatePassword, signOut } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
@@ -74,6 +74,7 @@ const Settings = () => {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [savingAccount, setSavingAccount] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const { userRole } = useUserRole();
 
   const accountForm = useForm<AccountFormData>({
@@ -200,6 +201,32 @@ const Settings = () => {
       console.error("Error updating email notifications:", error);
       toast.error("No se pudo actualizar las preferencias");
       setEmailNotifications(!enabled);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deletingAccount) return;
+    
+    setDeletingAccount(true);
+    const loadingToast = toast.loading("Eliminando cuenta...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-user-account');
+
+      if (error) throw error;
+
+      toast.dismiss(loadingToast);
+      toast.success("Tu cuenta ha sido eliminada exitosamente");
+      
+      // Sign out and redirect to home
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      toast.dismiss(loadingToast);
+      toast.error("Error al eliminar la cuenta. Por favor intenta de nuevo.");
+    } finally {
+      setDeletingAccount(false);
     }
   };
 
@@ -501,16 +528,17 @@ const Settings = () => {
                         <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
                         <AlertDialogDescription>
                           Esta acción no se puede deshacer. Esto eliminará permanentemente tu
-                          cuenta y removerá todos tus datos de nuestros servidores.
+                          cuenta y removerá todos tus datos de nuestros servidores, incluyendo
+                          todas tus propiedades, favoritos y configuraciones.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction
                           className="bg-destructive hover:bg-destructive/90"
-                          onClick={() => toast.error("Funcionalidad no disponible")}
+                          onClick={handleDeleteAccount}
                         >
-                          Eliminar Cuenta
+                          Sí, eliminar mi cuenta
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
