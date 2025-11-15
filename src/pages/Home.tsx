@@ -84,17 +84,30 @@ const Home = () => {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   
+  const navigate = useNavigate();
+
   const handlePropertyClick = (id: string) => {
     setSelectedPropertyId(id);
     setSheetOpen(true);
+    navigate(`/?propiedad=${id}`, { replace: true });
   };
-  
+
   const handleCloseSheet = () => {
     setSheetOpen(false);
     setSelectedPropertyId(null);
+    navigate('/', { replace: true });
   };
-  
-  const navigate = useNavigate();
+
+  // Detectar si hay una propiedad en la URL para abrirla automáticamente
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const propertyId = params.get('propiedad');
+    
+    if (propertyId && !sheetOpen) {
+      setSelectedPropertyId(propertyId);
+      setSheetOpen(true);
+    }
+  }, []);
 
   const handlePlaceSelect = (location: {
     address: string;
@@ -650,6 +663,13 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Property Detail Sheet */}
+      <PropertyDetailSheet 
+        propertyId={selectedPropertyId}
+        open={sheetOpen}
+        onClose={handleCloseSheet}
+      />
 
     </div>
   );
