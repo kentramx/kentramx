@@ -54,12 +54,18 @@ export const PlaceAutocomplete = ({
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [useWebComponent, setUseWebComponent] = React.useState<boolean | null>(null);
   const [isGettingLocation, setIsGettingLocation] = React.useState(false);
+  const [inputValue, setInputValue] = React.useState(defaultValue);
 
   // keep latest onPlaceSelect without recreating input
   const onPlaceSelectRef = React.useRef(onPlaceSelect);
   useEffect(() => {
     onPlaceSelectRef.current = onPlaceSelect;
   }, [onPlaceSelect]);
+
+  // Sync inputValue with defaultValue prop
+  useEffect(() => {
+    setInputValue(defaultValue);
+  }, [defaultValue]);
 
   const handleGetMyLocation = async () => {
     if (!navigator.geolocation) {
@@ -122,6 +128,7 @@ export const PlaceAutocomplete = ({
             };
 
             // Actualizar el input según el tipo
+            setInputValue(address);
             if (autocompleteRef.current) {
               if (autocompleteRef.current instanceof HTMLElement) {
                 // Web Component (tiene propiedad value pero TypeScript no la ve)
@@ -206,7 +213,7 @@ export const PlaceAutocomplete = ({
         colonia?: string;
         lat?: number;
         lng?: number;
-      }, inputValue: string) => {
+      }, inputVal: string) => {
         if (!location.municipality || !location.state) {
           toast({
             title: 'ℹ️ Información incompleta',
@@ -214,6 +221,7 @@ export const PlaceAutocomplete = ({
           });
         }
 
+        setInputValue(location.address);
         onPlaceSelectRef.current?.(location);
         
         // Solo mostrar toast de éxito si todo está completo
@@ -474,7 +482,8 @@ export const PlaceAutocomplete = ({
           id={id}
           type="text"
           placeholder="Calle, número, colonia, municipio, estado"
-          defaultValue={defaultValue}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
       </div>
@@ -499,7 +508,16 @@ export const PlaceAutocomplete = ({
             id={id}
             type="text"
             placeholder={placeholder}
-            defaultValue={defaultValue}
+            value={inputValue}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              if (onInputChange) {
+                if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                debounceTimerRef.current = setTimeout(() => {
+                  onInputChange(e.target.value);
+                }, 300);
+              }
+            }}
               className={(() => {
                 const base = unstyled
                   ? 'h-12 w-full bg-transparent px-5 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50'

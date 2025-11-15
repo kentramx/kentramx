@@ -25,8 +25,8 @@ export const Step2Location = ({ formData, updateFormData }: Step2LocationProps) 
               updateFormData({
                 state: location.state,
                 municipality: location.municipality,
-                address: location.address || formData.address,
-                colonia: location.colonia || formData.colonia,
+                address: location.address || '',
+                colonia: location.colonia || '',
                 lat: location.lat,
                 lng: location.lng,
               });
