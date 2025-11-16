@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { SearchMap } from '@/components/SearchMap';
+import { SearchResultsList } from '@/components/SearchResultsList';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePropertiesViewport, ViewportBounds } from '@/hooks/usePropertiesViewport';
+import { usePropertiesInfinite } from '@/hooks/usePropertiesInfinite';
 import { PlaceAutocomplete } from '@/components/PlaceAutocomplete';
+import { buildPropertyFilters } from '@/utils/buildPropertyFilters';
 import BasicGoogleMap from '@/components/BasicGoogleMap';
 import Navbar from '@/components/Navbar';
 import PropertyCard from '@/components/PropertyCard';
@@ -122,30 +124,28 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     orden: (searchParams.get('orden') as any) || 'price_desc',
   });
   
-  // ✅ Fetch optimizado para lista - carga inicial de todo el país
-  const initialBounds: ViewportBounds = { 
-    minLng: -118.0, 
-    minLat: 14.0, 
-    maxLng: -86.0, 
-    maxLat: 33.0, 
-    zoom: 5 
-  };
+  // ✅ Construir filtros de manera unificada
+  const propertyFilters = useMemo(
+    () => buildPropertyFilters(filters),
+    [filters]
+  );
 
-  const queryFilters: PropertyFilters = useMemo(() => ({
-    estado: filters.estado || undefined,
-    municipio: filters.municipio || undefined,
-    tipo: filters.tipo || undefined,
-    listingType: filters.listingType || undefined,
-    precioMin: filters.precioMin ? parseFloat(filters.precioMin) : undefined,
-    precioMax: filters.precioMax ? parseFloat(filters.precioMax) : undefined,
-    recamaras: filters.recamaras || undefined,
-    banos: filters.banos || undefined,
-    status: ['activa'],
-  }), [filters]);
+  // ✅ Usar usePropertiesInfinite para la lista (paginación)
+  const {
+    data: infiniteData,
+    isLoading: loading,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+  } = usePropertiesInfinite(propertyFilters);
 
-  const { data: viewportData, isLoading: loading, isFetching } = usePropertiesViewport(initialBounds, queryFilters);
-  
-  const properties = (viewportData?.properties || []);
+  // ✅ Construir arreglo plano de propiedades desde las páginas
+  const properties = useMemo(
+    () => infiniteData?.pages.flatMap((page) => page.properties) ?? [],
+    [infiniteData]
+  );
+
+  const totalCount = properties.length;
 
   // Ordenar propiedades según criterio seleccionado
   // PRIORIDAD: Destacadas primero, luego aplicar orden seleccionado
@@ -270,7 +270,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   const [estados] = useState<string[]>(mexicoStates);
   const [municipios, setMunicipios] = useState<string[]>([]);
   const [hoveredProperty, setHoveredProperty] = useState<MapProperty | null>(null);
-  const propertyCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const hoverFromMap = useRef(false);
   const [currentPage, setCurrentPage] = useState(1);
   const PROPERTIES_PER_PAGE = 20;
@@ -287,20 +286,11 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
   
-  // Auto-scroll a la tarjeta cuando se hace hover sobre un marcador del mapa
-  useEffect(() => {
-    if (hoveredProperty && hoverFromMap.current) {
-      const cardElement = propertyCardRefs.current.get(hoveredProperty.id);
-      if (cardElement) {
-        cardElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        });
-      }
-    }
-    // Reset flag después de hacer scroll
-    hoverFromMap.current = false;
-  }, [hoveredProperty]);
+  // ✅ Callback para manejar hover de propiedades desde el mapa
+  const handlePropertyHoverFromMap = useCallback((property: MapProperty | null) => {
+    hoverFromMap.current = true;
+    setHoveredProperty(property);
+  }, []);
 
   // Reiniciar rango de precios cuando cambia el tipo de operación
   useEffect(() => {
@@ -655,9 +645,11 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     setIsFiltering(isFetching && properties.length === 0);
   }, [isFetching, properties.length]);
 
-  const handlePropertyHover = (property: MapProperty) => {
+  // ✅ Callback para hover de propiedades desde la lista
+  const handlePropertyHoverFromList = useCallback((property: MapProperty | null) => {
+    hoverFromMap.current = false;
     setHoveredProperty(property);
-  };
+  }, []);
 
   const handleMarkerClick = (propertyId: string) => {
     handlePropertyClick(propertyId);
@@ -773,7 +765,8 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   // Ya no se usa - SearchMap maneja su propia carga de propiedades
 
   // Conteo total de propiedades filtradas
-  const totalCount = filteredProperties.length;
+  // ✅ Usar SearchResultsList en lugar de renderizado manual
+  const totalCountFromData = properties.length;
 
   const hasActiveFilters = !!(
     filters.estado || 
@@ -1435,270 +1428,136 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
               </p>
             </div>
 
+            {/* ✅ Mapa con filtros unificados */}
             <SearchMap
-              filters={{
-                estado: filters.estado || undefined,
-                municipio: filters.municipio || undefined,
-                tipo: filters.tipo || undefined,
-                listingType: filters.listingType || undefined,
-                precioMin: filters.precioMin ? parseFloat(filters.precioMin) : undefined,
-                precioMax: filters.precioMax ? parseFloat(filters.precioMax) : undefined,
-                recamaras: filters.recamaras || undefined,
-                banos: filters.banos || undefined,
-                status: ['activa'],
-              }}
+              filters={propertyFilters}
               searchCoordinates={searchCoordinates}
               onMarkerClick={handleMarkerClick}
-              onPropertyHover={(property) => {
-                hoverFromMap.current = true;
-                setHoveredProperty(property);
-              }}
+              onPropertyHover={handlePropertyHoverFromMap}
               hoveredPropertyId={hoveredProperty?.id || null}
               height="100%"
             />
           </div>
 
-          {/* Lista de propiedades a la derecha - 50% width con scroll */}
+          {/* ✅ Lista de propiedades usando SearchResultsList */}
           <div className={`w-full lg:w-1/2 overflow-y-auto ${mobileView === 'list' ? 'block' : 'hidden'} lg:block`}>
-            <div className="p-4 space-y-4">
-              {/* Stats */}
-              <PropertyStats properties={filteredProperties} listingType={filters.listingType} />
+            <SearchResultsList
+              properties={filteredProperties}
+              isLoading={loading}
+              listingType={filters.listingType}
+              currentPage={currentPage}
+              propertiesPerPage={PROPERTIES_PER_PAGE}
+              onPropertyClick={handlePropertyClick}
+              onPropertyHover={handlePropertyHoverFromList}
+              savedSearchesCount={user ? savedSearches.length : 0}
+              onScrollToSavedSearches={() => {
+                const element = document.getElementById('saved-searches');
+                element?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            />
 
-              {/* Búsquedas guardadas - compacto */}
-              {user && savedSearches.length > 0 && (
+            {/* ✅ Paginación fuera del componente de lista */}
+            {filteredProperties.length > PROPERTIES_PER_PAGE && (
+              <div className="p-4">
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentPage(p => Math.max(1, p - 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={currentPage === 1}
+                  >
+                    Anterior
+                  </Button>
+                  {renderPagination()}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const totalPages = Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE);
+                      setCurrentPage(p => Math.min(totalPages, p + 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={currentPage === Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE)}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Búsquedas guardadas expandido */}
+            {user && savedSearches.length > 0 && (
+              <div id="saved-searches" className="pt-8 px-4">
                 <Card>
-                  <CardContent className="p-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-between"
-                      onClick={() => {
-                        const element = document.getElementById('saved-searches');
-                        element?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                    >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <Star className="h-4 w-4" />
-                        <span className="text-sm font-medium">
-                          {savedSearches.length} búsqueda{savedSearches.length !== 1 ? 's' : ''} guardada{savedSearches.length !== 1 ? 's' : ''}
-                        </span>
+                        <Label className="font-semibold">Búsquedas guardadas</Label>
                       </div>
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              {isFiltering ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <Card key={i} className="animate-pulse">
-                      <div className="aspect-[4/3] bg-muted" />
-                      <CardContent className="p-3 space-y-2">
-                        <Skeleton className="h-6 w-24" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-2/3" />
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : filteredProperties.length === 0 ? (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      No encontramos propiedades con estos filtros.
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {(() => {
-                      const startIndex = (currentPage - 1) * PROPERTIES_PER_PAGE;
-                      const endIndex = startIndex + PROPERTIES_PER_PAGE;
-                      const paginatedProperties = filteredProperties.slice(startIndex, endIndex);
-                      
-                      const elements: JSX.Element[] = [];
-                      let lastWasFeatured = false;
-                      
-                      paginatedProperties.forEach((property, index) => {
-                        // Detectar cambio de destacada a regular
-                        const isFeatured = !!property.is_featured;
-                        const isFirstRegular = index > 0 && lastWasFeatured && !isFeatured;
-                        
-                        // Insertar separador cuando cambia de destacadas a regulares
-                        if (isFirstRegular) {
-                          elements.push(
-                            <div key="separator" className="col-span-1 md:col-span-2">
-                              <div className="flex items-center gap-3 py-4">
-                                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Star className="h-4 w-4" />
-                                  <span>Más propiedades</span>
-                                </div>
-                                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
-                              </div>
-                            </div>
-                          );
-                        }
-                        
-                        // Agregar la card de propiedad
-                        elements.push(
-                          <div
-                            key={property.id}
-                            ref={(el) => {
-                              if (el) {
-                                propertyCardRefs.current.set(property.id, el);
-                              } else {
-                                propertyCardRefs.current.delete(property.id);
-                              }
-                            }}
-                            onMouseEnter={() => {
-                              hoverFromMap.current = false;
-                              setHoveredProperty(property as MapProperty);
-                            }}
-                            onMouseLeave={() => setHoveredProperty(null)}
-                          >
-                            <PropertyCard
-                              id={property.id}
-                              title={property.title}
-                              price={property.price}
-                              type={property.type}
-                              listingType={property.listing_type}
-                              address={property.address}
-                              municipality={property.municipality}
-                              state={property.state}
-                              bedrooms={property.bedrooms || undefined}
-                              bathrooms={property.bathrooms || undefined}
-                              parking={property.parking || undefined}
-                              sqft={property.sqft || undefined}
-                              imageUrl={property.images?.[0]?.url}
-                              images={property.images}
-                              isHovered={hoveredProperty?.id === property.id}
-                              agentId={property.agent_id}
-                              isFeatured={property.is_featured}
-                              createdAt={property.created_at || undefined}
-                              onCardClick={handlePropertyClick}
-                            />
-                          </div>
-                        );
-                        
-                        lastWasFeatured = isFeatured;
-                      });
-                      
-                      return elements;
-                    })()}
-                  </div>
-
-                  {/* Paginación */}
-                  {filteredProperties.length > PROPERTIES_PER_PAGE && (
-                    <div className="flex items-center justify-center gap-2 py-6">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setCurrentPage(prev => Math.max(1, prev - 1));
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronDown className="h-4 w-4 rotate-90" />
-                        Anterior
-                      </Button>
-                      
-                      <div className="flex items-center gap-1">
-                          {renderPagination()}
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setCurrentPage(prev => Math.min(Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE), prev + 1));
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        disabled={currentPage === Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE)}
-                      >
-                        Siguiente
-                        <ChevronDown className="h-4 w-4 -rotate-90" />
-                      </Button>
                     </div>
-                  )}
-                </>
-              )}
 
-              {/* Búsquedas guardadas expandido */}
-              {user && savedSearches.length > 0 && (
-                <div id="saved-searches" className="pt-8">
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <Star className="h-4 w-4" />
-                          <Label className="font-semibold">Búsquedas guardadas</Label>
-                        </div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Input
+                        placeholder="Buscar..."
+                        value={savedSearchQuery}
+                        onChange={(e) => setSavedSearchQuery(e.target.value)}
+                      />
+                      <Select value={savedSearchSort} onValueChange={handleSavedSearchSortChange}>
+                        <SelectTrigger className="w-auto">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="date">Fecha</SelectItem>
+                          <SelectItem value="name">Nombre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {filteredSavedSearches.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                        <p className="text-sm">No se encontraron búsquedas</p>
                       </div>
-
-                      <div className="flex items-center gap-2 mb-3">
-                        <Input
-                          placeholder="Buscar..."
-                          value={savedSearchQuery}
-                          onChange={(e) => setSavedSearchQuery(e.target.value)}
-                        />
-                        <Select value={savedSearchSort} onValueChange={handleSavedSearchSortChange}>
-                          <SelectTrigger className="w-auto">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="date">Fecha</SelectItem>
-                            <SelectItem value="name">Nombre</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {filteredSavedSearches.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-                          <p className="text-sm">No se encontraron búsquedas</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
-                          {filteredSavedSearches.map((search) => (
-                            <div
-                              key={search.id}
-                              className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                    ) : (
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {filteredSavedSearches.map((search) => (
+                          <div
+                            key={search.id}
+                            className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                          >
+                            <button
+                              onClick={() => handleLoadSearch(search.filters)}
+                              className="flex-1 text-left"
                             >
-                              <button
-                                onClick={() => handleLoadSearch(search.filters)}
-                                className="flex-1 text-left"
-                              >
-                                <p className="font-medium text-sm">{search.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(search.created_at).toLocaleDateString('es-MX', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
-                                </p>
-                              </button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteSearch(search.id, search.name)}
-                                className="hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-            </div>
+                              <p className="font-medium text-sm">{search.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(search.created_at).toLocaleDateString('es-MX', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </p>
+                            </button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteSearch(search.id, search.name)}
+                              className="hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </div>
       </div>

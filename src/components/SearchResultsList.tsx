@@ -12,10 +12,10 @@ import { PropertyStats } from '@/components/PropertyStats';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Property, MapProperty } from '@/types/property';
+import type { PropertySummary, MapProperty } from '@/types/property';
 
 interface SearchResultsListProps {
-  properties: Property[];
+  properties: PropertySummary[];
   isLoading: boolean;
   listingType: string;
   currentPage: number;
@@ -51,15 +51,15 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = React.memo(
 
     // ✅ Callback memoizado para hover
     const handlePropertyHover = useCallback(
-      (property: Property | null) => {
+      (property: PropertySummary | null) => {
         if (onPropertyHover && property) {
           onPropertyHover({
             id: property.id,
             title: property.title,
             price: property.price,
             currency: property.currency,
-            lat: property.lat || 0,
-            lng: property.lng || 0,
+            lat: 0, // PropertySummary doesn't have lat/lng
+            lng: 0,
             type: property.type,
             listing_type: property.listing_type,
             bedrooms: property.bedrooms,
@@ -71,7 +71,7 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = React.memo(
             municipality: property.municipality,
             images: property.images,
             agent_id: property.agent_id,
-            status: property.status,
+            status: 'activa', // PropertySummary has active status
             is_featured: property.is_featured,
             created_at: property.created_at,
           });
