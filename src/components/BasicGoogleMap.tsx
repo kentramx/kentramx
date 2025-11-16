@@ -63,9 +63,9 @@ function createCustomPropertyOverlay() {
             width: 16px;
             height: 16px;
             border-radius: 50%;
-            background: #f97316;
+            background: #e0332d;
             border: 3px solid white;
-            box-shadow: 0 2px 8px rgba(249, 115, 22, 0.4);
+            box-shadow: 0 2px 8px rgba(224, 51, 45, 0.4);
             transition: all 0.2s ease;
           "></div>
         </div>
@@ -116,16 +116,16 @@ function createCustomPropertyOverlay() {
     private updateStyle() {
       if (!this.containerDiv) return;
       
-      const container = this.containerDiv.firstElementChild as HTMLElement;
-      if (container) {
+      const dot = this.containerDiv.querySelector('div:last-child') as HTMLElement;
+      if (dot) {
         if (this.isHovered) {
-          container.style.transform = 'scale(1.15)';
-          container.style.transition = 'transform 0.2s ease';
-          container.style.zIndex = '1000';
+          dot.style.background = '#b8281f';
+          dot.style.transform = 'scale(1.3)';
+          dot.style.transition = 'all 0.2s ease';
         } else {
-          container.style.transform = 'scale(1)';
-          container.style.transition = 'transform 0.2s ease';
-          container.style.zIndex = 'auto';
+          dot.style.background = '#e0332d';
+          dot.style.transform = 'scale(1)';
+          dot.style.transition = 'all 0.2s ease';
         }
       }
     }
