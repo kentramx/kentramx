@@ -43,6 +43,7 @@ const AdminDashboard = () => {
   const { isAdmin, isSuperAdmin, adminRole, loading: adminLoading } = useAdminCheck();
   
   const [properties, setProperties] = useState<any[]>([]);
+  const [approvedHistory, setApprovedHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Leer la pestaña activa de la URL (si existe) o usar 'nuevas' por defecto
@@ -88,7 +89,7 @@ const AdminDashboard = () => {
   // Sincronizar activeTab con el parámetro tab de la URL (solo pestañas de moderación)
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    const validTabs = ['nuevas', 'reenviadas', 'antiguas', 'metricas'];
+    const validTabs = ['nuevas', 'reenviadas', 'antiguas', 'historial', 'metricas'];
     if (tabParam && validTabs.includes(tabParam)) {
       setActiveTab(tabParam);
     }
@@ -96,8 +97,12 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (isAdmin) {
-      fetchProperties();
-      fetchMetrics();
+      if (activeTab === 'historial') {
+        fetchApprovedHistory();
+      } else {
+        fetchProperties();
+        fetchMetrics();
+      }
     }
   }, [activeTab, isAdmin]);
 
@@ -219,6 +224,71 @@ const AdminDashboard = () => {
       });
     } catch (error) {
       console.error('Error fetching metrics:', error);
+    }
+  };
+
+  const fetchApprovedHistory = async () => {
+    setLoading(true);
+    try {
+      // Traer propiedades activas con su historial de aprobación
+      const { data, error } = await supabase
+        .from('properties')
+        .select(`
+          id, title, price, property_code, address, state, municipality, 
+          created_at, updated_at, agent_id, type, listing_type,
+          images (url, position),
+          agent:profiles!properties_agent_id_fkey (id, name)
+        `)
+        .eq('status', 'activa')
+        .order('updated_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      // Obtener historial de moderación para estas propiedades
+      const propertyIds = data?.map(p => p.id) || [];
+      
+      if (propertyIds.length > 0) {
+        const { data: historyData } = await supabase
+          .from('property_moderation_history')
+          .select('property_id, created_at, admin_id, action, notes')
+          .in('property_id', propertyIds)
+          .eq('action', 'approved')
+          .order('created_at', { ascending: false });
+
+        // Obtener nombres de los admins
+        const adminIds = [...new Set(historyData?.map(h => h.admin_id).filter(Boolean) || [])];
+        const { data: adminProfiles } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .in('id', adminIds);
+
+        const adminMap = new Map(adminProfiles?.map(a => [a.id, a.name]) || []);
+
+        // Combinar datos
+        const propertiesWithHistory = data?.map(property => {
+          const history = historyData?.find(h => h.property_id === property.id);
+          return {
+            ...property,
+            approval_date: history?.created_at || property.updated_at,
+            approved_by: history?.admin_id ? (adminMap.get(history.admin_id) || 'Admin') : 'Sistema',
+            admin_notes: history?.notes,
+          };
+        });
+
+        setApprovedHistory(propertiesWithHistory || []);
+      } else {
+        setApprovedHistory([]);
+      }
+    } catch (error: any) {
+      console.error('Error fetching approved history:', error);
+      toast({
+        title: 'Error',
+        description: error?.message || 'No se pudo cargar el historial',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -517,6 +587,9 @@ const AdminDashboard = () => {
             <TabsTrigger value="antiguas">
               Antiguas ({metrics.old})
             </TabsTrigger>
+            <TabsTrigger value="historial">
+              Historial de Aprobadas
+            </TabsTrigger>
             <TabsTrigger value="metricas">
               Métricas y Tendencias
             </TabsTrigger>
@@ -788,6 +861,112 @@ const AdminDashboard = () => {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="historial" className="space-y-4">
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : approvedHistory.length === 0 ? (
+              <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  No hay propiedades aprobadas aún
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="rounded-md border">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="px-4 py-3 text-left text-sm font-medium">Código</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Propiedad</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Precio</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Ubicación</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Agente</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Aprobado por</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Fecha de aprobación</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Notas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {approvedHistory.map((property) => (
+                        <tr key={property.id} className="border-b hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3">
+                            <Badge variant="secondary" className="font-mono text-xs">
+                              {property.property_code || property.id.slice(0, 8)}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              {property.images?.[0] && (
+                                <img
+                                  src={property.images[0].url}
+                                  alt={property.title}
+                                  className="h-12 w-12 rounded object-cover"
+                                />
+                              )}
+                              <div className="max-w-[200px]">
+                                <p className="font-medium text-sm truncate">{property.title}</p>
+                                <div className="flex gap-1 mt-1">
+                                  <Badge variant="outline" className="text-xs">
+                                    {property.type}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-sm">
+                              {new Intl.NumberFormat('es-MX', {
+                                style: 'currency',
+                                currency: 'MXN',
+                                minimumFractionDigits: 0,
+                              }).format(property.price)}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="text-sm text-muted-foreground">
+                              {property.municipality}, {property.state}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="text-sm">{property.agent?.name || 'N/A'}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge variant={property.approved_by === 'Sistema' ? 'outline' : 'default'} className="text-xs">
+                              {property.approved_by}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(property.approval_date).toLocaleDateString('es-MX', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3">
+                            {property.admin_notes ? (
+                              <p className="text-xs text-muted-foreground max-w-[150px] truncate">
+                                {property.admin_notes}
+                              </p>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">Sin notas</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </TabsContent>
