@@ -26,6 +26,9 @@ export interface SubscriptionInfo {
   stripe_customer_id?: string | null;
   cancel_at_period_end: boolean;
   features?: SubscriptionFeatures;
+  featured_used?: number;
+  featured_limit?: number;
+  plan_display_name?: string;
   plan?: {
     id: string;
     name: string;

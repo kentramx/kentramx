@@ -143,7 +143,8 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
   };
 
   const handleNewChange = async (change: Record<string, unknown>) => {
-    const metadata = change.metadata || {};
+    const changeRecord = change as SubscriptionChangeRecord;
+    const metadata = changeRecord.metadata || {};
     
     // Determinar si es un evento importante
     const isBypassed = metadata.bypassed_cooldown === true;
@@ -152,8 +153,8 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
     // Verificar si el tipo de evento está habilitado en preferencias
     const shouldNotify = 
       (isBypassed && preferences.notify_on_bypass) ||
-      (change.change_type === 'upgrade' && preferences.notify_on_upgrade) ||
-      (change.change_type === 'downgrade' && preferences.notify_on_downgrade);
+      (changeRecord.change_type === 'upgrade' && preferences.notify_on_upgrade) ||
+      (changeRecord.change_type === 'downgrade' && preferences.notify_on_downgrade);
 
     if (!shouldNotify) return;
 
@@ -161,7 +162,7 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
     const { data: profile } = await supabase
       .from('profiles')
       .select('name')
-      .eq('id', change.user_id)
+      .eq('id', changeRecord.user_id)
       .single();
 
     const userName = profile?.name || 'Usuario desconocido';
@@ -172,11 +173,11 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
     // Bypass de cooldown
     if (isBypassed) {
       notification = {
-        id: change.id,
+        id: changeRecord.id,
         type: 'bypass',
         message: `${isAdminChange ? 'Admin forzó' : 'Bypass detectado'} cambio de plan para ${userName} a ${planName}`,
-        timestamp: change.changed_at,
-        metadata: change,
+        timestamp: changeRecord.changed_at,
+        metadata: changeRecord,
         read: false,
       };
 
@@ -189,13 +190,13 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
       }
     }
     // Upgrade significativo
-    else if (change.change_type === 'upgrade') {
+    else if (changeRecord.change_type === 'upgrade') {
       notification = {
-        id: change.id,
+        id: changeRecord.id,
         type: 'upgrade',
         message: `${userName} mejoró a ${planName}`,
-        timestamp: change.changed_at,
-        metadata: change,
+        timestamp: changeRecord.changed_at,
+        metadata: changeRecord,
         read: false,
       };
 
@@ -208,13 +209,13 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
       }
     }
     // Downgrade (puede indicar problema)
-    else if (change.change_type === 'downgrade') {
+    else if (changeRecord.change_type === 'downgrade') {
       notification = {
-        id: change.id,
+        id: changeRecord.id,
         type: 'downgrade',
         message: `${userName} bajó a ${planName}`,
-        timestamp: change.changed_at,
-        metadata: change,
+        timestamp: changeRecord.changed_at,
+        metadata: changeRecord,
         read: false,
       };
     }

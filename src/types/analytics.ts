@@ -41,18 +41,38 @@ export interface ModerationTrendData {
 
 export interface ReviewTimeData {
   date: string;
-  avg_time: number;
+  avg_time?: number;
+  tiempo?: number; // Alias para compatibility
 }
 
 export interface RejectionReasonData {
-  reason: string;
-  count: number;
+  name: string;
+  value: number;
 }
 
 export interface AdminStatsData {
+  id: string;
   admin_name: string;
-  total_reviews: number;
+  total: number;
+  approved: number;
+  rejected: number;
   approval_rate: number;
+}
+
+export interface SubscriptionChangeMetadata {
+  bypassed_cooldown?: boolean;
+  changed_by_admin?: boolean;
+  new_plan_name?: string;
+  old_plan_name?: string;
+  [key: string]: unknown;
+}
+
+export interface SubscriptionChangeRecord {
+  id: string;
+  user_id: string;
+  change_type: string;
+  changed_at: string;
+  metadata?: SubscriptionChangeMetadata;
 }
 
 export interface RealtimeNotification {
@@ -60,7 +80,7 @@ export interface RealtimeNotification {
   type: 'bypass' | 'upgrade' | 'downgrade' | 'unusual';
   message: string;
   timestamp: string;
-  metadata: Record<string, unknown>;
+  metadata: SubscriptionChangeRecord;
   read: boolean;
 }
 

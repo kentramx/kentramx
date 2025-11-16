@@ -32,9 +32,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-import type { Property } from '@/types/property';
+import type { PropertyWithAgentProfile } from '@/types/property';
 import type { SubscriptionInfo } from '@/types/subscription';
-import type { AgentProfile } from '@/types/user';
+import type { AgencyAgentWithProfile } from '@/types/user';
 
 interface AgencyInventoryProps {
   agencyId: string;
@@ -45,17 +45,17 @@ export const AgencyInventory = ({ agencyId, subscriptionInfo }: AgencyInventoryP
   const { toast } = useToast();
   const { error: logError, warn, captureException } = useMonitoring();
   const navigate = useNavigate();
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [agents, setAgents] = useState<AgentProfile[]>([]);
+  const [properties, setProperties] = useState<PropertyWithAgentProfile[]>([]);
+  const [agents, setAgents] = useState<AgencyAgentWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterAgent, setFilterAgent] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<PropertyWithAgentProfile | null>(null);
   const [selectedNewAgent, setSelectedNewAgent] = useState<string>('');
   const [assigning, setAssigning] = useState(false);
   const [featuredProperties, setFeaturedProperties] = useState<Set<string>>(new Set());
-  const [featureProperty, setFeatureProperty] = useState<Property | null>(null);
+  const [featureProperty, setFeatureProperty] = useState<PropertyWithAgentProfile | null>(null);
 
   useEffect(() => {
     loadData();
@@ -70,7 +70,7 @@ export const AgencyInventory = ({ agencyId, subscriptionInfo }: AgencyInventoryP
     }
   };
 
-  const fetchFeaturedProperties = async (propertiesToCheck: Property[] = properties) => {
+  const fetchFeaturedProperties = async (propertiesToCheck: PropertyWithAgentProfile[] = properties) => {
     if (propertiesToCheck.length === 0) return;
 
     try {
@@ -140,8 +140,12 @@ export const AgencyInventory = ({ agencyId, subscriptionInfo }: AgencyInventoryP
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setProperties(data || []);
-      return data || [];
+      const enrichedProperties = (data || []).map(p => ({
+        ...p,
+        is_featured: false, // Will be set by fetchFeaturedProperties
+      }));
+      setProperties(enrichedProperties);
+      return enrichedProperties;
     } catch (error) {
       warn('Error fetching agency properties', {
         component: 'AgencyInventory',
@@ -167,7 +171,7 @@ export const AgencyInventory = ({ agencyId, subscriptionInfo }: AgencyInventoryP
     }).format(price);
   };
 
-  const handleOpenAssignDialog = (property: Property) => {
+  const handleOpenAssignDialog = (property: PropertyWithAgentProfile) => {
     setSelectedProperty(property);
     setSelectedNewAgent(property.agent_id || '');
     setAssignDialogOpen(true);
@@ -500,7 +504,12 @@ export const AgencyInventory = ({ agencyId, subscriptionInfo }: AgencyInventoryP
           fetchProperties();
           fetchFeaturedProperties();
         }}
-        subscriptionInfo={subscriptionInfo}
+        subscriptionInfo={{
+          ...subscriptionInfo,
+          featured_used: subscriptionInfo?.featured_used || 0,
+          featured_limit: subscriptionInfo?.featured_limit || 0,
+          plan_display_name: subscriptionInfo?.plan_display_name || subscriptionInfo?.plan?.name || 'Plan actual',
+        }}
       />
     </div>
   );

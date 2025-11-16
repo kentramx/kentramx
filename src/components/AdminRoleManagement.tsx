@@ -60,17 +60,23 @@ export const AdminRoleManagement = ({ currentUserId, isSuperAdmin }: AdminRoleMa
 
       // Obtener emails (necesitamos usar RPC o edge function para acceder a auth.users)
       // Por ahora, construimos la lista con la info disponible
+      type UserRoleType = typeof rolesData[number]['role'];
       const admins: AdminUser[] = rolesData?.map(role => {
         const profile = profilesData?.find(p => p.id === role.user_id);
+        const roleType = role.role as UserRoleType;
+        // Filter to only include admin roles
+        if (roleType !== 'super_admin' && roleType !== 'moderator' && roleType !== 'admin') {
+          return null;
+        }
         return {
           id: role.user_id,
           email: 'Email protegido', // No podemos acceder a auth.users directamente desde el cliente
           name: profile?.name || 'Usuario',
-          role: role.role,
+          role: roleType as 'super_admin' | 'moderator' | 'admin',
           granted_at: role.granted_at,
           granted_by: role.granted_by || 'Sistema',
         };
-      }) || [];
+      }).filter((a): a is AdminUser => a !== null) || [];
 
       setAdminUsers(admins);
     } catch (error) {

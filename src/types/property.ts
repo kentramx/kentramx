@@ -160,11 +160,17 @@ export interface PropertyImage {
 export interface PropertyAgent {
   id: string;
   name: string;
-  phone: string | null;
-  whatsapp_number: string | null;
-  whatsapp_enabled: boolean | null;
-  is_verified: boolean | null;
-  avatar_url: string | null;
+  phone?: string | null;
+  whatsapp_number?: string | null;
+  whatsapp_enabled?: boolean | null;
+  is_verified?: boolean | null;
+  avatar_url?: string | null;
+}
+
+// For properties with agent profile relationship
+export interface PropertyWithAgentProfile extends Omit<Property, 'images'> {
+  images?: PropertyImage[];
+  profiles?: PropertyAgent | null;
 }
 
 // ============= ENUMS Y TIPOS =============

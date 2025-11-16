@@ -24,14 +24,20 @@ export interface AgentProfile {
   id: string;
   name: string;
   email?: string;
-  phone: string | null;
-  whatsapp_number: string | null;
-  whatsapp_enabled: boolean | null;
-  is_verified: boolean | null;
-  avatar_url: string | null;
-  bio: string | null;
-  city: string | null;
-  state: string | null;
+  phone?: string | null;
+  whatsapp_number?: string | null;
+  whatsapp_enabled?: boolean | null;
+  is_verified?: boolean | null;
+  avatar_url?: string | null;
+  bio?: string | null;
+  city?: string | null;
+  state?: string | null;
+}
+
+// For agency_agents relationship
+export interface AgencyAgentWithProfile {
+  agent_id: string;
+  profiles: AgentProfile | null;
 }
 
 export interface AgencyAgent {

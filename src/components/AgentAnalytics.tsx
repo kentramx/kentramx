@@ -254,8 +254,12 @@ export const AgentAnalytics = ({ agentId }: { agentId: string }) => {
         if (viewsError) throw viewsError;
 
         // Group views by date
+        interface ViewRecord {
+          viewed_at: string;
+          property_id: string;
+        }
         const viewsByDate: { [key: string]: number } = {};
-        (viewsData as { date: string; views: number }[] | null)?.forEach(view => {
+        (viewsData as ViewRecord[] | null)?.forEach(view => {
           const date = new Date(view.viewed_at).toISOString().split('T')[0];
           viewsByDate[date] = (viewsByDate[date] || 0) + 1;
         });

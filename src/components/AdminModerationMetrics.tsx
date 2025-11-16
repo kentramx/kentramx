@@ -57,7 +57,11 @@ const AdminModerationMetrics = () => {
       interface ModerationHistoryRecord {
         action: string;
         created_at: string;
-        rejection_reason?: { code: string };
+        property_id: string;
+        rejection_reason?: {
+          code?: string;
+          label?: string;
+        } | null;
         admin_id?: string;
       }
 
@@ -86,8 +90,15 @@ const AdminModerationMetrics = () => {
       const resubmissions = historyRecords.filter(h => h.action === 'resubmitted').length || 0;
       const resubmissionRate = totalReviewed > 0 ? (resubmissions / totalReviewed) * 100 : 0;
 
-      // Calculate average review time
-      const { data: avgTimeData } = await supabase.rpc('get_avg_review_time_minutes');
+      // Calculate average review time - handle potential missing RPC
+      let avgReviewTime = 0;
+      try {
+        const { data: avgTimeData } = await supabase.rpc('get_avg_review_time_minutes');
+        avgReviewTime = typeof avgTimeData === 'number' ? avgTimeData : 0;
+      } catch (rpcError) {
+        // RPC might not exist, use fallback
+        avgReviewTime = 0;
+      }
       const avgReviewTime = avgTimeData || 0;
 
       setMetrics({
@@ -125,8 +136,12 @@ const AdminModerationMetrics = () => {
       setTrendData(Array.from(trendMap.values()));
 
       // Process review time by day
-      const reviewTimeMap = new Map();
-      for (const h of history || []) {
+      interface TimeEntry {
+        date: string;
+        times: number[];
+      }
+      const reviewTimeMap = new Map<string, TimeEntry>();
+      for (const h of historyRecords) {
         if (h.action !== 'approved' && h.action !== 'rejected' && h.action !== 'auto_approved') continue;
 
         const { data: property } = await supabase
@@ -145,38 +160,42 @@ const AdminModerationMetrics = () => {
           if (!reviewTimeMap.has(date)) {
             reviewTimeMap.set(date, { date, times: [] });
           }
-          reviewTimeMap.get(date).times.push(reviewTime);
+          reviewTimeMap.get(date)!.times.push(reviewTime);
         }
       }
 
-      const reviewTimeArray = Array.from(reviewTimeMap.values()).map(entry => ({
+      const reviewTimeArray: ReviewTimeData[] = Array.from(reviewTimeMap.values()).map(entry => ({
         date: entry.date,
-        tiempo: Math.round(entry.times.reduce((a: number, b: number) => a + b, 0) / entry.times.length),
+        tiempo: Math.round(entry.times.reduce((a, b) => a + b, 0) / entry.times.length),
+        avg_time: Math.round(entry.times.reduce((a, b) => a + b, 0) / entry.times.length),
       }));
 
       setReviewTimeData(reviewTimeArray);
 
       // Process rejection reasons
-      const rejectionMap = new Map();
-      history?.filter((h: any) => h.action === 'rejected' && h.rejection_reason?.code)
-        .forEach((h: any) => {
-          const code = h.rejection_reason.code;
-          const label = h.rejection_reason.label;
+      const rejectionMap = new Map<string, RejectionReasonData>();
+      historyRecords.filter(h => h.action === 'rejected' && h.rejection_reason?.code)
+        .forEach(h => {
+          const code = h.rejection_reason!.code!;
+          const label = h.rejection_reason!.label || code;
           if (!rejectionMap.has(code)) {
             rejectionMap.set(code, { name: label, value: 0 });
           }
-          rejectionMap.get(code).value++;
+          rejectionMap.get(code)!.value++;
         });
 
       setRejectionReasons(Array.from(rejectionMap.values()));
 
       // Admin performance stats
-      const adminMap = new Map();
-      history?.filter((h: any) => h.action === 'approved' || h.action === 'rejected')
-        .forEach((h: any) => {
-          if (!adminMap.has(h.admin_id)) {
-            adminMap.set(h.admin_id, {
-              id: h.admin_id,
+      const adminMap = new Map<string, AdminStatsData>();
+      historyRecords.filter(h => h.action === 'approved' || h.action === 'rejected')
+        .forEach(h => {
+          const adminId = h.admin_id || 'unknown';
+          if (!adminMap.has(adminId)) {
+            adminMap.set(adminId, {
+              id: adminId,
+              admin_name: 'Admin ' + adminId.slice(0, 8),
+              total: 0,
               approved: 0,
               rejected: 0,
               total: 0,
