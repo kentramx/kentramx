@@ -135,7 +135,7 @@ const AgentProfile = () => {
         totalReviews: reviewCount,
       });
     } catch (error) {
-      console.error("Error fetching agent data:", error);
+      monitoring.error("Error fetching agent data", { page: 'AgentProfile', error });
       navigate("/buscar");
     } finally {
       setLoading(false);

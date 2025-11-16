@@ -143,7 +143,7 @@ const AgencyDashboard = () => {
         setSubscriptionInfo(subInfo[0]);
       }
     } catch (error) {
-      console.error('Error checking agency status:', error);
+      monitoring.error('Error checking agency status', { page: 'AgencyDashboard', error });
       toast({
         title: 'Error',
         description: 'No se pudieron cargar los datos de la inmobiliaria',

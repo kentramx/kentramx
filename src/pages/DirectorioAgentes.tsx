@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AgentCard from "@/components/AgentCard";
 import AgentSearchBar from "@/components/AgentSearchBar";
 import Navbar from "@/components/Navbar";
+import { monitoring } from '@/lib/monitoring';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";

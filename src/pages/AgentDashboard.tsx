@@ -188,7 +188,7 @@ const AgentDashboard = () => {
               setSubscriptionInfo(updatedSubInfo[0]);
             }
           } catch (syncError) {
-            console.error('Error sincronizando estado de suscripción:', syncError);
+            monitoring.error('Error sincronizando estado de suscripción', { page: 'AgentDashboard', error: syncError });
           }
         }
       }
@@ -196,7 +196,7 @@ const AgentDashboard = () => {
       // Get featured properties count
       await fetchFeaturedCount();
     } catch (error) {
-      console.error('Error checking agent status:', error);
+      monitoring.error('Error checking agent status', { page: 'AgentDashboard', error });
       navigate('/');
     } finally {
       setLoading(false);
@@ -216,7 +216,7 @@ const AgentDashboard = () => {
 
       setFeaturedCount(featuredCountData || 0);
     } catch (error) {
-      console.error('Error fetching featured count:', error);
+      monitoring.error('Error fetching featured count', { page: 'AgentDashboard', error });
     }
   };
 

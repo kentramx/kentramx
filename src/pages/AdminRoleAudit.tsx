@@ -141,7 +141,7 @@ const AdminRoleAudit = () => {
       });
 
     } catch (error) {
-      console.error('Error fetching audit data:', error);
+      monitoring.error('Error fetching audit data', { page: 'AdminRoleAudit', error });
       toast({
         title: 'Error',
         description: 'No se pudo cargar el historial de auditoría',

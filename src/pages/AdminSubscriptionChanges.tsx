@@ -135,7 +135,7 @@ const AdminSubscriptionChanges = () => {
           .in('id', userIds);
 
         if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
+          monitoring.error('Error fetching profiles', { page: 'AdminSubscriptionChanges', error: profilesError });
         }
 
         // Map profiles to changes
@@ -152,7 +152,7 @@ const AdminSubscriptionChanges = () => {
         calculateStats([]);
       }
     } catch (error) {
-      console.error('Error fetching changes:', error);
+      monitoring.error('Error fetching changes', { page: 'AdminSubscriptionChanges', error });
       toast({
         title: 'Error',
         description: 'No se pudieron cargar los cambios de suscripción',

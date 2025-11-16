@@ -6,6 +6,7 @@ import { usePropertiesViewport, ViewportBounds } from '@/hooks/usePropertiesView
 import { PlaceAutocomplete } from '@/components/PlaceAutocomplete';
 import BasicGoogleMap from '@/components/BasicGoogleMap';
 import Navbar from '@/components/Navbar';
+import { monitoring } from '@/lib/monitoring';
 import PropertyCard from '@/components/PropertyCard';
 import { PropertyImageGallery } from '@/components/PropertyImageGallery';
 import { Card, CardContent } from '@/components/ui/card';

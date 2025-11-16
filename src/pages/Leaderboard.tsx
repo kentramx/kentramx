@@ -118,7 +118,7 @@ const Leaderboard = () => {
 
       setAgents(filteredAgents);
     } catch (error) {
-      console.error("Error fetching leaderboard:", error);
+      monitoring.error("Error fetching leaderboard", { page: 'Leaderboard', error });
     } finally {
       setLoading(false);
     }
