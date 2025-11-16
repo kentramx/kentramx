@@ -82,6 +82,9 @@ export const usePropertiesViewport = (
 
       // ✅ Si zoom alto (>=14), cargar propiedades individuales con límite
       if (bounds.zoom >= 14) {
+        console.log('[usePropertiesViewport] Cargando propiedades individuales...');
+        const startTime = Date.now();
+        
         const { data, error } = await supabase.rpc('get_properties_in_viewport', {
           min_lng: bounds.minLng,
           min_lat: bounds.minLat,
@@ -102,6 +105,8 @@ export const usePropertiesViewport = (
           console.error('[usePropertiesViewport] Error:', error);
           throw error;
         }
+        
+        console.log(`[usePropertiesViewport] RPC completado en ${Date.now() - startTime}ms, ${data?.length || 0} propiedades`);
 
         // ✅ OPTIMIZACIÓN: Aplicar límite y batch load
         const limitedProperties = (data || []).slice(0, maxProperties);
@@ -136,8 +141,10 @@ export const usePropertiesViewport = (
           images: imagesMap.get(prop.id) || [],
           is_featured: featuredSet.has(prop.id),
         }));
+        
+        console.log(`[usePropertiesViewport] Total tiempo: ${Date.now() - startTime}ms`);
 
-        return { 
+        return {
           clusters: [] as PropertyCluster[], 
           properties: enrichedProperties as Property[]
         };
@@ -172,9 +179,11 @@ export const usePropertiesViewport = (
       };
     },
     enabled: !!bounds,
-    staleTime: 60 * 1000, // ✅ 1 minuto de cache + debounce automático
+    staleTime: 3 * 60 * 1000, // ✅ 3 minutos de cache para reducir recargas
     gcTime: 5 * 60 * 1000, // 5 minutos
-    retry: 2, // ✅ Reintentar 2 veces en caso de error
-    retryDelay: 1000, // ✅ Esperar 1 segundo entre intentos
+    retry: 1, // ✅ Solo 1 reintento para ser más rápido
+    retryDelay: 500, // ✅ Esperar 0.5 segundos (más rápido)
+    refetchOnWindowFocus: false, // ✅ No refrescar al cambiar de ventana
+    refetchOnMount: false, // ✅ No refrescar si hay datos en cache
   });
 };
