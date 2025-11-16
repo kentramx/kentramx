@@ -39,96 +39,104 @@ export const usePropertiesViewport = (
       const status = filters?.status?.[0] || 'activa';
       const maxProperties = getMaxPropertiesForZoom(bounds.zoom);
 
-      // ✅ Si zoom alto (>=14), cargar propiedades individuales
-      if (bounds.zoom >= 14) {
-        const startTime = Date.now();
-        
-        const { data, error } = await supabase.rpc('get_properties_in_viewport', {
-          min_lng: bounds.minLng,
-          min_lat: bounds.minLat,
-          max_lng: bounds.maxLng,
-          max_lat: bounds.maxLat,
-          p_status: status,
-          p_state: filters?.estado || null,
-          p_municipality: filters?.municipio || null,
-          p_type: filters?.tipo || null,
-          p_listing_type: filters?.listingType || null,
-          p_price_min: filters?.precioMin || null,
-          p_price_max: filters?.precioMax || null,
-          p_bedrooms: filters?.recamaras ? parseInt(filters.recamaras) : null,
-          p_bathrooms: filters?.banos ? parseInt(filters.banos) : null,
+      // ✅ SIEMPRE usar get_properties_in_viewport (sin importar el zoom)
+      // El frontend (MarkerClusterer) se encarga del clustering visual
+      const { data, error } = await supabase.rpc('get_properties_in_viewport', {
+        min_lng: bounds.minLng,
+        min_lat: bounds.minLat,
+        max_lng: bounds.maxLng,
+        max_lat: bounds.maxLat,
+        p_status: status,
+        p_state: filters?.estado || null,
+        p_municipality: filters?.municipio || null,
+        p_type: filters?.tipo || null,
+        p_listing_type: filters?.listingType || null,
+        p_price_min: filters?.precioMin || null,
+        p_price_max: filters?.precioMax || null,
+        p_bedrooms: filters?.recamaras ? parseInt(filters.recamaras) : null,
+        p_bathrooms: filters?.banos ? parseInt(filters.banos) : null,
+      });
+
+      if (error) {
+        monitoring.error('[usePropertiesViewport] Error al cargar propiedades', { 
+          hook: 'usePropertiesViewport', 
+          error,
+          bounds,
+          filters,
         });
-
-        if (error) {
-          monitoring.error('[usePropertiesViewport] Error', { hook: 'usePropertiesViewport', error });
-          throw error;
-        }
-
-        // ✅ OPTIMIZACIÓN: Aplicar límite y batch load
-        const limitedProperties = (data || []).slice(0, maxProperties);
-        
-        if (limitedProperties.length === 0) {
-          return { clusters: [], properties: [] };
-        }
-
-        // ✅ Batch loading de imágenes
-        const propertyIds = (limitedProperties as any[]).map((p) => p.id);
-        const { data: imagesData } = await supabase.rpc('get_images_batch', {
-          property_ids: propertyIds,
-        });
-
-        interface ImageBatch {
-          property_id: string;
-          images: Array<{ url: string; position: number }>;
-        }
-
-        const imagesMap = new Map<string, Array<{ url: string; position: number }>>();
-        (imagesData as ImageBatch[] || []).forEach((item) => {
-          imagesMap.set(item.property_id, item.images || []);
-        });
-
-        // Cargar featured
-        const { data: featuredData } = await supabase
-          .from('featured_properties')
-          .select('property_id')
-          .in('property_id', propertyIds)
-          .eq('status', 'active')
-          .gte('end_date', new Date().toISOString());
-
-        const featuredSet = new Set(featuredData?.map((f) => f.property_id) || []);
-
-        // Normalizar a MapProperty
-        const enrichedProperties: MapProperty[] = (limitedProperties as any[]).map((prop) => ({
-          id: prop.id,
-          title: prop.title,
-          price: prop.price,
-          currency: prop.currency || 'MXN',
-          lat: prop.lat === null || prop.lat === undefined ? null : Number(prop.lat),
-          lng: prop.lng === null || prop.lng === undefined ? null : Number(prop.lng),
-          type: prop.type,
-          listing_type: prop.listing_type,
-          bedrooms: prop.bedrooms,
-          bathrooms: prop.bathrooms,
-          parking: prop.parking,
-          sqft: prop.sqft,
-          address: prop.address,
-          state: prop.state,
-          municipality: prop.municipality,
-          agent_id: prop.agent_id,
-          status: prop.status,
-          created_at: prop.created_at,
-          images: imagesMap.get(prop.id) || [],
-          is_featured: featuredSet.has(prop.id),
-        }));
-
-      return { 
-        clusters: [] as PropertyCluster[], 
-        properties: enrichedProperties
-      };
+        throw error;
       }
 
-      // ✅ Si zoom bajo (<14), cargar clusters
-      const { data, error } = await supabase.rpc('get_property_clusters', {
+      // ✅ Aplicar límite según zoom
+      const limitedProperties = (data || []).slice(0, maxProperties);
+      
+      if (limitedProperties.length === 0) {
+        return { clusters: [], properties: [] };
+      }
+
+      // ✅ Batch loading de imágenes
+      const propertyIds = (limitedProperties as any[]).map((p) => p.id);
+      const { data: imagesData } = await supabase.rpc('get_images_batch', {
+        property_ids: propertyIds,
+      });
+
+      interface ImageBatch {
+        property_id: string;
+        images: Array<{ url: string; position: number }>;
+      }
+
+      const imagesMap = new Map<string, Array<{ url: string; position: number }>>();
+      (imagesData as ImageBatch[] || []).forEach((item) => {
+        imagesMap.set(item.property_id, item.images || []);
+      });
+
+      // Cargar featured
+      const { data: featuredData } = await supabase
+        .from('featured_properties')
+        .select('property_id')
+        .in('property_id', propertyIds)
+        .eq('status', 'active')
+        .gte('end_date', new Date().toISOString());
+
+      const featuredSet = new Set(featuredData?.map((f) => f.property_id) || []);
+
+      // Normalizar a MapProperty
+      const enrichedProperties: MapProperty[] = (limitedProperties as any[]).map((prop) => ({
+        id: prop.id,
+        title: prop.title,
+        price: prop.price,
+        currency: prop.currency || 'MXN',
+        lat: prop.lat === null || prop.lat === undefined ? null : Number(prop.lat),
+        lng: prop.lng === null || prop.lng === undefined ? null : Number(prop.lng),
+        type: prop.type,
+        listing_type: prop.listing_type,
+        bedrooms: prop.bedrooms,
+        bathrooms: prop.bathrooms,
+        parking: prop.parking,
+        sqft: prop.sqft,
+        address: prop.address,
+        state: prop.state,
+        municipality: prop.municipality,
+        agent_id: prop.agent_id,
+        status: prop.status,
+        created_at: prop.created_at,
+        images: imagesMap.get(prop.id) || [],
+        is_featured: featuredSet.has(prop.id),
+      }));
+
+      return { 
+        clusters: [], // Por ahora no usamos clusters del backend
+        properties: enrichedProperties
+      };
+
+      /* 
+      ==========================================
+      FUTURO: Lógica de clusters basada en get_property_clusters
+      ==========================================
+      Por ahora no se usa porque SearchMap/HomeMap usan MarkerClusterer del frontend.
+      Se puede reactivar cuando se implemente UI basada en clusters del backend.
+      
+      const { data: clusterData, error: clusterError } = await supabase.rpc('get_property_clusters', {
         min_lng: bounds.minLng,
         min_lat: bounds.minLat,
         max_lng: bounds.maxLng,
@@ -145,13 +153,17 @@ export const usePropertiesViewport = (
         p_bathrooms: filters?.banos ? parseInt(filters.banos) : null,
       });
 
-      if (error) {
-        monitoring.error('[usePropertiesViewport] Cluster error', { hook: 'usePropertiesViewport', error });
-        throw error;
+      if (clusterError) {
+        monitoring.error('[usePropertiesViewport] Cluster error', { 
+          hook: 'usePropertiesViewport', 
+          error: clusterError 
+        });
+        throw clusterError;
       }
 
-      const clusters = (data || []) as PropertyCluster[];
+      const clusters = (clusterData || []) as PropertyCluster[];
       return { clusters, properties: [] };
+      */
     },
     enabled: !!bounds,
     staleTime: 60 * 1000,
