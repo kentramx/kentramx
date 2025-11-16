@@ -271,9 +271,12 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     // Solo actualizar si hay cambios reales para evitar loops infinitos
     if (JSON.stringify(newFilters) !== JSON.stringify(filters)) {
       setFilters(newFilters);
-    } else {
-      syncingFromUrl.current = false;
     }
+    
+    // Liberar flag después de un tick para permitir el siguiente efecto
+    setTimeout(() => {
+      syncingFromUrl.current = false;
+    }, 0);
   }, [searchParams]);
   
   // Construir el valor de visualización para el input de ubicación
@@ -320,12 +323,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   useEffect(() => {
     const [minRange, maxRange] = getPriceRangeForListingType(filters.listingType);
     setPriceRange([minRange, maxRange]);
-    
-    setFilters(prev => ({
-      ...prev,
-      precioMin: '',
-      precioMax: ''
-    }));
+    // No modificar filters aquí para evitar loop infinito
   }, [filters.listingType]);
 
   // Reiniciar a página 1 cuando cambien los filtros
@@ -363,7 +361,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
         })),
       });
     }
-  }, [filters, searchCoordinates, properties]);
+  }, [filters.estado, filters.municipio, filters.tipo, filters.listingType, trackGA4Event]);
 
   useEffect(() => {
     if (user) {
@@ -565,7 +563,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       setMunicipios(mexicoMunicipalities[filters.estado] || []);
     } else {
       setMunicipios([]);
-      setFilters(prev => ({ ...prev, municipio: '' }));
+      // No modificar filters aquí - dejar que el usuario limpie municipio manualmente
     }
   }, [filters.estado]);
 
