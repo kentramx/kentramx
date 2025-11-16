@@ -5,6 +5,134 @@ import { MarkerClusterer, GridAlgorithm } from '@googlemaps/markerclusterer';
 import { useCurrencyConversion } from '@/hooks/useCurrencyConversion';
 import { monitoring } from '@/lib/monitoring';
 
+// ✅ Overlay personalizado que unifica dot + precio en un solo elemento HTML
+class CustomPropertyOverlay extends google.maps.OverlayView {
+  private position: google.maps.LatLng;
+  private containerDiv: HTMLDivElement | null = null;
+  private priceText: string;
+  private propertyId: string;
+  private isHovered: boolean = false;
+  private onClick: (id: string) => void;
+  private onMouseOver: (id: string) => void;
+  private onMouseOut: () => void;
+
+  constructor(
+    position: google.maps.LatLng,
+    priceText: string,
+    propertyId: string,
+    onClick: (id: string) => void,
+    onMouseOver: (id: string) => void,
+    onMouseOut: () => void
+  ) {
+    super();
+    this.position = position;
+    this.priceText = priceText;
+    this.propertyId = propertyId;
+    this.onClick = onClick;
+    this.onMouseOver = onMouseOver;
+    this.onMouseOut = onMouseOut;
+  }
+
+  onAdd() {
+    const div = document.createElement('div');
+    div.style.position = 'absolute';
+    div.style.cursor = 'pointer';
+    div.style.userSelect = 'none';
+    
+    // Contenedor para centrar todo
+    div.style.transform = 'translate(-50%, -100%)';
+    
+    // Crear el contenido: precio arriba, dot abajo
+    div.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        ${this.priceText ? `
+          <div style="
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #111827;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            white-space: nowrap;
+            border: 1px solid rgba(0,0,0,0.1);
+          ">${this.priceText}</div>
+        ` : ''}
+        <div style="
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: white;
+          border: 3px solid #0ea5e9;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        "></div>
+      </div>
+    `;
+
+    // Event listeners
+    div.addEventListener('click', () => this.onClick(this.propertyId));
+    div.addEventListener('mouseover', () => {
+      this.isHovered = true;
+      this.onMouseOver(this.propertyId);
+      this.updateStyle();
+    });
+    div.addEventListener('mouseout', () => {
+      this.isHovered = false;
+      this.onMouseOut();
+      this.updateStyle();
+    });
+
+    this.containerDiv = div;
+    const panes = this.getPanes();
+    panes?.overlayMouseTarget.appendChild(div);
+  }
+
+  draw() {
+    if (!this.containerDiv) return;
+    
+    const overlayProjection = this.getProjection();
+    const pos = overlayProjection.fromLatLngToDivPixel(this.position);
+    
+    if (pos) {
+      this.containerDiv.style.left = pos.x + 'px';
+      this.containerDiv.style.top = pos.y + 'px';
+    }
+  }
+
+  onRemove() {
+    if (this.containerDiv) {
+      this.containerDiv.parentNode?.removeChild(this.containerDiv);
+      this.containerDiv = null;
+    }
+  }
+
+  setHovered(hovered: boolean) {
+    this.isHovered = hovered;
+    this.updateStyle();
+  }
+
+  private updateStyle() {
+    if (!this.containerDiv) return;
+    
+    const container = this.containerDiv.firstElementChild as HTMLElement;
+    if (container) {
+      if (this.isHovered) {
+        container.style.transform = 'scale(1.15)';
+        container.style.transition = 'transform 0.2s ease';
+        container.style.zIndex = '1000';
+      } else {
+        container.style.transform = 'scale(1)';
+        container.style.transition = 'transform 0.2s ease';
+        container.style.zIndex = 'auto';
+      }
+    }
+  }
+
+  getPosition() {
+    return this.position;
+  }
+}
+
 type LatLng = { lat: number; lng: number };
 type BasicMarker = LatLng & { 
   id?: string;
@@ -53,7 +181,8 @@ export function BasicGoogleMap({
 }: BasicGoogleMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const markerRefs = useRef<Map<string, google.maps.Marker>>(new Map());
+  const overlayRefs = useRef<Map<string, CustomPropertyOverlay>>(new Map());
+  const invisibleMarkerRefs = useRef<Map<string, google.maps.Marker>>(new Map());
   const clustererRef = useRef<MarkerClusterer | null>(null);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -169,8 +298,10 @@ export function BasicGoogleMap({
         }
         clustererRef.current = null;
       }
-      markerRefs.current.forEach(m => m.setMap(null));
-      markerRefs.current.clear();
+      overlayRefs.current.forEach(o => o.setMap(null));
+      overlayRefs.current.clear();
+      invisibleMarkerRefs.current.forEach(m => m.setMap(null));
+      invisibleMarkerRefs.current.clear();
       mapRef.current = null;
     };
   }, []);
@@ -192,9 +323,11 @@ export function BasicGoogleMap({
       clustererRef.current = null;
     }
 
-    // Limpiar marcadores anteriores
-    markerRefs.current.forEach(m => m.setMap(null));
-    markerRefs.current.clear();
+    // Limpiar overlays y marcadores invisibles anteriores
+    overlayRefs.current.forEach(o => o.setMap(null));
+    overlayRefs.current.clear();
+    invisibleMarkerRefs.current.forEach(m => m.setMap(null));
+    invisibleMarkerRefs.current.clear();
 
     if (!markers || markers.length === 0) {
       return;
@@ -212,74 +345,55 @@ export function BasicGoogleMap({
       infoWindowRef.current = new google.maps.InfoWindow();
     }
     
-    // Crear nuevos marcadores
+    // ✅ Crear nuevos marcadores con overlays personalizados
     for (const m of markers) {
       if (!m.id || m.lat == null || m.lng == null || isNaN(Number(m.lat)) || isNaN(Number(m.lng))) continue;
       
       const lat = Number(m.lat);
       const lng = Number(m.lng);
+      const position = new google.maps.LatLng(lat, lng);
       
-      // Determinar el label según el zoom
-      let priceLabel = '';
+      // Determinar el texto del precio según el zoom
+      let priceText = '';
       if (!hidePriceLabel && m.price) {
         if (showFullPriceLabel) {
-          priceLabel = formatPrice(m.price, m.currency || 'MXN');
+          priceText = formatPrice(m.price, m.currency || 'MXN');
         } else if (showShortPriceLabel) {
-          priceLabel = formatShortPrice(m.price, m.currency || 'MXN');
+          priceText = formatShortPrice(m.price, m.currency || 'MXN');
         }
       }
 
-      // Ajustar tamaño según zoom
-      const markerScale = zoom < 11 ? 7 : 9;
+      // ✅ Crear overlay personalizado (visual)
+      const overlay = new CustomPropertyOverlay(
+        position,
+        priceText,
+        m.id,
+        (id) => onMarkerClickRef.current?.(id),
+        (id) => onMarkerHoverRef.current?.(id),
+        () => onMarkerHoverRef.current?.(null)
+      );
+      overlay.setMap(map);
+      overlayRefs.current.set(m.id, overlay);
       
-      const marker = new google.maps.Marker({ 
-        position: { lat, lng },
+      // ✅ Crear marcador invisible para clustering
+      const invisibleMarker = new google.maps.Marker({
+        position,
         map,
-        animation: undefined,
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          scale: markerScale,
-          fillColor: '#0ea5e9',
-          fillOpacity: 0.95,
-          strokeColor: '#ffffff',
-          strokeWeight: 2,
-          labelOrigin: new google.maps.Point(0, -18),
+          scale: 0, // Invisible
+          fillOpacity: 0,
+          strokeOpacity: 0,
         },
-        label: priceLabel ? {
-          text: priceLabel,
-          color: '#111827',
-          fontSize: '13px',
-          fontWeight: '600',
-        } : undefined,
         optimized: false,
-        zIndex: Number(google.maps.Marker.MAX_ZINDEX) + 2,
       });
+      invisibleMarkerRefs.current.set(m.id, invisibleMarker);
       
-      // CRÍTICO: Asegurar que el marcador siempre se añade al mapa
-      marker.setMap(map);
-      
-      // Guardar referencia del marcador con su id
-      markerRefs.current.set(m.id, marker);
-      
-      // Agregar hover listeners al marcador
-      marker.addListener('mouseover', () => {
-        onMarkerHoverRef.current?.(m.id || null);
-      });
-      
-      marker.addListener('mouseout', () => {
-        onMarkerHoverRef.current?.(null);
-      });
-      
-      // ✅ Click listener simplificado - solo notificar al padre
-      marker.addListener('click', () => {
-        onMarkerClickRef.current?.(m.id || '');
-      });
-      
-      bounds.extend(marker.getPosition()!);
+      bounds.extend(position);
     }
     
-    // Convertir Map a Array para el clusterer
-    const markerArray = Array.from(markerRefs.current.values());
+    // Convertir Map a Array para el clusterer (usa los marcadores invisibles)
+    const markerArray = Array.from(invisibleMarkerRefs.current.values());
 
     // Si clustering está habilitado, crear el clusterer
     // Esperar a que el mapa esté completamente listo antes de crear el clusterer
@@ -358,18 +472,10 @@ export function BasicGoogleMap({
     }
   }, [markers, enableClustering, disableAutoFit, currentZoom]);
   
-  // Efecto para resaltar el marcador cuando se hace hover sobre una tarjeta
+  // Efecto para resaltar el overlay cuando se hace hover sobre una tarjeta
   useEffect(() => {
-    markerRefs.current.forEach((marker, markerId) => {
-      if (markerId === hoveredMarkerId) {
-        // Aplicar animación bounce sin cambiar el ícono
-        marker.setAnimation(google.maps.Animation.BOUNCE);
-        marker.setZIndex(1000);
-      } else {
-        // Restaurar el marcador a su estado normal
-        marker.setAnimation(null);
-        marker.setZIndex(undefined);
-      }
+    overlayRefs.current.forEach((overlay, overlayId) => {
+      overlay.setHovered(overlayId === hoveredMarkerId);
     });
   }, [hoveredMarkerId]);
 
