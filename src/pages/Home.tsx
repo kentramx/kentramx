@@ -111,6 +111,10 @@ const Home = () => {
   const [sheetOpen, setSheetOpen] = useState(false);
   
   const navigate = useNavigate();
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    const hasLocation = selectedLocation?.state || selectedLocation?.municipality;
     const hasPropertyType = propertyType && propertyType !== 'all';
     const hasAdvancedFilters = priceMin || priceMax || 
                                (bedrooms && bedrooms !== 'all') || 
@@ -148,87 +152,21 @@ const Home = () => {
     const queryString = params.toString();
     navigate(queryString ? `/buscar?${queryString}` : '/buscar');
   };
-  // Fetch featured and recent properties on component mount or when listingType changes
-  useEffect(() => {
-    const fetchProperties = async () => {
-      setIsLoadingProperties(true);
-      try {
-        // First get the property IDs that are currently featured
-        const { data: featuredData, error: featuredError } = await supabase
-          .from('featured_properties')
-          .select('property_id')
-          .eq('status', 'active')
-          .gt('end_date', new Date().toISOString());
 
-        if (featuredError) {
-          console.error('Error fetching featured property IDs:', featuredError);
-        }
+  const handlePlaceSelect = (place: {
+    address: string;
+    municipality: string;
+    state: string;
+    lat?: number;
+    lng?: number;
+  }) => {
+    setSelectedLocation(place);
+  };
 
-        const featuredIds = new Set(featuredData?.map(f => f.property_id) || []);
-        
-        // Get featured properties (only those that are actually featured and active)
-        if (featuredIds.size > 0) {
-          let featuredQuery = supabase
-            .from('properties')
-            .select(`
-              *,
-              images (url, position)
-            `)
-            .eq('status', 'activa')
-            .eq('listing_type', listingType)
-            .in('id', Array.from(featuredIds))
-            .limit(6);
-
-          const { data: featuredPropsData, error: featuredPropsError } = await featuredQuery;
-
-          if (featuredPropsError) {
-            console.error('Error fetching featured properties:', featuredPropsError);
-          } else if (featuredPropsData) {
-            const featured = featuredPropsData.map((property: any) => ({
-              ...property,
-              images: (property.images || []).sort((a: any, b: any) => a.position - b.position),
-              is_featured: true
-            }));
-            setFeaturedProperties(featured);
-          }
-        } else {
-          setFeaturedProperties([]);
-        }
-
-        // Get recent properties - optimized with idx_properties_listing_status_created
-        let recentQuery = supabase
-          .from('properties')
-          .select(`
-            id, title, price, currency, address, state, municipality,
-            bedrooms, bathrooms, parking, sqft, type, listing_type, agent_id,
-            images (url, position)
-          `)
-          .eq('status', 'activa')
-          .eq('listing_type', listingType)
-          .order('created_at', { ascending: false })
-          .limit(8);
-
-        const { data: recentPropsData, error: recentPropsError } = await recentQuery;
-
-        if (recentPropsError) {
-          console.error('Error fetching recent properties:', recentPropsError);
-        } else if (recentPropsData) {
-          const recent = recentPropsData.map((property: any) => ({
-            ...property,
-            images: (property.images || []).sort((a: any, b: any) => a.position - b.position),
-            is_featured: featuredIds.has(property.id)
-          }));
-          setRecentProperties(recent);
-        }
-      } catch (error) {
-        console.error('Error fetching properties:', error);
-      } finally {
-        setIsLoadingProperties(false);
-      }
-    };
-
-    fetchProperties();
-  }, [listingType]);
+  const handlePropertyClick = (propertyId: string) => {
+    setSelectedPropertyId(propertyId);
+    setSheetOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -489,7 +427,7 @@ const Home = () => {
                       rent_price={property.rent_price}
                       currency={property.currency}
                       address={property.address}
-                      colonia={property.colonia}
+                      colonia={(property as any).colonia}
                       municipality={property.municipality}
                       state={property.state}
                       bedrooms={property.bedrooms}
@@ -579,7 +517,7 @@ const Home = () => {
                       rent_price={property.rent_price}
                       currency={property.currency}
                       address={property.address}
-                      colonia={property.colonia}
+                      colonia={(property as any).colonia}
                       municipality={property.municipality}
                       state={property.state}
                       bedrooms={property.bedrooms}

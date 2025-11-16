@@ -1,7 +1,87 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.79.0';
 // @deno-types="https://esm.sh/stripe@11.16.0/types/index.d.ts"
 import Stripe from 'https://esm.sh/stripe@11.16.0?target=deno';
-import { checkRateLimit, getClientIdentifier, createRateLimitResponse, rateLimitConfigs } from "../rate-limit-check/index.ts";
+
+// Rate limiting utilities inlined
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+}
+
+const limits = new Map<string, RateLimitEntry>();
+
+interface RateLimitConfig {
+  maxRequests: number;
+  windowMs: number;
+}
+
+const checkRateLimit = (
+  key: string, 
+  config: RateLimitConfig
+): { allowed: boolean; remaining: number; resetTime: number } => {
+  const now = Date.now();
+  const entry = limits.get(key);
+
+  if (!entry || now > entry.resetTime) {
+    const resetTime = now + config.windowMs;
+    limits.set(key, { count: 1, resetTime });
+    return {
+      allowed: true,
+      remaining: config.maxRequests - 1,
+      resetTime,
+    };
+  }
+
+  if (entry.count < config.maxRequests) {
+    entry.count++;
+    limits.set(key, entry);
+    return {
+      allowed: true,
+      remaining: config.maxRequests - entry.count,
+      resetTime: entry.resetTime,
+    };
+  }
+
+  return {
+    allowed: false,
+    remaining: 0,
+    resetTime: entry.resetTime,
+  };
+};
+
+const getClientIdentifier = (req: Request): string => {
+  const forwarded = req.headers.get('x-forwarded-for');
+  const realIp = req.headers.get('x-real-ip');
+  const cfConnectingIp = req.headers.get('cf-connecting-ip');
+  
+  return cfConnectingIp || realIp || forwarded?.split(',')[0] || 'unknown';
+};
+
+const createRateLimitResponse = (
+  resetTime: number,
+  maxRequests: number
+): Response => {
+  const retryAfter = Math.ceil((resetTime - Date.now()) / 1000);
+  
+  return new Response(
+    JSON.stringify({
+      error: 'Rate limit exceeded',
+      message: `Too many requests. Please try again in ${retryAfter} seconds.`,
+      retryAfter,
+    }),
+    {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': retryAfter.toString(),
+        'X-RateLimit-Limit': maxRequests.toString(),
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': resetTime.toString(),
+        'Access-Control-Allow-Origin': '*',
+      },
+    }
+  );
+};
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,12 +95,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Rate limiting
+    // Rate limiting: 10 requests per hour
     const clientId = getClientIdentifier(req);
-    const limit = checkRateLimit(clientId, rateLimitConfigs.checkout);
+    const limit = checkRateLimit(clientId, { maxRequests: 10, windowMs: 60 * 60 * 1000 });
     
     if (!limit.allowed) {
-      return createRateLimitResponse(limit.resetTime, rateLimitConfigs.checkout.maxRequests);
+      return createRateLimitResponse(limit.resetTime, 10);
     }
 
     const supabaseClient = createClient(
