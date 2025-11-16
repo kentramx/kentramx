@@ -174,5 +174,7 @@ export const usePropertiesViewport = (
     enabled: !!bounds,
     staleTime: 60 * 1000, // ✅ 1 minuto de cache + debounce automático
     gcTime: 5 * 60 * 1000, // 5 minutos
+    retry: 2, // ✅ Reintentar 2 veces en caso de error
+    retryDelay: 1000, // ✅ Esperar 1 segundo entre intentos
   });
 };

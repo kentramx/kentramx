@@ -102,7 +102,7 @@ export function BasicGoogleMap({
                   zoom: currentZoom,
                 });
               }
-            }, 300);
+            }, 500); // ✅ Aumentado de 300ms a 500ms para reducir queries
           });
         }
 
