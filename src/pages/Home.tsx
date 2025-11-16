@@ -8,13 +8,15 @@ import Navbar from "@/components/Navbar";
 import heroBackground from "@/assets/hero-background.jpg";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import { SearchBar } from "@/components/SearchBar";
-import { supabase } from "@/integrations/supabase/client";
 import PropertyCard from "@/components/PropertyCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { SEOHead } from "@/components/SEOHead";
 import { generateWebsiteStructuredData, generateOrganizationStructuredData } from "@/utils/structuredData";
+import { usePropertiesInfinite } from "@/hooks/usePropertiesInfinite";
+import { InfiniteScrollContainer } from "@/components/InfiniteScrollContainer";
+import { LazyImage } from "@/components/LazyImage";
 import {
   Select,
   SelectContent,
@@ -61,10 +63,33 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [listingType, setListingType] = useState<"venta" | "renta">("venta");
   const [propertyType, setPropertyType] = useState<string>("all");
-  const [featuredProperties, setFeaturedProperties] = useState<Property[]>([]);
-  const [recentProperties, setRecentProperties] = useState<Property[]>([]);
-  const [isLoadingProperties, setIsLoadingProperties] = useState(true);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  // Usar infinite scroll para propiedades destacadas y recientes
+  const { 
+    data: featuredData, 
+    fetchNextPage: fetchNextFeatured,
+    hasNextPage: hasNextFeatured,
+    isFetchingNextPage: isFetchingNextFeatured,
+    isLoading: isLoadingFeatured
+  } = usePropertiesInfinite({ 
+    status: ['activa'],
+    // Filtrar solo featured en el futuro, por ahora mostramos activas
+  });
+
+  const { 
+    data: recentData, 
+    fetchNextPage: fetchNextRecent,
+    hasNextPage: hasNextRecent,
+    isFetchingNextPage: isFetchingNextRecent,
+    isLoading: isLoadingRecent
+  } = usePropertiesInfinite({ 
+    status: ['activa'],
+  });
+
+  const featuredProperties = featuredData?.pages.flatMap(page => page.properties) || [];
+  const recentProperties = recentData?.pages.flatMap(page => page.properties) || [];
+  const isLoadingProperties = isLoadingFeatured || isLoadingRecent;
   
   // Estado para almacenar la ubicación seleccionada del autocomplete
   const [selectedLocation, setSelectedLocation] = useState<{
@@ -86,33 +111,6 @@ const Home = () => {
   const [sheetOpen, setSheetOpen] = useState(false);
   
   const navigate = useNavigate();
-
-  const handlePropertyClick = (id: string) => {
-    navigate(`/buscar?propiedad=${id}`);
-  };
-
-  const handleCloseSheet = () => {
-    setSheetOpen(false);
-    setSelectedPropertyId(null);
-  };
-
-  const handlePlaceSelect = (location: {
-    address: string;
-    municipality: string;
-    state: string;
-    lat?: number;
-    lng?: number;
-  }) => {
-    // Solo guardar la ubicación seleccionada y actualizar el texto visible
-    setSelectedLocation(location);
-    setSearchQuery(location.address);
-  };
-
-  const handleSearch = () => {
-    const params = new URLSearchParams();
-    
-    // Detectar si hay filtros activos
-    const hasLocation = selectedLocation?.state || selectedLocation?.municipality;
     const hasPropertyType = propertyType && propertyType !== 'all';
     const hasAdvancedFilters = priceMin || priceMax || 
                                (bedrooms && bedrooms !== 'all') || 

@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.79.0';
 // @deno-types="https://esm.sh/stripe@11.16.0/types/index.d.ts"
 import Stripe from 'https://esm.sh/stripe@11.16.0?target=deno';
+import { checkRateLimit, getClientIdentifier, createRateLimitResponse, rateLimitConfigs } from "../rate-limit-check/index.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +15,14 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Rate limiting
+    const clientId = getClientIdentifier(req);
+    const limit = checkRateLimit(clientId, rateLimitConfigs.checkout);
+    
+    if (!limit.allowed) {
+      return createRateLimitResponse(limit.resetTime, rateLimitConfigs.checkout.maxRequests);
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
