@@ -8,7 +8,22 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { DynamicBreadcrumbs } from '@/components/DynamicBreadcrumbs';
-import type { Property } from '@/types/property';
+
+interface Property {
+  id: string;
+  title: string;
+  price: number;
+  type: string;
+  listing_type: string;
+  address: string;
+  municipality: string;
+  state: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  parking?: number;
+  sqft?: number;
+  agent_id: string;
+}
 
 interface FavoriteWithProperty {
   id: string;

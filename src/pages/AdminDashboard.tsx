@@ -18,7 +18,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
+import QualityChecklist from '@/components/QualityChecklist';
+import PropertyDiff from '@/components/PropertyDiff';
 import AdminModerationMetrics from '@/components/AdminModerationMetrics';
+import RejectionReview, { RejectionReasons } from '@/components/RejectionReview';
 
 const REJECTION_REASONS = [
   { code: 'incomplete_info', label: 'Información incompleta' },
@@ -47,16 +50,6 @@ const AdminDashboard = () => {
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'nuevas');
   
-  interface RejectionReasons {
-    incompleteInfo: boolean;
-    poorImages: boolean;
-    incorrectLocation: boolean;
-    suspiciousPrice: boolean;
-    inappropriateContent: boolean;
-    duplicateProperty: boolean;
-    notes: string;
-  }
-  
   const [rejectionReasons, setRejectionReasons] = useState<RejectionReasons>({
     incompleteInfo: false,
     poorImages: false,
@@ -67,6 +60,7 @@ const AdminDashboard = () => {
     notes: ''
   });
   const [adminNotes, setAdminNotes] = useState('');
+  const [isRejectionSectionOpen, setIsRejectionSectionOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   
   const [viewProperty, setViewProperty] = useState<any>(null);
@@ -118,6 +112,8 @@ const AdminDashboard = () => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === 'a') {
         handleApprove(viewProperty);
+      } else if (e.key === 'r') {
+        setIsRejectionSectionOpen(true);
       } else if (e.key === 'ArrowRight') {
         goToNextProperty();
       }
@@ -332,6 +328,7 @@ const AdminDashboard = () => {
             action: 'approved',
           },
         });
+        console.log('Email notification sent successfully');
       } catch (emailError) {
         console.error('Error sending email notification:', emailError);
         // No fallar la aprobación si el email falla
@@ -469,6 +466,7 @@ const AdminDashboard = () => {
             rejectionReason: rejectionData,
           },
         });
+        console.log('Email notification sent successfully');
       } catch (emailError) {
         console.error('Error sending email notification:', emailError);
         // No fallar el rechazo si el email falla
@@ -493,6 +491,7 @@ const AdminDashboard = () => {
         notes: ''
       });
       setAdminNotes('');
+      setIsRejectionSectionOpen(false);
     } catch (error) {
       console.error('Error rejecting property:', error);
       toast({
@@ -1076,6 +1075,7 @@ const AdminDashboard = () => {
           duplicateProperty: false,
           notes: ''
         });
+        setIsRejectionSectionOpen(false);
       }}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1241,43 +1241,38 @@ const AdminDashboard = () => {
                 </Alert>
               )}
 
+              <QualityChecklist property={viewProperty} />
+              
+              {viewProperty.resubmission_count > 0 && (
+                <PropertyDiff property={viewProperty} />
+              )}
+
               <Separator className="my-6" />
 
               {/* Sección de Motivos de Rechazo */}
-              <div className="space-y-4 border rounded-lg p-4">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  <span className="font-semibold">Motivos de Rechazo</span>
-                  <Badge variant="outline" className="ml-2">Requerido para rechazar</Badge>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  {REJECTION_REASONS.map((reason) => (
-                    <Label key={reason.code} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={!!rejectionReasons[reason.code as keyof RejectionReasons]}
-                        onChange={(e) => setRejectionReasons(prev => ({
-                          ...prev,
-                          [reason.code]: e.target.checked
-                        }))}
-                        className="rounded"
-                      />
-                      {reason.label}
-                    </Label>
-                  ))}
-                </div>
-                
-                <Textarea
-                  placeholder="Notas adicionales sobre el rechazo..."
-                  value={rejectionReasons.notes}
-                  onChange={(e) => setRejectionReasons(prev => ({
-                    ...prev,
-                    notes: e.target.value
-                  }))}
-                  rows={3}
-                />
-              </div>
+              <Collapsible 
+                open={isRejectionSectionOpen} 
+                onOpenChange={setIsRejectionSectionOpen}
+                className="border rounded-lg"
+              >
+                <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <span className="font-semibold">Motivos de Rechazo</span>
+                    <Badge variant="outline" className="ml-2">
+                      Requerido para rechazar
+                    </Badge>
+                  </div>
+                  <ChevronDown className={`h-5 w-5 transition-transform ${isRejectionSectionOpen ? 'rotate-180' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="p-4 pt-0">
+                    <RejectionReview 
+                      onRejectionReasonsChange={setRejectionReasons}
+                    />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
 
               <Separator className="my-6" />
 
