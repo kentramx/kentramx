@@ -1,3 +1,9 @@
+/**
+ * ✅ Grid OPTIMIZADO con React.memo para evitar re-renders innecesarios
+ * Usado en Home, Buscar, Favorites para grids masivos
+ */
+
+import { memo } from 'react';
 import PropertyCard from './PropertyCard';
 
 interface Property {
@@ -23,11 +29,8 @@ interface VirtualizedPropertyGridProps {
   properties: Property[];
 }
 
-/**
- * Grid optimizado para renderizar miles de propiedades
- */
-export const VirtualizedPropertyGrid = ({ 
-  properties
+const VirtualizedPropertyGridComponent = ({ 
+  properties,
 }: VirtualizedPropertyGridProps) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -42,3 +45,6 @@ export const VirtualizedPropertyGrid = ({
     </div>
   );
 };
+
+// ✅ Memoizado para evitar re-renders cuando props no cambian
+export const VirtualizedPropertyGrid = memo(VirtualizedPropertyGridComponent);
