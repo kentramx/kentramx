@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import { CouponInput } from '@/components/CouponInput';
 import { SEOHead } from '@/components/SEOHead';
+import { monitoring } from '@/lib/monitoring';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,7 +50,7 @@ const PricingAgente = () => {
         toast.error(result.error || 'Error al iniciar el proceso de pago');
       }
     } catch (error) {
-      console.error('Error:', error);
+      monitoring.error('Error in handleSelectPlan', { page: 'PricingAgente', error });
       toast.error('Ocurrió un error al procesar tu solicitud');
     }
   };

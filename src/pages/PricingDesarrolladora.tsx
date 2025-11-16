@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { startSubscriptionCheckout, getCurrentSubscription } from '@/utils/stripeCheckout';
 import Navbar from '@/components/Navbar';
+import { monitoring } from '@/lib/monitoring';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +44,7 @@ const PricingDesarrolladora = () => {
         toast.error(result.error || 'Error al iniciar el proceso de pago');
       }
     } catch (error) {
-      console.error('Error:', error);
+      monitoring.error('Error in handleSelectPlan', { page: 'PricingDesarrolladora', error });
       toast.error('Ocurrió un error al procesar tu solicitud');
     }
   };
