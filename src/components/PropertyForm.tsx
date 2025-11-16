@@ -15,6 +15,7 @@ import { Loader2, Upload, X, Plus, Trash2, Video, AlertTriangle, FileText } from
 import { z } from 'zod';
 import { LocationSearch } from '@/components/LocationSearch';
 import { usePropertyTitleValidation } from '@/hooks/usePropertyTitleValidation';
+import { compressImages, validateImageFile } from '@/utils/imageCompression';
 
 const propertySchema = z.object({
   description: z.string().trim().min(20, 'La descripción debe tener al menos 20 caracteres').max(2000, 'La descripción no puede exceder 2000 caracteres'),
@@ -197,11 +198,78 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
     setNewAmenityItem({ ...newAmenityItem, [category]: '' });
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setImageFiles(prev => [...prev, ...newFiles]);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const files = Array.from(e.target.files);
+    
+    // Validar que no supere el límite de 20 imágenes
+    if (imageFiles.length + files.length + existingImages.length > 20) {
+      toast({
+        title: '⚠️ Límite de imágenes',
+        description: 'Máximo 20 imágenes por propiedad',
+        variant: 'destructive',
+      });
+      return;
     }
+
+    // Validar archivos
+    const validationErrors: string[] = [];
+    const validFiles: File[] = [];
+
+    for (const file of files) {
+      const validation = validateImageFile(file);
+      if (validation.valid) {
+        validFiles.push(file);
+      } else {
+        validationErrors.push(`${file.name}: ${validation.error}`);
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      toast({
+        title: '⚠️ Archivos inválidos',
+        description: validationErrors.join(', '),
+        variant: 'destructive',
+      });
+    }
+
+    if (validFiles.length === 0) {
+      e.target.value = '';
+      return;
+    }
+
+    // Comprimir imágenes
+    toast({
+      title: '🔄 Comprimiendo imágenes...',
+      description: `Optimizando ${validFiles.length} imágenes`,
+    });
+
+    try {
+      const compressedFiles = await compressImages(
+        validFiles,
+        { maxSizeMB: 2, maxWidthOrHeight: 1920, quality: 0.85, format: 'webp' },
+        (completed, total) => {
+          console.log(`Comprimiendo: ${completed}/${total}`);
+        }
+      );
+
+      setImageFiles(prev => [...prev, ...compressedFiles]);
+      
+      toast({
+        title: '✅ Imágenes optimizadas',
+        description: `${compressedFiles.length} imágenes listas para subir`,
+      });
+    } catch (error: any) {
+      console.error('Error comprimiendo imágenes:', error);
+      toast({
+        title: '❌ Error',
+        description: error.message || 'Error al comprimir imágenes',
+        variant: 'destructive',
+      });
+    }
+
+    e.target.value = '';
   };
 
   const removeImage = (index: number) => {
@@ -832,7 +900,7 @@ const PropertyForm = ({ property, onSuccess, onCancel }: PropertyFormProps) => {
               type="file"
               accept="image/*"
               multiple
-              onChange={handleImageChange}
+              onChange={handleImageUpload}
               className="hidden"
               id="image-upload"
             />

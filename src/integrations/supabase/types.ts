@@ -1930,6 +1930,29 @@ export type Database = {
       }
     }
     Views: {
+      agent_performance_stats: {
+        Row: {
+          active_properties: number | null
+          agent_id: string | null
+          avg_price: number | null
+          avg_rating: number | null
+          last_property_date: string | null
+          total_conversations: number | null
+          total_favorites: number | null
+          total_properties: number | null
+          total_reviews: number | null
+          total_views: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "properties_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geography_columns: {
         Row: {
           coord_dimension: number | null
@@ -2175,6 +2198,15 @@ export type Database = {
       change_user_role: {
         Args: { new_role: Database["public"]["Enums"]["app_role"] }
         Returns: Json
+      }
+      cleanup_old_data: { Args: never; Returns: undefined }
+      database_health_check: {
+        Args: never
+        Returns: {
+          metric: string
+          status: string
+          value: string
+        }[]
       }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
@@ -2508,6 +2540,7 @@ export type Database = {
         Returns: undefined
       }
       reactivate_property: { Args: { property_id: string }; Returns: undefined }
+      refresh_agent_stats: { Args: never; Returns: undefined }
       renew_property: { Args: { property_id: string }; Returns: undefined }
       search_properties_fts: {
         Args: {

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.79.0";
+import { checkRateLimit, getClientIdentifier, createRateLimitResponse, rateLimitConfigs } from "../rate-limit-check/index.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -24,6 +25,14 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Rate limiting
+    const clientId = getClientIdentifier(req);
+    const limit = checkRateLimit(clientId, rateLimitConfigs.sendMessage);
+    
+    if (!limit.allowed) {
+      return createRateLimitResponse(limit.resetTime, rateLimitConfigs.sendMessage.maxRequests);
+    }
+
     // Crear cliente de Supabase con JWT del usuario
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
