@@ -163,13 +163,16 @@ export function BasicGoogleMap({
     
     // Crear nuevos marcadores
     for (const m of markers) {
-      if (typeof m.lat !== 'number' || typeof m.lng !== 'number' || !m.id) continue;
+      if (!m.id || m.lat == null || m.lng == null || isNaN(Number(m.lat)) || isNaN(Number(m.lng))) continue;
+      
+      const lat = Number(m.lat);
+      const lng = Number(m.lng);
       
       // Formatear el precio para el label
       const priceLabel = m.price ? formatPrice(m.price, m.currency || 'MXN') : '';
       
       const marker = new google.maps.Marker({ 
-        position: { lat: m.lat, lng: m.lng },
+        position: { lat, lng },
         animation: undefined,
         icon: {
           path: 'M 0,0',
