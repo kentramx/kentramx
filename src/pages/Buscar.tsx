@@ -668,10 +668,10 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     filters.banos,
   ].filter(Boolean).length;
 
-  // Mantener flag de isFiltering basado en isFetching
+  // Solo mostrar loading completo en carga inicial (sin datos previos)
   useEffect(() => {
-    setIsFiltering(isFetching);
-  }, [isFetching]);
+    setIsFiltering(isFetching && properties.length === 0);
+  }, [isFetching, properties.length]);
 
   const handlePropertyHover = (property: Property) => {
     setHoveredProperty(property);
@@ -844,9 +844,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     if (searchCoordinates) {
       setMapCenter(searchCoordinates);
       setMapZoom(12);
-    } else if (hoveredProperty && hoveredProperty.lat && hoveredProperty.lng) {
-      setMapCenter({ lat: hoveredProperty.lat, lng: hoveredProperty.lng });
-      setMapZoom(14);
     } else if (hasLocationFilters && mapMarkers.length > 0) {
       setMapCenter({ lat: mapMarkers[0].lat, lng: mapMarkers[0].lng });
       setMapZoom(12);
@@ -854,7 +851,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       setMapCenter({ lat: 23.6345, lng: -102.5528 });
       setMapZoom(5);
     }
-  }, [searchCoordinates, hoveredProperty, hasLocationFilters, mapMarkers]);
+  }, [searchCoordinates, hasLocationFilters, mapMarkers]);
 
   const getBreadcrumbItems = (): BreadcrumbItem[] => {
     const items: BreadcrumbItem[] = [
@@ -1487,11 +1484,14 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
           <div className={`relative ${mobileView === 'map' ? 'block' : 'hidden'} lg:block lg:w-1/2 lg:h-full`} style={{ height: 'calc(100vh - 200px)' }}>
             {/* Contador de resultados sobre el mapa */}
             <div className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border">
-              <p className="text-sm font-medium">
+              <p className="text-sm font-medium flex items-center gap-2">
                 <span className="font-bold text-lg">{totalCount}</span>
-                <span className="text-muted-foreground ml-1">
+                <span className="text-muted-foreground">
                   {totalCount === 1 ? 'propiedad' : 'propiedades'}
                 </span>
+                {isFetching && properties.length > 0 && (
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                )}
               </p>
             </div>
 
