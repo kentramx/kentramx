@@ -22,7 +22,6 @@ interface SearchMapProps {
   hoveredPropertyCoords?: { lat: number; lng: number } | null;
   height?: string;
   onMapError?: (error: string) => void;
-  onBoundsChange?: (bounds: ViewportBounds) => void;
 }
 
 export const SearchMap: React.FC<SearchMapProps> = ({
@@ -34,7 +33,6 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   hoveredPropertyCoords,
   height = '100%',
   onMapError,
-  onBoundsChange,
 }) => {
   const navigate = useNavigate();
   const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(null);
@@ -95,8 +93,7 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   // ✅ Callback memoizado para bounds change
   const handleBoundsChange = useCallback((bounds: ViewportBounds) => {
     setViewportBounds(bounds);
-    onBoundsChange?.(bounds);
-  }, [onBoundsChange]);
+  }, []);
 
   // ✅ Callback memoizado para marker click
   const handleMarkerClickInternal = useCallback(
