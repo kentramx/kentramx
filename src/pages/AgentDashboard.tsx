@@ -289,7 +289,7 @@ const AgentDashboard = () => {
         }
       }
     } catch (error: any) {
-      console.error('Error reactivating subscription:', error);
+      monitoring.error('Error reactivating subscription', { page: 'AgentDashboard', error });
       toast({
         title: "Error al reactivar",
         description: error.message || "No se pudo reactivar tu suscripción. Por favor intenta nuevamente.",
@@ -357,7 +357,7 @@ const AgentDashboard = () => {
       setEditingProperty(null);
       setActiveTab('form');
     } catch (error) {
-      console.error('Error validating property creation:', error);
+      monitoring.error('Error validating property creation', { page: 'AgentDashboard', error });
       toast({
         title: 'Error',
         description: 'No se pudo validar el límite de propiedades',
@@ -396,7 +396,7 @@ const AgentDashboard = () => {
       });
       return;
     } catch (error: any) {
-      console.error('Error comprando upsell:', error);
+      monitoring.captureException(error as Error, { page: 'AgentDashboard', action: 'handleUpsellPurchase' });
       toast({
         title: 'Error',
         description: error.message || 'No se pudo iniciar el proceso de compra',
