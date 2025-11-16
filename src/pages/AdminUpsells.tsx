@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { DynamicBreadcrumbs } from '@/components/DynamicBreadcrumbs';
+import { monitoring } from '@/lib/monitoring';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -91,7 +92,7 @@ const AdminUpsells = () => {
       if (error) throw error;
       setUpsells((data || []) as Upsell[]);
     } catch (error) {
-      console.error('Error fetching upsells:', error);
+      monitoring.error('Error fetching upsells', { page: 'AdminUpsells', error });
       toast({
         title: 'Error',
         description: 'No se pudieron cargar los upsells.',
@@ -188,7 +189,7 @@ const AdminUpsells = () => {
       setDialogOpen(false);
       fetchUpsells();
     } catch (error) {
-      console.error('Error saving upsell:', error);
+      monitoring.captureException(error as Error, { page: 'AdminUpsells', action: 'saveUpsell' });
       toast({
         title: 'Error',
         description: 'No se pudo guardar el upsell.',
@@ -217,7 +218,7 @@ const AdminUpsells = () => {
 
       fetchUpsells();
     } catch (error) {
-      console.error('Error deleting upsell:', error);
+      monitoring.captureException(error as Error, { page: 'AdminUpsells', action: 'deleteUpsell' });
       toast({
         title: 'Error',
         description: 'No se pudo eliminar el upsell.',
@@ -242,7 +243,7 @@ const AdminUpsells = () => {
 
       fetchUpsells();
     } catch (error) {
-      console.error('Error toggling upsell:', error);
+      monitoring.captureException(error as Error, { page: 'AdminUpsells', action: 'toggleUpsell' });
       toast({
         title: 'Error',
         description: 'No se pudo cambiar el estado del upsell.',

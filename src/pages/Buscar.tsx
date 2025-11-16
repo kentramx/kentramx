@@ -362,7 +362,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       if (error) throw error;
       setSavedSearches(data || []);
     } catch (error) {
-      console.error('Error fetching saved searches:', error);
+      monitoring.error('Error fetching saved searches', { page: 'Buscar', error });
     }
   };
 
@@ -405,7 +405,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       setSaveDialogOpen(false);
       fetchSavedSearches();
     } catch (error: any) {
-      console.error('Error saving search:', error);
+      monitoring.error('Error saving search', { page: 'Buscar', error });
       toast({
         title: 'Error',
         description: 'No se pudo guardar la búsqueda',
@@ -438,7 +438,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
 
       fetchSavedSearches();
     } catch (error) {
-      console.error('Error deleting search:', error);
+      monitoring.error('Error deleting search', { page: 'Buscar', error });
       toast({
         title: 'Error',
         description: 'No se pudo eliminar la búsqueda',

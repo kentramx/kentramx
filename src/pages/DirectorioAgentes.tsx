@@ -377,7 +377,7 @@ const DirectorioAgentes = () => {
 
       setAgents(combinedData);
     } catch (err: any) {
-      console.error("Error fetching agents:", err);
+      monitoring.error("Error fetching agents", { page: 'DirectorioAgentes', error: err });
       setError(err.message);
     } finally {
       setLoading(false);

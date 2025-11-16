@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { usePropertyCompare } from "@/hooks/usePropertyCompare";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
+import { monitoring } from '@/lib/monitoring';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,7 +68,7 @@ const ComparePage = () => {
 
       setProperties(sortedData);
     } catch (error) {
-      console.error("Error fetching properties:", error);
+      monitoring.error("Error fetching properties", { page: 'ComparePage', error });
       toast.error("Error al cargar las propiedades");
     } finally {
       setLoading(false);

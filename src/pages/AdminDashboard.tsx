@@ -166,7 +166,7 @@ const AdminDashboard = () => {
       if (error) throw error;
       setProperties(data || []);
   } catch (error: any) {
-    console.error('Error fetching properties:', error);
+    monitoring.error('Error fetching properties', { page: 'AdminDashboard', error });
     toast({
       title: 'Error',
       description: error?.message || 'No se pudieron cargar las propiedades',
@@ -223,7 +223,7 @@ const AdminDashboard = () => {
         avg_review_time: Math.round((avgTime || 0) / 60), // Convert to hours
       });
     } catch (error) {
-      console.error('Error fetching metrics:', error);
+      monitoring.error('Error fetching metrics', { page: 'AdminDashboard', error });
     }
   };
 

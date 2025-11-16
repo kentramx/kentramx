@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
+import { monitoring } from '@/lib/monitoring';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -108,7 +109,7 @@ const AdminSubscriptionChanges = () => {
 
       setIsAdmin(true);
     } catch (error) {
-      console.error('Error checking admin access:', error);
+      monitoring.error('Error checking admin access', { page: 'AdminSubscriptionChanges', error });
       navigate('/');
     }
   };

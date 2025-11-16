@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
+import { monitoring } from '@/lib/monitoring';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -91,7 +92,7 @@ const PaymentSuccess = () => {
         });
       }
     } catch (error) {
-      console.error('Error fetching subscription:', error);
+      monitoring.error('Error fetching subscription', { page: 'PaymentSuccess', error });
     } finally {
       setLoading(false);
     }

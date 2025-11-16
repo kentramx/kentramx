@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
 import { useToast } from '@/hooks/use-toast';
+import { monitoring } from '@/lib/monitoring';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -72,7 +73,7 @@ export default function AdminNotificationSettings() {
         });
       }
     } catch (error) {
-      console.error('Error fetching preferences:', error);
+      monitoring.error('Error fetching preferences', { page: 'AdminNotificationSettings', error });
       toast({
         title: 'Error',
         description: 'No se pudieron cargar las preferencias',
@@ -103,7 +104,7 @@ export default function AdminNotificationSettings() {
         description: 'Tus preferencias de notificación han sido actualizadas',
       });
     } catch (error) {
-      console.error('Error saving preferences:', error);
+      monitoring.error('Error saving preferences', { page: 'AdminNotificationSettings', error });
       toast({
         title: 'Error',
         description: 'No se pudieron guardar las preferencias',

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getWhatsAppUrl, WhatsAppTemplates } from "@/utils/whatsapp";
 import Navbar from "@/components/Navbar";
+import { monitoring } from '@/lib/monitoring';
 import PropertyCard from "@/components/PropertyCard";
 import { AgentReviews } from "@/components/AgentReviews";
 import { ReviewForm } from "@/components/ReviewForm";

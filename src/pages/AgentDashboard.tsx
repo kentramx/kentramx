@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAgentProperties } from '@/hooks/useAgentProperties';
 import { useRoleImpersonation } from '@/hooks/useRoleImpersonation';
 import Navbar from '@/components/Navbar';
+import { monitoring } from '@/lib/monitoring';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

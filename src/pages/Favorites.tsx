@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
+import { monitoring } from '@/lib/monitoring';
 import { VirtualizedPropertyGrid } from '@/components/VirtualizedPropertyGrid';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -97,7 +98,7 @@ const Favorites = () => {
 
       setFavorites(data || []);
     } catch (error) {
-      console.error('Error fetching favorites:', error);
+      monitoring.error('Error fetching favorites', { page: 'Favorites', error });
       toast({
         title: 'Error',
         description: 'No se pudieron cargar los favoritos',
@@ -125,7 +126,7 @@ const Favorites = () => {
         description: 'Propiedad removida de favoritos',
       });
     } catch (error) {
-      console.error('Error removing favorite:', error);
+      monitoring.error('Error removing favorite', { page: 'Favorites', error });
       toast({
         title: 'Error',
         description: 'No se pudo remover de favoritos',
