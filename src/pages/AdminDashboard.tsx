@@ -132,7 +132,7 @@ const AdminDashboard = () => {
       .from('properties')
       .select(`
         id, title, price, address, state, municipality, status,
-        ai_moderation_status, ai_moderation_score, created_at,
+        agent_id, ai_moderation_status, ai_moderation_score, created_at,
         resubmission_count, rejection_history,
         description, amenities, lat, lng,
         images (url, position),
