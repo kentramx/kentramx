@@ -49,6 +49,7 @@ export const PlaceAutocomplete = ({
   const webComponentContainerRef = useRef<HTMLDivElement>(null);
   const autocompleteRef = useRef<any>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const initRef = useRef(false);
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [useWebComponent, setUseWebComponent] = React.useState<boolean | null>(null);
@@ -360,14 +361,18 @@ export const PlaceAutocomplete = ({
   }, []);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || initRef.current) return;
     
-    console.log('[PlaceAutocomplete] Iniciando autocomplete con delay de 100ms...');
+    initRef.current = true;
+    console.log('[PlaceAutocomplete] Iniciando autocomplete (ÚNICA VEZ) con delay de 100ms...');
     const initTimer = setTimeout(() => {
       initAutocomplete();
     }, 100);
     
-    return () => clearTimeout(initTimer);
+    return () => {
+      clearTimeout(initTimer);
+      initRef.current = false;
+    };
   }, [isLoaded, unstyled, initAutocomplete]);
 
   useEffect(() => {

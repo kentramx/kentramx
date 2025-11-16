@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import kentraLogo from "@/assets/kentra-logo.png";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -47,7 +47,10 @@ const Navbar = () => {
   const { impersonatedRole, isImpersonating } = useRoleImpersonation();
   const { toast } = useToast();
   // Solo permitir simulación si el usuario es realmente super admin
-  const effectiveRole = (isImpersonating && isSuperAdmin && impersonatedRole) ? impersonatedRole : userRole;
+  const effectiveRole = useMemo(() => 
+    (isImpersonating && isSuperAdmin && impersonatedRole) ? impersonatedRole : userRole,
+    [isImpersonating, isSuperAdmin, impersonatedRole, userRole]
+  );
   const getUserInitials = () => {
     if (!user?.email) return "U";
     return user.email.charAt(0).toUpperCase();
