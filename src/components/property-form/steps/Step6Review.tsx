@@ -51,7 +51,7 @@ export const Step6Review = ({ formData, imageFiles, existingImages = [] }: Step6
     { label: 'Tipo de listado', completed: formData.for_sale || formData.for_rent },
     { label: 'Precio(s)', completed: (formData.for_sale && formData.sale_price) || (formData.for_rent && formData.rent_price) },
     { label: 'Ubicación', completed: !!(formData.state && formData.municipality && formData.address) },
-    { label: 'Descripción (min. 50 palabras)', completed: formData.description.trim().split(/\s+/).filter(word => word.length > 0).length >= 50 },
+    { label: 'Descripción (min. 30 palabras)', completed: formData.description.trim().split(/\s+/).filter(word => word.length > 0).length >= 30 },
     { label: 'Imágenes (mín. 3)', completed: totalImages >= 3 },
   ];
 
