@@ -1,3 +1,7 @@
+/**
+ * ✅ Hook OPTIMIZADO para búsqueda con batch loading
+ */
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -40,33 +44,26 @@ export const usePropertiesSearch = (filters: SearchFilters) => {
         throw error;
       }
 
-      // Cargar imágenes para cada propiedad
       const propertyIds = data?.map((p: any) => p.id) || [];
       
       if (propertyIds.length === 0) return [];
 
-      const { data: images, error: imagesError } = await supabase
-        .from('images')
-        .select('property_id, url, position')
-        .in('property_id', propertyIds)
-        .order('position', { ascending: true });
+      // ✅ OPTIMIZACIÓN: Batch loading con get_images_batch
+      const { data: imagesData } = await supabase.rpc('get_images_batch', {
+        property_ids: propertyIds,
+      });
 
-      if (imagesError) {
-        console.error('Error cargando imágenes:', imagesError);
-      }
+      const imagesMap = new Map();
+      imagesData?.forEach((item: any) => {
+        imagesMap.set(item.property_id, item.images || []);
+      });
 
       // Combinar propiedades con imágenes
-      const propertiesWithImages = data?.map((property: any) => {
-        const propertyImages = images?.filter(
-          (img: any) => img.property_id === property.id
-        ) || [];
-
-        return {
-          ...property,
-          images: propertyImages,
-          is_featured: false, // Las propiedades de búsqueda no necesitan featured por ahora
-        };
-      }) || [];
+      const propertiesWithImages = data?.map((property: any) => ({
+        ...property,
+        images: imagesMap.get(property.id) || [],
+        is_featured: false,
+      })) || [];
 
       return propertiesWithImages;
     },

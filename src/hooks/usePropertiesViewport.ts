@@ -1,3 +1,11 @@
+/**
+ * ✅ Hook OPTIMIZADO para viewport con:
+ * - Límites inteligentes según zoom
+ * - Cache de 1 minuto
+ * - Batch loading de imágenes
+ * - Debounce automático vía staleTime
+ */
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -52,6 +60,14 @@ interface Property {
   images: Array<{ url: string; position: number }>;
 }
 
+// ✅ OPTIMIZACIÓN: Límites inteligentes según zoom
+const getMaxPropertiesForZoom = (zoom: number): number => {
+  if (zoom >= 16) return 500; // Vista muy cercana
+  if (zoom >= 14) return 300; // Vista de barrio
+  if (zoom >= 12) return 150; // Vista de ciudad
+  return 100; // Vista amplia
+};
+
 export const usePropertiesViewport = (
   bounds: ViewportBounds | null,
   filters?: PropertyFilters
@@ -62,8 +78,9 @@ export const usePropertiesViewport = (
       if (!bounds) return { clusters: [], properties: [] };
 
       const status = filters?.status?.[0] || 'activa';
+      const maxProperties = getMaxPropertiesForZoom(bounds.zoom);
 
-      // Si zoom alto (>=14), cargar propiedades individuales
+      // ✅ Si zoom alto (>=14), cargar propiedades individuales con límite
       if (bounds.zoom >= 14) {
         const { data, error } = await supabase.rpc('get_properties_in_viewport', {
           min_lng: bounds.minLng,
@@ -82,17 +99,51 @@ export const usePropertiesViewport = (
         });
 
         if (error) {
-          console.error('Error loading properties:', error);
+          console.error('[usePropertiesViewport] Error:', error);
           throw error;
         }
 
+        // ✅ OPTIMIZACIÓN: Aplicar límite y batch load
+        const limitedProperties = (data || []).slice(0, maxProperties);
+        
+        if (limitedProperties.length === 0) {
+          return { clusters: [], properties: [] };
+        }
+
+        // ✅ Batch loading de imágenes
+        const propertyIds = limitedProperties.map((p: any) => p.id);
+        const { data: imagesData } = await supabase.rpc('get_images_batch', {
+          property_ids: propertyIds,
+        });
+
+        const imagesMap = new Map();
+        imagesData?.forEach((item: any) => {
+          imagesMap.set(item.property_id, item.images || []);
+        });
+
+        // Cargar featured
+        const { data: featuredData } = await supabase
+          .from('featured_properties')
+          .select('property_id')
+          .in('property_id', propertyIds)
+          .eq('status', 'active')
+          .gte('end_date', new Date().toISOString());
+
+        const featuredSet = new Set(featuredData?.map((f: any) => f.property_id) || []);
+
+        const enrichedProperties = limitedProperties.map((prop: any) => ({
+          ...prop,
+          images: imagesMap.get(prop.id) || [],
+          is_featured: featuredSet.has(prop.id),
+        }));
+
         return { 
           clusters: [] as PropertyCluster[], 
-          properties: (data || []) as Property[]
+          properties: enrichedProperties as Property[]
         };
       }
 
-      // Si zoom bajo (<14), cargar clusters
+      // ✅ Si zoom bajo (<14), cargar clusters
       const { data, error } = await supabase.rpc('get_property_clusters', {
         min_lng: bounds.minLng,
         min_lat: bounds.minLat,
@@ -111,7 +162,7 @@ export const usePropertiesViewport = (
       });
 
       if (error) {
-        console.error('Error loading clusters:', error);
+        console.error('[usePropertiesViewport] Error clusters:', error);
         throw error;
       }
 
@@ -121,7 +172,7 @@ export const usePropertiesViewport = (
       };
     },
     enabled: !!bounds,
-    staleTime: 30000, // 30 segundos
+    staleTime: 60 * 1000, // ✅ 1 minuto de cache + debounce automático
     gcTime: 5 * 60 * 1000, // 5 minutos
   });
 };

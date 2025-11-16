@@ -3,12 +3,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, Home as HomeIcon, Building2, TreePine, ArrowRight, SlidersHorizontal, Briefcase, Store, Warehouse, Building, Tractor } from "lucide-react";
+import { Search, MapPin, Home as HomeIcon, Building2, TreePine, ArrowRight, SlidersHorizontal, Briefcase, Store, Warehouse, Building, Tractor, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import heroBackground from "@/assets/hero-background.jpg";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import { SearchBar } from "@/components/SearchBar";
-import PropertyCard from "@/components/PropertyCard";
+import { VirtualizedPropertyGrid } from '@/components/VirtualizedPropertyGrid';
+import { PropertyDetailSheet } from "@/components/PropertyDetailSheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { NewsletterForm } from "@/components/NewsletterForm";
@@ -29,8 +30,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-
-import { PropertyDetailSheet } from "@/components/PropertyDetailSheet";
 
 interface Property {
   id: string;
@@ -408,14 +407,14 @@ const Home = () => {
             </div>
           ) : featuredProperties.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {featuredProperties.map((property, index) => (
-                  <div
-                    key={property.id}
-                    className="animate-fade-in"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <PropertyCard
+              <VirtualizedPropertyGrid properties={featuredProperties.slice(0, 6)} />
+              <div className="mt-8 text-center">
+                <Button variant="outline" size="lg" onClick={() => navigate("/buscar")}>
+                  Ver Todas las Propiedades <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </>
+          ) : (
                       id={property.id}
                       title={property.title}
                       price={property.price}
@@ -498,14 +497,14 @@ const Home = () => {
             </div>
           ) : recentProperties.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {recentProperties.map((property, index) => (
-                  <div
-                    key={property.id}
-                    className="animate-fade-in"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <PropertyCard
+              <VirtualizedPropertyGrid properties={recentProperties.slice(0, 8)} />
+              <div className="mt-8 text-center">
+                <Button variant="outline" onClick={() => navigate("/buscar")}>
+                  Ver Todas <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </>
+          ) : (
                       id={property.id}
                       title={property.title}
                       price={property.price}

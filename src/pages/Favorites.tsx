@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
-import PropertyCard from '@/components/PropertyCard';
+import { VirtualizedPropertyGrid } from '@/components/VirtualizedPropertyGrid';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { DynamicBreadcrumbs } from '@/components/DynamicBreadcrumbs';
@@ -163,31 +164,13 @@ const Favorites = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {favorites.map((favorite) => {
-              const property = favorite.properties as Property;
-              return (
-                <PropertyCard
-                  key={favorite.id}
-                  id={property.id}
-                  title={property.title}
-                  price={property.price}
-                  type={property.type}
-                  listingType={property.listing_type}
-                  address={property.address}
-                  municipality={property.municipality}
-                  state={property.state}
-                  bedrooms={property.bedrooms}
-                  bathrooms={property.bathrooms}
-                  parking={property.parking}
-                  sqft={property.sqft}
-                  isFavorite={true}
-                  onToggleFavorite={() => handleRemoveFavorite(property.id)}
-                  agentId={property.agent_id}
-                />
-              );
-            })}
-          </div>
+          <VirtualizedPropertyGrid 
+            properties={favorites.map(fav => ({
+              ...fav.properties,
+              agent_id: fav.properties.agent_id,
+              images: [] // Las imágenes se cargarán del PropertyCard
+            }))}
+          />
         )}
       </main>
     </div>
