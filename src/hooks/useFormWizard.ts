@@ -120,7 +120,7 @@ export const useFormWizard = (initialData?: Partial<PropertyFormData>) => {
       case 4: // Descripción e imágenes
         const charCount = formData.description.length;
         const wordCount = formData.description.trim().split(/\s+/).filter(word => word.length > 0).length;
-        const minWords = 50;
+        const minWords = 30;
         const maxChars = 2000;
         return wordCount >= minWords && charCount <= maxChars;
       

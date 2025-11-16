@@ -3,7 +3,7 @@ import { CheckCircle, XCircle } from 'lucide-react';
 
 const QUALITY_CHECKS = [
   { id: 'images', label: 'Mínimo 3 imágenes de calidad', required: true },
-  { id: 'description', label: 'Descripción detallada (>50 palabras)', required: true },
+  { id: 'description', label: 'Descripción detallada (>30 palabras)', required: true },
   { id: 'amenities', label: 'Amenidades listadas', required: false },
   { id: 'price', label: 'Precio dentro de rango de mercado', required: true },
   { id: 'location', label: 'Ubicación verificada en mapa', required: true },
@@ -28,7 +28,7 @@ const QualityChecklist = ({ property }: QualityChecklistProps) => {
 
   const checks = {
     images: imagesCount >= 3,
-    description: descriptionWordCount >= 50,
+    description: descriptionWordCount >= 30,
     amenities: amenitiesCount > 0,
     price: Boolean(property.price && property.price > 0),
     location: hasLocation,
