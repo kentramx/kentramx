@@ -2443,22 +2443,64 @@ export type Database = {
           property_id: string
         }[]
       }
-      get_map_tiles: {
-        Args: {
-          p_filters?: Json
-          p_max_lat: number
-          p_max_lng: number
-          p_min_lat: number
-          p_min_lng: number
-          p_zoom: number
-        }
-        Returns: {
-          clusters: Json
-          properties: Json
-          tile_key: string
-          zoom: number
-        }[]
-      }
+      get_map_tiles:
+        | {
+            Args: {
+              p_filters?: Json
+              p_max_lat: number
+              p_max_lng: number
+              p_min_lat: number
+              p_min_lng: number
+              p_zoom: number
+            }
+            Returns: {
+              clusters: Json
+              properties: Json
+              tile_key: string
+              zoom: number
+            }[]
+          }
+        | {
+            Args: {
+              p_bathrooms?: number
+              p_bedrooms?: number
+              p_listing_type?: string
+              p_max_lat: number
+              p_max_lng: number
+              p_max_price?: number
+              p_min_lat: number
+              p_min_lng: number
+              p_min_price?: number
+              p_municipality?: string
+              p_property_type?: string
+              p_state?: string
+              p_zoom: number
+            }
+            Returns: {
+              agent_id: string
+              avg_price: number
+              bathrooms: number
+              bedrooms: number
+              count: number
+              created_at: string
+              id: string
+              image_url: string
+              lat: number
+              listing_type: string
+              lng: number
+              max_price: number
+              min_price: number
+              municipality: string
+              parking: number
+              price: number
+              property_type: string
+              sqft: number
+              state: string
+              status: Database["public"]["Enums"]["property_status"]
+              title: string
+              type: string
+            }[]
+          }
       get_marketing_metrics: {
         Args: { end_date?: string; start_date?: string }
         Returns: Json
