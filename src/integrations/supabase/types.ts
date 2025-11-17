@@ -1482,6 +1482,45 @@ export type Database = {
           },
         ]
       }
+      property_tiles: {
+        Row: {
+          avg_price: number | null
+          bounds: unknown
+          cluster_data: Json | null
+          last_updated: string | null
+          property_count: number | null
+          property_ids: string[] | null
+          tile_key: string
+          x_tile: number
+          y_tile: number
+          zoom: number
+        }
+        Insert: {
+          avg_price?: number | null
+          bounds?: unknown
+          cluster_data?: Json | null
+          last_updated?: string | null
+          property_count?: number | null
+          property_ids?: string[] | null
+          tile_key: string
+          x_tile: number
+          y_tile: number
+          zoom: number
+        }
+        Update: {
+          avg_price?: number | null
+          bounds?: unknown
+          cluster_data?: Json | null
+          last_updated?: string | null
+          property_count?: number | null
+          property_ids?: string[] | null
+          tile_key?: string
+          x_tile?: number
+          y_tile?: number
+          zoom?: number
+        }
+        Relationships: []
+      }
       property_views: {
         Row: {
           id: string
@@ -2236,6 +2275,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_old_data: { Args: never; Returns: undefined }
+      cleanup_old_tiles: { Args: { p_days_old?: number }; Returns: number }
       database_health_check: {
         Args: never
         Returns: {
@@ -2401,6 +2441,22 @@ export type Database = {
         Returns: {
           images: Json
           property_id: string
+        }[]
+      }
+      get_map_tiles: {
+        Args: {
+          p_filters?: Json
+          p_max_lat: number
+          p_max_lng: number
+          p_min_lat: number
+          p_min_lng: number
+          p_zoom: number
+        }
+        Returns: {
+          clusters: Json
+          properties: Json
+          tile_key: string
+          zoom: number
         }[]
       }
       get_marketing_metrics: {
@@ -2616,7 +2672,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      invalidate_affected_tiles: {
+        Args: { p_property_id: string }
+        Returns: undefined
+      }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      lat_to_tile_y: { Args: { lat: number; zoom: number }; Returns: number }
+      lng_to_tile_x: { Args: { lng: number; zoom: number }; Returns: number }
       longtransactionsenabled: { Args: never; Returns: boolean }
       mark_messages_as_read: {
         Args: { p_conversation_id: string; p_user_id: string }
