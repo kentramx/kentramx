@@ -243,6 +243,14 @@ const Navbar = () => {
                           </Link>
                         )}
                         {isSuperAdmin && (
+                          <Link to="/admin/geocoding">
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                              Geocodificación Masiva
+                            </DropdownMenuItem>
+                          </Link>
+                        )}
+                        {isSuperAdmin && (
                           <Link to="/admin/coupons">
                             <DropdownMenuItem className="cursor-pointer">
                               <Badge className="mr-2 bg-purple-600">Admin</Badge>
