@@ -141,30 +141,17 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     orden: (searchParams.get('orden') as any) || 'price_desc',
   });
   
-  // ✅ Sincronización bidireccional: actualizar URL cuando cambien los filtros
+  // ✅ DEBUG: Logs temporales para rastrear cambios de listingType
   useEffect(() => {
-    if (syncingFromUrl.current) return;
-    
-    const newParams = new URLSearchParams();
-    
-    // Solo agregar parámetros que no sean valores por defecto
-    if (filters.estado) newParams.set('estado', filters.estado);
-    if (filters.municipio) newParams.set('municipio', filters.municipio);
-    if (filters.precioMin) newParams.set('precioMin', filters.precioMin);
-    if (filters.precioMax) newParams.set('precioMax', filters.precioMax);
-    if (filters.tipo) newParams.set('tipo', filters.tipo);
-    // Siempre persistir listingType (por defecto 'venta')
-    newParams.set('listingType', filters.listingType || 'venta');
-    if (filters.recamaras) newParams.set('recamaras', filters.recamaras);
-    if (filters.banos) newParams.set('banos', filters.banos);
-    if (filters.orden && filters.orden !== 'price_desc') newParams.set('orden', filters.orden);
-    
-    // Mantener parámetro de propiedad si existe
-    const propertyId = searchParams.get('propiedad');
-    if (propertyId) newParams.set('propiedad', propertyId);
-    
-    setSearchParams(newParams, { replace: true });
-  }, [filters, setSearchParams, searchParams]);
+    console.log('[Buscar Debug] filters.listingType changed to:', filters.listingType);
+  }, [filters.listingType]);
+
+  useEffect(() => {
+    console.log('[Buscar Debug] URL listingType changed to:', searchParams.get('listingType'));
+  }, [searchParams]);
+  
+  // ✅ ELIMINADO: Efecto duplicado que causaba loops infinitos
+  // Este efecto está ahora consolidado en las líneas 543-579
   
   // ✅ Construir filtros de manera unificada
   const propertyFilters = useMemo(
@@ -261,7 +248,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     setSearchParams(newParams, { replace: true });
   };
   
-  // Sincronizar filters con searchParams cuando la URL cambia
+  // ✅ Sincronizar filters con searchParams cuando la URL cambia
   useEffect(() => {
     syncingFromUrl.current = true;
     
@@ -283,7 +270,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       precioMin: searchParams.get('precioMin') || '',
       precioMax: searchParams.get('precioMax') || '',
       tipo: searchParams.get('tipo') || '',
-      listingType: searchParams.get('listingType') || 'venta',
+      listingType: searchParams.get('listingType') || 'venta', // ✅ Siempre default a 'venta'
       recamaras: searchParams.get('recamaras') || '',
       banos: searchParams.get('banos') || '',
       orden: (searchParams.get('orden') as any) || 'price_desc',
@@ -294,11 +281,11 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       setFilters(newFilters);
     }
     
-    // Liberar flag después de un tick para permitir el siguiente efecto
-    setTimeout(() => {
+    // ✅ Liberar flag en microtask para garantizar que el otro efecto lo vea
+    Promise.resolve().then(() => {
       syncingFromUrl.current = false;
-    }, 0);
-  }, [searchParams]);
+    });
+  }, [searchParams]); // ✅ Remover 'filters' de dependencias para evitar loops
   
   // Construir el valor de visualización para el input de ubicación
   const locationDisplayValue = filters.municipio && filters.estado
@@ -336,18 +323,28 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     setHoveredProperty(property);
   }, []);
 
-  // Reiniciar y normalizar precio al cambiar tipo de operación
+  // ✅ Reiniciar y normalizar precio al cambiar tipo de operación (optimizado)
   useEffect(() => {
     const [minRange, maxRange] = getPriceRangeForListingType(filters.listingType);
-    // 1) Resetear slider al rango válido del nuevo tipo
-    setPriceRange([minRange, maxRange]);
-    // 2) Limpiar filtros de precio para evitar unidades cruzadas (venta vs renta)
-    setFilters((prev) => ({
-      ...prev,
-      precioMin: '',
-      precioMax: '',
-    }));
-  }, [filters.listingType]);
+    
+    // Solo resetear si los valores actuales están fuera de rango
+    const needsReset = 
+      priceRange[0] < minRange || 
+      priceRange[0] > maxRange || 
+      priceRange[1] < minRange || 
+      priceRange[1] > maxRange;
+    
+    if (needsReset) {
+      setPriceRange([minRange, maxRange]);
+      
+      // ✅ Usar callback para evitar dependencia directa de filters
+      setFilters((prev) => ({
+        ...prev,
+        precioMin: '',
+        precioMax: '',
+      }));
+    }
+  }, [filters.listingType, priceRange]); // ✅ Agregar priceRange como dependencia
 
   // Track búsqueda en GA4 cuando se aplican filtros
   useEffect(() => {
@@ -540,11 +537,11 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     }
   };
 
+  // ✅ Sincronización filters → URL (mejorado y consolidado)
   useEffect(() => {
     // Si estamos sincronizando desde URL, no sobrescribir
     if (syncingFromUrl.current) {
-      syncingFromUrl.current = false;
-      return;
+      return; // ❌ No resetear el flag aquí
     }
     
     const params = new URLSearchParams();
@@ -554,7 +551,10 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     if (filters.precioMin) params.set('precioMin', filters.precioMin);
     if (filters.precioMax) params.set('precioMax', filters.precioMax);
     if (filters.tipo) params.set('tipo', filters.tipo);
-    if (filters.listingType) params.set('listingType', filters.listingType);
+    
+    // ✅ CRÍTICO: Siempre persistir listingType (no condicional)
+    params.set('listingType', filters.listingType || 'venta');
+    
     if (filters.recamaras) params.set('recamaras', filters.recamaras);
     if (filters.banos) params.set('banos', filters.banos);
     if (filters.orden !== 'price_desc') params.set('orden', filters.orden);
