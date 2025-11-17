@@ -21,6 +21,10 @@ export interface ViewportBounds {
   zoom: number;
 }
 
+// 🔒 Límites de seguridad para escalabilidad
+export const MIN_ZOOM_FOR_TILES = 4;          // No hacer queries cuando el zoom está demasiado lejos (país, mundo completo)
+const MAX_PROPERTIES_PER_TILE = 5000;  // Hard cap por tile en el frontend para evitar saturar el cliente
+
 export const useTiledMap = (
   bounds: ViewportBounds | null,
   filters?: PropertyFilters
@@ -30,6 +34,10 @@ export const useTiledMap = (
   // 🔥 Prefetch de tiles vecinos en background
   useEffect(() => {
     if (!bounds) return;
+    if (bounds.zoom < MIN_ZOOM_FOR_TILES) {
+      // Muy lejos, no vale la pena prefetchear nada
+      return;
+    }
 
     const prefetchAdjacentTiles = async () => {
       const { minLng, minLat, maxLng, maxLat, zoom } = bounds;
@@ -86,8 +94,16 @@ export const useTiledMap = (
 
   return useQuery({
     queryKey: ['map-tiles', bounds, filters],
+    enabled: !!bounds && bounds.zoom >= MIN_ZOOM_FOR_TILES,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     queryFn: async () => {
-      if (!bounds) return { clusters: [], properties: [] };
+      if (!bounds || bounds.zoom < MIN_ZOOM_FOR_TILES) {
+        return { clusters: [], properties: [] };
+      }
 
       const startTime = performance.now();
 
@@ -168,17 +184,24 @@ export const useTiledMap = (
         });
       }
 
+      // 🔒 Hard cap de seguridad: evitar saturar el frontend
+      if (properties.length > MAX_PROPERTIES_PER_TILE) {
+        monitoring.warn('[useTiledMap] Demasiadas propiedades en un solo tile, recortando resultados', {
+          zoom: bounds.zoom,
+          total: properties.length,
+          limit: MAX_PROPERTIES_PER_TILE,
+        });
+        properties.length = MAX_PROPERTIES_PER_TILE;
+      }
+
       monitoring.debug('[useTiledMap] Data processed', {
-        zoom: bounds.zoom, clustersCount: clusters.length,
-        propertiesCount: properties.length, loadTimeMs: Math.round(loadTime),
+        zoom: bounds.zoom,
+        clustersCount: clusters.length,
+        propertiesCount: properties.length,
+        loadTimeMs: Math.round(loadTime),
       });
 
       return { clusters, properties };
     },
-    enabled: !!bounds, // Solo ejecutar si hay bounds
-    staleTime: 5 * 60 * 1000,   // Cache de 5 minutos (más largo que viewport)
-    gcTime: 30 * 60 * 1000,     // Mantener en cache 30 minutos
-    retry: 1,
-    refetchOnWindowFocus: false,
   });
 };

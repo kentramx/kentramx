@@ -8,7 +8,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BasicGoogleMap from '@/components/BasicGoogleMap';
-import { useTiledMap, ViewportBounds } from '@/hooks/useTiledMap';
+import { useTiledMap, ViewportBounds, MIN_ZOOM_FOR_TILES } from '@/hooks/useTiledMap';
 import { useAdaptiveDebounce } from '@/hooks/useAdaptiveDebounce';
 import type { MapProperty, PropertyFilters } from '@/types/property';
 import { monitoring } from '@/lib/monitoring';
@@ -57,6 +57,15 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   }
 
   const { properties = [], clusters = [] } = viewportData || {};
+
+  // 🔒 Protección: no mostrar nada si el zoom está demasiado alejado
+  if (!viewportBounds || (viewportBounds.zoom < MIN_ZOOM_FOR_TILES)) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
+        Acerca un poco más el mapa para ver propiedades.
+      </div>
+    );
+  }
 
   // ✅ Memoizar markers - Mostrar propiedades o clusters según zoom
   const mapMarkers = useMemo(() => {
