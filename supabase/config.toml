@@ -65,3 +65,9 @@ verify_jwt = false
 
 [functions.create-stripe-coupon]
 verify_jwt = true
+
+[functions.geocode-existing-properties]
+verify_jwt = true
+
+[functions.geocode-property]
+verify_jwt = true
