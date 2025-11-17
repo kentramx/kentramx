@@ -8,7 +8,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BasicGoogleMap from '@/components/BasicGoogleMap';
-import { usePropertiesViewport, ViewportBounds } from '@/hooks/usePropertiesViewport';
+import { useTiledMap, ViewportBounds } from '@/hooks/useTiledMap';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { MapProperty, PropertyFilters } from '@/types/property';
 import { monitoring } from '@/lib/monitoring';
@@ -40,8 +40,8 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   // ✅ Debounce de viewport para evitar spam de requests
   const debouncedBounds = useDebouncedValue(viewportBounds, 300);
 
-  // ✅ Fetch de propiedades con viewport + clustering
-  const { data: viewportData, isLoading, error } = usePropertiesViewport(
+  // 🚀 TILE-BASED ARCHITECTURE: fetch con escalabilidad infinita
+  const { data: viewportData, isLoading, error } = useTiledMap(
     debouncedBounds,
     { ...filters, status: ['activa'] }
   );

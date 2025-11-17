@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import BasicGoogleMap from "@/components/BasicGoogleMap";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { usePropertiesViewport, ViewportBounds } from "@/hooks/usePropertiesViewport";
+import { useTiledMap, ViewportBounds } from "@/hooks/useTiledMap";
 import type { MapProperty } from "@/types/property";
 import { useMonitoring } from "@/lib/monitoring";
 
@@ -16,8 +16,8 @@ const HomeMap = ({ height = "450px" }: { height?: string }) => {
   const [hoveredProperty, setHoveredProperty] = useState<MapProperty | null>(null);
   const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(null);
 
-  // Fetch de propiedades con viewport + clustering
-  const { data: viewportData, isLoading: loading } = usePropertiesViewport(
+  // 🚀 TILE-BASED ARCHITECTURE: fetch con escalabilidad infinita
+  const { data: viewportData, isLoading: loading } = useTiledMap(
     viewportBounds,
     { status: ['activa'] }
   );
