@@ -75,79 +75,57 @@ export const useTiledMap = (
         return { clusters: [], properties: [] };
       }
 
-      const result = data[0]; // get_map_tiles retorna un solo row con clusters o properties
+      // 🔄 Procesar array de resultados directamente
+      const clusters: PropertyCluster[] = [];
+      const properties: MapProperty[] = [];
 
-      // 🔄 Para zoom >= 17: propiedades individuales
-      if (bounds.zoom >= 17 && result.properties) {
-        const propertiesArray = Array.isArray(result.properties) 
-          ? result.properties 
-          : [result.properties];
+      data.forEach((item: any) => {
+        if (item.type === 'cluster') {
+          // Es un cluster
+          clusters.push({
+            cluster_id: item.id,
+            lat: parseFloat(item.lat),
+            lng: parseFloat(item.lng),
+            property_count: item.count,
+            avg_price: item.avg_price,
+            property_ids: [], // No disponible en respuesta de cluster
+          });
+        } else if (item.type === 'property') {
+          // Es una propiedad individual
+          properties.push({
+            id: item.id,
+            title: item.title,
+            price: item.price,
+            currency: 'MXN',
+            lat: parseFloat(item.lat),
+            lng: parseFloat(item.lng),
+            type: item.property_type,
+            listing_type: item.listing_type,
+            bedrooms: item.bedrooms,
+            bathrooms: item.bathrooms,
+            parking: item.parking,
+            sqft: item.sqft,
+            municipality: item.municipality,
+            state: item.state,
+            address: `${item.municipality}, ${item.state}`,
+            images: item.image_url ? [{ url: item.image_url, position: 0 }] : [],
+            agent_id: item.agent_id || '',
+            status: 'activa' as PropertyStatus,
+            is_featured: false,
+            created_at: item.created_at || '',
+          });
+        }
+      });
 
-        const enrichedProperties: MapProperty[] = propertiesArray.map((prop: any) => ({
-          id: prop.id,
-          title: prop.title,
-          price: prop.price,
-          currency: 'MXN',
-          lat: prop.lat,
-          lng: prop.lng,
-          type: prop.type,
-          listing_type: prop.listing_type,
-          bedrooms: prop.bedrooms,
-          bathrooms: prop.bathrooms,
-          parking: null, // No incluido en tile data para optimización
-          sqft: null, // No incluido en tile data para optimización
-          municipality: prop.municipality,
-          state: prop.state,
-          address: `${prop.municipality}, ${prop.state}`,
-          images: prop.image_url ? [{ url: prop.image_url, position: 0 }] : [],
-          agent_id: '', // No necesario para mapa
-          status: 'activa' as PropertyStatus, // Todas las propiedades en mapa son activas (aprobadas)
-          is_featured: prop.is_featured || false,
-          created_at: '', // No necesario para mapa
-        }));
+      monitoring.debug('[useTiledMap] Data processed', {
+        zoom: bounds.zoom,
+        clustersCount: clusters.length,
+        propertiesCount: properties.length,
+        totalItems: data.length,
+        loadTimeMs: Math.round(loadTime),
+      });
 
-        monitoring.debug('[useTiledMap] Individual properties mode', {
-          zoom: bounds.zoom,
-          propertiesCount: enrichedProperties.length,
-          loadTimeMs: Math.round(loadTime),
-        });
-
-        return {
-          clusters: [],
-          properties: enrichedProperties,
-        };
-      }
-
-      // 🎯 Para zoom < 17: clusters
-      if (result.clusters) {
-        const clustersArray = Array.isArray(result.clusters) 
-          ? result.clusters 
-          : [result.clusters];
-
-        const enrichedClusters: PropertyCluster[] = clustersArray.map((cluster: any, index: number) => ({
-          cluster_id: `cluster-${bounds.zoom}-${cluster.lat}-${cluster.lng}-${index}`,
-          lat: cluster.lat,
-          lng: cluster.lng,
-          property_count: cluster.count,
-          avg_price: cluster.avg_price,
-          property_ids: cluster.property_ids || [],
-        }));
-
-        monitoring.debug('[useTiledMap] Clustering mode', {
-          zoom: bounds.zoom,
-          clustersCount: enrichedClusters.length,
-          totalProperties: enrichedClusters.reduce((sum, c) => sum + c.property_count, 0),
-          loadTimeMs: Math.round(loadTime),
-        });
-
-        return {
-          clusters: enrichedClusters,
-          properties: [],
-        };
-      }
-
-      // Fallback vacío
-      return { clusters: [], properties: [] };
+      return { clusters, properties };
     },
     enabled: !!bounds, // Solo ejecutar si hay bounds
     staleTime: 5 * 60 * 1000,   // Cache de 5 minutos (más largo que viewport)
