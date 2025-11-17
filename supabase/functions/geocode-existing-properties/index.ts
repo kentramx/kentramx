@@ -29,7 +29,16 @@ async function geocodeAddress(
 
     if (data.status === 'OK' && data.results && data.results.length > 0) {
       const location = data.results[0].geometry.location;
-      return { lat: location.lat, lng: location.lng };
+      
+      // Agregar variación aleatoria de ±500 metros para distribuir propiedades de la misma colonia
+      // 0.005 grados ≈ 500 metros
+      const randomOffsetLat = (Math.random() - 0.5) * 0.01; // ±0.005 grados
+      const randomOffsetLng = (Math.random() - 0.5) * 0.01;
+      
+      return { 
+        lat: location.lat + randomOffsetLat, 
+        lng: location.lng + randomOffsetLng 
+      };
     }
     return null;
   } catch (error) {
