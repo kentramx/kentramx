@@ -47,11 +47,24 @@ async function geocodeAddress(
 
     if (data.status === 'OK' && data.results && data.results.length > 0) {
       const location = data.results[0].geometry.location;
-      console.log('[GEOCODE] Success:', { lat: location.lat, lng: location.lng });
+      
+      // Agregar variación aleatoria de ±500 metros para distribuir propiedades de la misma colonia
+      // 0.005 grados ≈ 500 metros
+      const randomOffsetLat = (Math.random() - 0.5) * 0.01; // ±0.005 grados
+      const randomOffsetLng = (Math.random() - 0.5) * 0.01;
+      
+      const finalLat = location.lat + randomOffsetLat;
+      const finalLng = location.lng + randomOffsetLng;
+      
+      console.log('[GEOCODE] Success with variation:', { 
+        original: { lat: location.lat, lng: location.lng },
+        final: { lat: finalLat, lng: finalLng },
+        offset: { lat: randomOffsetLat, lng: randomOffsetLng }
+      });
       
       return {
-        lat: location.lat,
-        lng: location.lng,
+        lat: finalLat,
+        lng: finalLng,
       };
     } else {
       console.error('[GEOCODE] Failed:', data.status, data.error_message);

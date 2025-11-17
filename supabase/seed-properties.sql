@@ -27,13 +27,42 @@ DECLARE
   colonias_cdmx text[] := ARRAY[
     'Polanco', 'Roma Norte', 'Condesa', 'Santa Fe', 'Del Valle',
     'Nápoles', 'Juárez', 'Centro Histórico', 'San Ángel', 'Coyoacán Centro',
-    'Lindavista', 'Narvarte', 'Insurgentes', 'Anzures', 'Lomas de Chapultepec'
+    'Lindavista', 'Narvarte', 'Insurgentes', 'Anzures', 'Lomas de Chapultepec',
+    'Escandón', 'Doctores', 'Portales', 'Narvarte Poniente', 'Vertiz Narvarte',
+    'Del Carmen', 'Tizapán', 'Mixcoac', 'San Pedro de los Pinos', 'Tacubaya',
+    'Pedregal', 'Jardines del Pedregal', 'Chimalistac', 'Copilco', 'Universidad'
   ];
   
-  colonias_genericas text[] := ARRAY[
-    'Centro', 'San José', 'Las Flores', 'Jardines', 'Residencial',
-    'La Paz', 'Hidalgo', 'Reforma', 'Colonial', 'Los Pinos',
-    'Vista Hermosa', 'Santa María', 'El Mirador', 'Las Palmas', 'Insurgentes'
+  colonias_guadalajara text[] := ARRAY[
+    'Providencia', 'Chapalita', 'Americana', 'Lafayette', 'Jardines del Bosque',
+    'Colinas de San Javier', 'Puerta de Hierro', 'Real Acueducto', 'Santa Teresita',
+    'Analco', 'Centro', 'Mezquitán', 'Minerva', 'Zapopan Centro', 'Vallarta'
+  ];
+  
+  colonias_monterrey text[] := ARRAY[
+    'San Pedro Centro', 'Del Valle', 'Contry', 'Lomas de San Agustín', 'Cumbres',
+    'Residencial Santa Bárbara', 'La Huasteca', 'Centro Monterrey', 'Obispado',
+    'Tecnológico', 'Mitras Centro', 'Linda Vista', 'Colinas de San Jerónimo', 'Carrizalejo', 'San Jerónimo'
+  ];
+  
+  colonias_cancun text[] := ARRAY[
+    'Zona Hotelera', 'Centro', 'Supermanzana 16', 'Supermanzana 50', 'Puerto Cancún',
+    'Malecón Américas', 'Playa del Carmen Centro', 'Playacar', 'Tulum Centro', 'Aldea Zama'
+  ];
+  
+  colonias_puebla text[] := ARRAY[
+    'Centro Histórico', 'Angelópolis', 'La Paz', 'Momoxpan', 'San Manuel',
+    'Jardines de San Manuel', 'Zavaleta', 'Reforma Agua Azul', 'El Carmen', 'Juárez'
+  ];
+  
+  colonias_queretaro text[] := ARRAY[
+    'Centro Histórico', 'Jurica', 'Juriquilla', 'El Refugio', 'Zibatá',
+    'Milenio III', 'Alamos', 'Cimatario', 'San Pablo', 'Carretas'
+  ];
+  
+  colonias_merida text[] := ARRAY[
+    'Centro', 'Colonia México', 'García Ginerés', 'Itzimná', 'Montes de Amé',
+    'Francisco de Montejo', 'Altabrisa', 'Temozón Norte', 'Cholul', 'Sodzil Norte'
   ];
   
   tipos_propiedad text[] := ARRAY[
@@ -97,36 +126,64 @@ BEGIN
       ELSE 'estudio'
     END;
     
-    -- Selección de ubicación (priorizar CDMX 15%, GDL 10%, MTY 10%)
+    -- Selección de ubicación con distribución realista
     rand_percent := (random() * 100)::int;
-    IF rand_percent < 15 THEN
-      -- 15% Ciudad de México
+    IF rand_percent < 20 THEN
+      -- 20% Ciudad de México
       estado := 'Ciudad de México';
       municipio := municipios_cdmx[1 + floor(random() * array_length(municipios_cdmx, 1))];
       colonia := colonias_cdmx[1 + floor(random() * array_length(colonias_cdmx, 1))];
       base_lat := 19.4326;
       base_lng := -99.1332;
-    ELSIF rand_percent < 25 THEN
-      -- 10% Guadalajara
+    ELSIF rand_percent < 35 THEN
+      -- 15% Guadalajara
       estado := 'Jalisco';
       municipio := (ARRAY['Guadalajara', 'Zapopan', 'Tlaquepaque', 'Tonalá'])[1 + floor(random() * 4)];
-      colonia := colonias_genericas[1 + floor(random() * array_length(colonias_genericas, 1))];
+      colonia := colonias_guadalajara[1 + floor(random() * array_length(colonias_guadalajara, 1))];
       base_lat := 20.6597;
       base_lng := -103.3496;
-    ELSIF rand_percent < 35 THEN
-      -- 10% Monterrey
+    ELSIF rand_percent < 50 THEN
+      -- 15% Monterrey
       estado := 'Nuevo León';
       municipio := (ARRAY['Monterrey', 'San Pedro Garza García', 'Guadalupe', 'San Nicolás'])[1 + floor(random() * 4)];
-      colonia := colonias_genericas[1 + floor(random() * array_length(colonias_genericas, 1))];
+      colonia := colonias_monterrey[1 + floor(random() * array_length(colonias_monterrey, 1))];
       base_lat := 25.6866;
       base_lng := -100.3161;
+    ELSIF rand_percent < 63 THEN
+      -- 13% Cancún / Riviera Maya
+      estado := 'Quintana Roo';
+      municipio := (ARRAY['Benito Juárez', 'Solidaridad', 'Tulum'])[1 + floor(random() * 3)];
+      colonia := colonias_cancun[1 + floor(random() * array_length(colonias_cancun, 1))];
+      base_lat := 21.1619;
+      base_lng := -86.8515;
+    ELSIF rand_percent < 73 THEN
+      -- 10% Puebla
+      estado := 'Puebla';
+      municipio := 'Puebla';
+      colonia := colonias_puebla[1 + floor(random() * array_length(colonias_puebla, 1))];
+      base_lat := 19.0414;
+      base_lng := -98.2063;
+    ELSIF rand_percent < 83 THEN
+      -- 10% Querétaro
+      estado := 'Querétaro';
+      municipio := 'Querétaro';
+      colonia := colonias_queretaro[1 + floor(random() * array_length(colonias_queretaro, 1))];
+      base_lat := 20.5888;
+      base_lng := -100.3899;
+    ELSIF rand_percent < 90 THEN
+      -- 7% Mérida
+      estado := 'Yucatán';
+      municipio := 'Mérida';
+      colonia := colonias_merida[1 + floor(random() * array_length(colonias_merida, 1))];
+      base_lat := 20.9674;
+      base_lng := -89.5926;
     ELSE
-      -- 65% Resto del país
+      -- 10% Resto de ciudades (sin coordenadas, se geocodificarán después)
       estado := estados[1 + floor(random() * array_length(estados, 1))];
-      municipio := 'Municipio ' || (1 + floor(random() * 20))::text;
-      colonia := colonias_genericas[1 + floor(random() * array_length(colonias_genericas, 1))];
-      base_lat := 19.0 + (random() * 12);
-      base_lng := -87.0 - (random() * 30);
+      municipio := 'Centro';
+      colonia := (ARRAY['Centro', 'Reforma', 'Juárez', 'Hidalgo', 'Jardines'])[1 + floor(random() * 5)];
+      base_lat := NULL;
+      base_lng := NULL;
     END IF;
     
     -- Determinar listing type (60% venta, 30% renta, 10% ambos)
