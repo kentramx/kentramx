@@ -565,6 +565,39 @@ export type Database = {
           },
         ]
       }
+      geocoding_cache: {
+        Row: {
+          components: Json | null
+          created_at: string
+          hits: number
+          id: string
+          last_used_at: string
+          lat: number
+          lng: number
+          normalized_key: string
+        }
+        Insert: {
+          components?: Json | null
+          created_at?: string
+          hits?: number
+          id?: string
+          last_used_at?: string
+          lat: number
+          lng: number
+          normalized_key: string
+        }
+        Update: {
+          components?: Json | null
+          created_at?: string
+          hits?: number
+          id?: string
+          last_used_at?: string
+          lat?: number
+          lng?: number
+          normalized_key?: string
+        }
+        Relationships: []
+      }
       identity_verifications: {
         Row: {
           address: string | null
