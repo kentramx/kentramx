@@ -60,36 +60,32 @@ export const useTiledMap = (
       adjacentBounds.forEach((adjBounds) => {
         // 🔥 Construir filtersJson sin incluir campos null/undefined
         const filtersJson: Record<string, any> = {};
-        if (filters?.estado) filtersJson.estado = filters.estado;
+        if (filters?.estado) filtersJson.state = filters.estado;
         
         // 🎯 Normalización específica para CDMX: no incluir municipality cuando estado y municipio son ambos 'Ciudad de México'
         if (filters?.municipio && !(filters.estado === 'Ciudad de México' && filters.municipio === 'Ciudad de México')) {
-          filtersJson.municipio = filters.municipio;
+          filtersJson.municipality = filters.municipio;
         }
         
-        // ✅ Enviar listingType en español directamente al backend
-        if (filters?.listingType && typeof filters.listingType === 'string') {
-          const ltPref = filters.listingType.toLowerCase();
-          if (ltPref === 'venta' || ltPref === 'renta') {
-            filtersJson.listingType = ltPref;
-          }
-        }
+        const ltPref = filters?.listingType;
+        const mappedLtPref = ltPref === 'venta' ? 'sale' : ltPref === 'renta' ? 'rent' : ltPref;
+        if (mappedLtPref) filtersJson.listingType = mappedLtPref;
         if (filters?.tipo && typeof filters.tipo === 'string') {
-          filtersJson.tipo = filters.tipo;
+          filtersJson.propertyType = filters.tipo;
         }
-        if (filters?.precioMin) filtersJson.precioMin = filters.precioMin;
-        if (filters?.precioMax) filtersJson.precioMax = filters.precioMax;
+        if (filters?.precioMin) filtersJson.minPrice = filters.precioMin;
+        if (filters?.precioMax) filtersJson.maxPrice = filters.precioMax;
+        if (filters?.recamaras) filtersJson.minBedrooms = parseInt(filters.recamaras);
+        if (filters?.banos) filtersJson.minBathrooms = parseInt(filters.banos);
 
         queryClient.prefetchQuery({
           queryKey: ['map-tiles', adjBounds, filters],
           queryFn: async () => {
             const { data } = await supabase.rpc('get_map_tiles', {
-              p_bounds: {
-                west: adjBounds.minLng,
-                south: adjBounds.minLat,
-                east: adjBounds.maxLng,
-                north: adjBounds.maxLat,
-              },
+              p_min_lng: adjBounds.minLng,
+              p_min_lat: adjBounds.minLat,
+              p_max_lng: adjBounds.maxLng,
+              p_max_lat: adjBounds.maxLat,
               p_zoom: zoom,
               p_filters: filtersJson,
             });
@@ -123,46 +119,37 @@ export const useTiledMap = (
 
       // 🔥 Construir objeto de filtros en formato JSONB sin incluir campos null/undefined
       const filtersJson: Record<string, any> = {};
-      
-      // Debug logs en desarrollo
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[useTiledMap] Filters recibidos:', filters);
-      }
-      
-      if (filters?.estado) filtersJson.estado = filters.estado;
+      if (filters?.estado) filtersJson.state = filters.estado;
       
       // 🎯 Normalización específica para CDMX: no incluir municipality cuando estado y municipio son ambos 'Ciudad de México'
       if (filters?.municipio && !(filters.estado === 'Ciudad de México' && filters.municipio === 'Ciudad de México')) {
-        filtersJson.municipio = filters.municipio;
+        filtersJson.municipality = filters.municipio;
       }
       
-      // ✅ Enviar listingType en español directamente al backend
-      if (filters?.listingType && typeof filters.listingType === 'string') {
-        const lt = filters.listingType.toLowerCase();
-        if (lt === 'venta' || lt === 'renta') {
-          filtersJson.listingType = lt;
-        }
-      }
-      
+      const lt = filters?.listingType;
+      const mappedLt = lt === 'venta' ? 'sale' : lt === 'renta' ? 'rent' : lt;
+      if (mappedLt) filtersJson.listingType = mappedLt;
       if (filters?.tipo && typeof filters.tipo === 'string') {
-        filtersJson.tipo = filters.tipo;
+        filtersJson.propertyType = filters.tipo;
       }
-      if (filters?.precioMin) filtersJson.precioMin = filters.precioMin;
-      if (filters?.precioMax) filtersJson.precioMax = filters.precioMax;
+      if (filters?.precioMin) filtersJson.minPrice = filters.precioMin;
+      if (filters?.precioMax) filtersJson.maxPrice = filters.precioMax;
+      if (filters?.recamaras) filtersJson.minBedrooms = parseInt(filters.recamaras);
+      if (filters?.banos) filtersJson.minBathrooms = parseInt(filters.banos);
 
-      // Debug log final en desarrollo
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[useTiledMap] Filters enviados a get_map_tiles:', filtersJson);
-      }
+      // 🐛 Logging temporal para debugging
+      console.log('[useTiledMap] Filters enviados a get_map_tiles:', {
+        listingType: filters?.listingType,
+        filtersJson,
+        bounds: { zoom: bounds.zoom }
+      });
 
-      // 🎯 Llamar a función RPC con nueva firma
+      // 🎯 Llamar a función RPC simple
       const { data, error } = await supabase.rpc('get_map_tiles', {
-        p_bounds: {
-          west: bounds.minLng,
-          south: bounds.minLat,
-          east: bounds.maxLng,
-          north: bounds.maxLat,
-        },
+        p_min_lng: bounds.minLng,
+        p_min_lat: bounds.minLat,
+        p_max_lng: bounds.maxLng,
+        p_max_lat: bounds.maxLat,
         p_zoom: bounds.zoom,
         p_filters: filtersJson,
       });
