@@ -61,6 +61,12 @@ export const useTiledMap = (
         // 🔥 Construir filtersJson sin incluir campos null/undefined
         const filtersJson: Record<string, any> = {};
         if (filters?.estado) filtersJson.state = filters.estado;
+        
+        // 🎯 Normalización específica para CDMX: no incluir municipality cuando estado y municipio son ambos 'Ciudad de México'
+        if (filters?.municipio && !(filters.estado === 'Ciudad de México' && filters.municipio === 'Ciudad de México')) {
+          filtersJson.municipality = filters.municipio;
+        }
+        
         const ltPref = filters?.listingType;
         const mappedLtPref = ltPref === 'venta' ? 'sale' : ltPref === 'renta' ? 'rent' : ltPref;
         if (mappedLtPref) filtersJson.listingType = mappedLtPref;
@@ -114,7 +120,12 @@ export const useTiledMap = (
       // 🔥 Construir objeto de filtros en formato JSONB sin incluir campos null/undefined
       const filtersJson: Record<string, any> = {};
       if (filters?.estado) filtersJson.state = filters.estado;
-      if (filters?.municipio) filtersJson.municipality = filters.municipio;
+      
+      // 🎯 Normalización específica para CDMX: no incluir municipality cuando estado y municipio son ambos 'Ciudad de México'
+      if (filters?.municipio && !(filters.estado === 'Ciudad de México' && filters.municipio === 'Ciudad de México')) {
+        filtersJson.municipality = filters.municipio;
+      }
+      
       const lt = filters?.listingType;
       const mappedLt = lt === 'venta' ? 'sale' : lt === 'renta' ? 'rent' : lt;
       if (mappedLt) filtersJson.listingType = mappedLt;
