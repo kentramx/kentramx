@@ -41,6 +41,11 @@ export const usePropertiesInfinite = (filters?: PropertyFilters) => {
   const infiniteQuery = useInfiniteQuery({
     queryKey: ['properties-infinite', filters],
     queryFn: async ({ pageParam }) => {
+      // Debug logs en desarrollo
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[usePropertiesInfinite] Filters recibidos:', filters);
+      }
+      
       // ✅ OPTIMIZACIÓN: Cursor-based en lugar de offset
       const { data: properties, error } = await supabase.rpc('get_properties_cursor', {
         p_cursor: pageParam || null,
