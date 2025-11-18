@@ -63,7 +63,9 @@ export const useTiledMap = (
         if (filters?.estado) filtersJson.state = filters.estado;
         if (filters?.municipio) filtersJson.municipality = filters.municipio;
         if (filters?.listingType) filtersJson.listingType = filters.listingType;
-        if (filters?.tipo) filtersJson.propertyType = filters.tipo;
+        if (filters?.tipo && typeof filters.tipo === 'string') {
+          filtersJson.propertyType = filters.tipo;
+        }
         if (filters?.precioMin) filtersJson.minPrice = filters.precioMin;
         if (filters?.precioMax) filtersJson.maxPrice = filters.precioMax;
         if (filters?.recamaras) filtersJson.minBedrooms = parseInt(filters.recamaras);
@@ -113,7 +115,9 @@ export const useTiledMap = (
       if (filters?.estado) filtersJson.state = filters.estado;
       if (filters?.municipio) filtersJson.municipality = filters.municipio;
       if (filters?.listingType) filtersJson.listingType = filters.listingType;
-      if (filters?.tipo) filtersJson.propertyType = filters.tipo;
+      if (filters?.tipo && typeof filters.tipo === 'string') {
+        filtersJson.propertyType = filters.tipo;
+      }
       if (filters?.precioMin) filtersJson.minPrice = filters.precioMin;
       if (filters?.precioMax) filtersJson.maxPrice = filters.precioMax;
       if (filters?.recamaras) filtersJson.minBedrooms = parseInt(filters.recamaras);
