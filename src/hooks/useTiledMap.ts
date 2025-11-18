@@ -123,11 +123,26 @@ export const useTiledMap = (
       if (filters?.recamaras) filtersJson.minBedrooms = parseInt(filters.recamaras);
       if (filters?.banos) filtersJson.minBathrooms = parseInt(filters.banos);
 
-      // 🐛 Logging temporal para debugging
-      console.log('[useTiledMap] Filters enviados a get_map_tiles:', {
-        listingType: filters?.listingType,
+      // 🗺️ Logging completo de filtros para debugging
+      console.log('🗺️ [useTiledMap] Llamada a get_map_tiles:', {
+        bounds: {
+          minLng: bounds.minLng.toFixed(4),
+          minLat: bounds.minLat.toFixed(4),
+          maxLng: bounds.maxLng.toFixed(4),
+          maxLat: bounds.maxLat.toFixed(4),
+          zoom: bounds.zoom
+        },
         filtersJson,
-        bounds: { zoom: bounds.zoom }
+        rawFilters: {
+          estado: filters?.estado,
+          municipio: filters?.municipio,
+          listingType: filters?.listingType,
+          tipo: filters?.tipo,
+          precioMin: filters?.precioMin,
+          precioMax: filters?.precioMax,
+          recamaras: filters?.recamaras,
+          banos: filters?.banos
+        }
       });
 
       // 🎯 Llamar a función RPC simple
