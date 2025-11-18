@@ -44,8 +44,9 @@ function createCustomPropertyOverlay() {
       div.style.transition = 'all 0.2s ease';
       div.style.zIndex = '1';
       
-      // Pastilla estilo Zillow: blanca con precio dentro
+      // 🔴 LÓGICA CORREGIDA: Renderizar algo SIEMPRE
       if (this.priceText) {
+        // Si hay precio, pastilla estilo Zillow blanca con precio
         div.innerHTML = `
           <div class="price-pill" style="
             background: white;
@@ -59,6 +60,19 @@ function createCustomPropertyOverlay() {
             border: 1px solid rgba(0,0,0,0.08);
             transition: all 0.2s ease;
           ">${this.priceText}</div>
+        `;
+      } else {
+        // Si NO hay precio, marcador circular simple (punto morado)
+        div.innerHTML = `
+          <div class="price-pill" style="
+            background: hsl(var(--primary));
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            border: 2px solid white;
+            transition: all 0.2s ease;
+          "></div>
         `;
       }
 
@@ -108,25 +122,38 @@ function createCustomPropertyOverlay() {
       if (!this.containerDiv) return;
       
       const pill = this.containerDiv.querySelector('.price-pill') as HTMLDivElement;
+      if (!pill) return;
 
       if (this.isHovered) {
-        // Hover: invertir colores (negro con texto blanco) y elevar z-index
-        if (pill) {
+        // Hover: elevar z-index
+        this.containerDiv.style.zIndex = '999';
+        
+        if (this.priceText) {
+          // Pastilla con precio: invertir colores (negro con texto blanco)
           pill.style.background = '#111827';
           pill.style.color = 'white';
           pill.style.transform = 'scale(1.08)';
           pill.style.boxShadow = '0 4px 16px rgba(0,0,0,0.35)';
+        } else {
+          // Punto circular sin precio: escalar y cambiar color
+          pill.style.transform = 'scale(1.5)';
+          pill.style.boxShadow = '0 3px 10px rgba(0,0,0,0.5)';
         }
-        this.containerDiv.style.zIndex = '999';
       } else {
-        // Normal: blanco con texto negro
-        if (pill) {
+        // Normal: restaurar estado
+        this.containerDiv.style.zIndex = '1';
+        
+        if (this.priceText) {
+          // Pastilla con precio: blanco con texto negro
           pill.style.background = 'white';
           pill.style.color = '#111827';
           pill.style.transform = 'scale(1)';
           pill.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+        } else {
+          // Punto circular sin precio: restaurar tamaño
+          pill.style.transform = 'scale(1)';
+          pill.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
         }
-        this.containerDiv.style.zIndex = '1';
       }
     }
 
