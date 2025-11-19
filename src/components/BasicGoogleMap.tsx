@@ -291,7 +291,7 @@ export function BasicGoogleMap({
           map,
           markers: newMarkers,
           algorithm: new GridAlgorithm({ 
-            maxZoom: 15,
+            maxZoom: 11,
             gridSize: 60,
             maxDistance: 30000,
           }),
