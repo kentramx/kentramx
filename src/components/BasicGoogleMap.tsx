@@ -187,9 +187,7 @@ export function BasicGoogleMap({
     const newMarkers: google.maps.Marker[] = [];
     
     for (const m of markers) {
-      if (!m.id || m.lat == null || m.lng == null || isNaN(Number(m.lat)) || isNaN(Number(m.lng))) {
-        continue;
-      }
+      console.log('🔴 INTENTANDO DIBUJAR:', m.id, { lat: m.lat, lng: m.lng });
       
       const lat = Number(m.lat);
       const lng = Number(m.lng);
