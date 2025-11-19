@@ -88,9 +88,18 @@ export const SearchMap: React.FC<SearchMapProps> = ({
 
   // ✅ Memoizar markers - Mostrar propiedades o clusters según zoom
   const mapMarkers = useMemo(() => {
+    console.log('🔍 [SearchMap] Auditando datos para marcadores:', {
+      propertiesLength: properties?.length || 0,
+      clustersLength: clusters?.length || 0,
+      fallbackPropertiesLength: fallbackProperties?.length || 0,
+      propertiesSample: properties?.[0],
+      clustersSample: clusters?.[0],
+      fallbackSample: fallbackProperties?.[0]
+    });
+
     // 1) Si hay propiedades del sistema tileado, úsalas primero
     if (properties && properties.length > 0) {
-      return properties
+      const markers = properties
         .filter((p) => p.lat != null && p.lng != null)
         .map((p) => ({
           id: p.id,
@@ -105,11 +114,18 @@ export const SearchMap: React.FC<SearchMapProps> = ({
           listing_type: p.listing_type as 'venta' | 'renta',
           address: p.address,
         }));
+      
+      console.log('✅ [SearchMap] Usando propiedades del tile:', {
+        total: markers.length,
+        sample: markers[0]
+      });
+      
+      return markers;
     }
 
     // 2) Si hay clusters (zoom bajo), úsalos
     if (clusters && clusters.length > 0) {
-      return clusters.map((c) => ({
+      const markers = clusters.map((c) => ({
         id: c.cluster_id,
         lat: c.lat,
         lng: c.lng,
@@ -122,13 +138,20 @@ export const SearchMap: React.FC<SearchMapProps> = ({
         listing_type: 'venta' as const,
         address: '',
       }));
+      
+      console.log('✅ [SearchMap] Usando clusters:', {
+        total: markers.length,
+        sample: markers[0]
+      });
+      
+      return markers;
     }
 
     // 3) Fallback: usar propiedades de la lista (usePropertySearch)
+    // 🔴 SOLUCIÓN DE EMERGENCIA: Si tenemos fallbackProperties, úsalas TODAS
     if (fallbackProperties && fallbackProperties.length > 0) {
-      return fallbackProperties
+      const markers = fallbackProperties
         .filter((p) => p.lat != null && p.lng != null)
-        .slice(0, MAX_FALLBACK_MARKERS)
         .map((p) => ({
           id: p.id,
           lat: Number(p.lat),
@@ -142,8 +165,16 @@ export const SearchMap: React.FC<SearchMapProps> = ({
           listing_type: p.listing_type as 'venta' | 'renta',
           address: p.address,
         }));
+      
+      console.log('✅ [SearchMap] FORZANDO fallback properties (TODAS):', {
+        total: markers.length,
+        sample: markers[0]
+      });
+      
+      return markers;
     }
 
+    console.warn('⚠️ [SearchMap] No hay datos disponibles para marcadores');
     return [];
   }, [properties, clusters, fallbackProperties]);
 
@@ -192,11 +223,21 @@ export const SearchMap: React.FC<SearchMapProps> = ({
     [properties, onPropertyHover]
   );
 
+  // 🔴 AUDITORÍA FINAL: Log justo antes de pasar a BasicGoogleMap
+  console.log('📍 [SearchMap] Pasando marcadores a BasicGoogleMap:', {
+    markersCount: mapMarkers.length,
+    markersSample: mapMarkers.slice(0, 3),
+    mapCenter,
+    mapZoom,
+    viewportBounds,
+    isLoading
+  });
+
   return (
     <div className="relative w-full" style={{ height }}>
       {/* 🔴 CAMBIO VISUAL FORZADO PARA VERIFICAR CACHÉ */}
       <div className="absolute top-2 left-2 z-[9999] bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-lg shadow-xl border-4 border-red-800">
-        🔴 MAPA ACTUALIZADO v2 - BACKEND FUNCIONA
+        🔴 MAPA v3 - AUDITORÍA COMPLETA | Marcadores: {mapMarkers.length}
       </div>
       
       <BasicGoogleMap
