@@ -87,8 +87,9 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   useEffect(() => {
     if (initialBounds) {
       setViewportBounds(initialBounds);
+      onBoundsChange?.(initialBounds); // ✅ CRUCIAL: Avisar al padre inmediatamente
     }
-  }, [initialBounds]);
+  }, [initialBounds, onBoundsChange]);
   
   // ✅ Mantener datos previos para evitar parpadeos
   const previousMarkersRef = useRef<any[]>([]);
@@ -158,7 +159,7 @@ export const SearchMap: React.FC<SearchMapProps> = ({
     // 1) Agregar propiedades individuales con type: 'property'
     if (properties && properties.length > 0) {
       const propertyMarkers = properties
-        .filter((p) => p.lat != null && p.lng != null)
+        .filter((p) => p.lat != null && p.lng != null && !isNaN(Number(p.lat)) && !isNaN(Number(p.lng)))
         .map((p) => ({
           id: p.id,
           lat: Number(p.lat),
