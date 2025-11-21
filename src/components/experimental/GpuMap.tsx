@@ -20,11 +20,10 @@ export default function GpuMap() {
         
         if (!mapRef.current) return;
 
-        // 2. Inicializar Mapa
+        // 2. Inicializar Mapa (Modo Raster Estándar)
         mapInstance = new google.maps.Map(mapRef.current, {
           center: { lat: 23.6345, lng: -102.5528 },
           zoom: 5,
-          mapId: 'DEMO_MAP_ID', // Importante para Vector Maps si se tiene
           disableDefaultUI: false,
         });
 
@@ -38,18 +37,23 @@ export default function GpuMap() {
           radius: 2000 // 2km de radio
         }));
 
-        // 4. Inicializar Deck.gl Overlay
+        // 4. Inicializar Deck.gl Overlay (Modo Overlay Clásico)
         overlayInstance = new GoogleMapsOverlay({
+          interleaved: false, // Forzar capa superior
           layers: [
             new ScatterplotLayer({
               id: 'scatter-layer',
               data,
               getPosition: (d: any) => d.position,
-              getFillColor: (d: any) => d.color,
+              getFillColor: [255, 0, 0, 200], // Rojo con transparencia
               getRadius: (d: any) => d.radius,
-              opacity: 0.8,
+              radiusScale: 1,
+              radiusMinPixels: 5,
+              radiusMaxPixels: 100,
+              opacity: 1,
               stroked: true,
-              radiusMinPixels: 3, // Asegurar visibilidad mínima
+              getLineColor: [0, 0, 0],
+              lineWidthMinPixels: 1,
             })
           ],
         });
