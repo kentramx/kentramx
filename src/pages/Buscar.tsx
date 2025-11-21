@@ -40,7 +40,6 @@ import { PropertyDetailSheet } from '@/components/PropertyDetailSheet';
 import { InfiniteScrollContainer } from '@/components/InfiniteScrollContainer';
 import { monitoring } from '@/lib/monitoring';
 import type { MapProperty, PropertyFilters, HoveredProperty } from '@/types/property';
-import type { ViewportBounds } from '@/hooks/useTiledMap';
 
 interface Filters {
   estado: string;
@@ -144,10 +143,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     orden: (searchParams.get('orden') as any) || 'price_desc',
   });
   
-  // Estado para guardar coordenadas de la ubicación buscada y bounds del mapa
-  const [searchCoordinates, setSearchCoordinates] = useState<{ lat: number; lng: number } | null>(null);
-  const [mapBounds, setMapBounds] = useState<ViewportBounds | null>(null);
-  
   // ✅ DEBUG: Logs temporales para rastrear cambios de listingType
   useEffect(() => {
     console.log('[Buscar Debug] filters.listingType changed to:', filters.listingType);
@@ -162,11 +157,8 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   
   // ✅ Construir filtros de manera unificada
   const propertyFilters = useMemo(
-    () => ({
-      ...buildPropertyFilters(filters),
-      bounds: mapBounds,
-    }),
-    [filters, mapBounds]
+    () => buildPropertyFilters(filters),
+    [filters]
   );
 
   // ✅ Búsqueda de propiedades con filtros
@@ -225,6 +217,8 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
 
   const filteredProperties = sortedProperties;
   
+  // Estado para guardar coordenadas de la ubicación buscada
+  const [searchCoordinates, setSearchCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   
   // Sincronizar Sheet desde URL
   useEffect(() => {
@@ -864,9 +858,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       setSearchCoordinates({ lat: location.lat, lng: location.lng });
     }
 
-    // ✅ Resetear bounds para volver a modo texto
-    setMapBounds(null);
-
     // ✅ Mostrar colonia en el toast si está disponible
     const description = location.colonia 
       ? `${location.colonia}, ${location.municipality}, ${location.state}`
@@ -877,12 +868,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       description,
     });
   };
-
-  // ✅ Handler para cambios de bounds del mapa
-  const handleMapBoundsChange = useCallback((bounds: ViewportBounds) => {
-    console.log('🗺️ [Buscar] Map bounds changed:', bounds);
-    setMapBounds(bounds);
-  }, []);
 
   // Memoizar marcadores para evitar recreación innecesaria
   // Ya no se usa - SearchMap maneja su propia carga de propiedades
@@ -1534,7 +1519,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                 height="100%"
                 onMapError={setMapError}
                 onVisibleCountChange={setMapVisibleCount}
-                onBoundsChange={handleMapBoundsChange}
               />
             )}
           </div>
