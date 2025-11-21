@@ -1,3 +1,5 @@
+import type { ViewportBounds } from '@/hooks/useTiledMap';
+
 /**
  * Tipo central unificado para Property
  * ✅ Fuente única de verdad para todas las propiedades del sistema
@@ -250,5 +252,5 @@ export interface PropertyFilters {
   banos?: string;
   status?: string[];
   orden?: string; // ✅ Agregado para ordenamiento
-  mapBounds?: MapBounds | null; // ✅ Nuevo: búsqueda por viewport del mapa
+  bounds?: ViewportBounds; // ✅ Unificado con el sistema de tiles
 }
