@@ -297,8 +297,7 @@ export function BasicGoogleMap({
       Math.abs(center.lat - prevCenterRef.current.lat) > 0.0001 || 
       Math.abs(center.lng - prevCenterRef.current.lng) > 0.0001;
     
-    const currentZoom = map.getZoom() || zoom;
-    const zoomChanged = zoom && Math.abs(currentZoom - zoom) > 1;
+    const zoomChanged = zoom !== prevZoomRef.current;
 
     // Solo intervenir si las props cambiaron significativamente.
     // Si el usuario movió el mapa o clicó un cluster, las coordenadas serán prácticamente iguales
