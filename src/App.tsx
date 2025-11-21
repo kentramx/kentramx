@@ -53,6 +53,7 @@ import AdminGeocoding from "./pages/AdminGeocoding";
 import AdminCoupons from "./pages/AdminCoupons";
 import UnirseEquipo from "./pages/UnirseEquipo";
 import { Footer } from "@/components/Footer";
+import GpuMap from "@/components/experimental/GpuMap";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -116,6 +117,7 @@ const AppContent = () => {
               <Route path="/admin/churn" element={<AdminChurn />} />
               <Route path="/admin/geocoding" element={<AdminGeocoding />} />
               <Route path="/admin/coupons" element={<AdminCoupons />} />
+              <Route path="/test-gpu" element={<GpuMap />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
