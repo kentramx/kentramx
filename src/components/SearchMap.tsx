@@ -87,9 +87,9 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   useEffect(() => {
     if (initialBounds) {
       setViewportBounds(initialBounds);
-      onBoundsChange?.(initialBounds); // ✅ CRUCIAL: Avisar al padre inmediatamente
+      // ❌ NO llamar a onBoundsChange aquí - causaría bucle infinito
     }
-  }, [initialBounds, onBoundsChange]);
+  }, [initialBounds]);
   
   // ✅ Mantener datos previos para evitar parpadeos
   const previousMarkersRef = useRef<any[]>([]);
