@@ -182,20 +182,13 @@ export function BasicGoogleMap({
   
   // 🎯 Estado anterior de markers para diffing
   const previousMarkersRef = useRef<Map<string, MapMarker>>(new Map());
-  
-  // Refs para guardar las props anteriores y detectar cambios externos
-  const prevCenterRef = useRef(center);
-  const prevZoomRef = useRef(zoom);
 
   // Mantener callbacks estables sin re-crear marcadores
   const onMarkerClickRef = useRef<((id: string) => void) | undefined>(onMarkerClick);
   useEffect(() => { onMarkerClickRef.current = onMarkerClick; }, [onMarkerClick]);
 
-  // ✅ Inicializar mapa (SOLO UNA VEZ)
+  // ✅ Inicializar mapa con Google Maps API
   useEffect(() => {
-    // 🛑 Evitar re-inicialización si ya existe
-    if (mapRef.current || !containerRef.current) return;
-    
     let mounted = true;
     
     const init = async () => {
@@ -205,7 +198,11 @@ export function BasicGoogleMap({
         await loadGoogleMaps();
         if (!mounted || !containerRef.current) return;
         
-        console.log('🗺️ [BasicGoogleMap] Inicializando mapa con marcadores nativos (PRIMERA VEZ)');
+        console.log('🗺️ [BasicGoogleMap] Inicializando mapa con marcadores nativos:', {
+          center,
+          zoom,
+          totalMarkers: markers.length
+        });
 
         mapRef.current = new google.maps.Map(containerRef.current, {
           center,
@@ -264,7 +261,7 @@ export function BasicGoogleMap({
                   },
                 });
               }
-            }, 500); // ✅ Incrementado de 300ms a 500ms para evitar updates durante zoom
+            }, 300);
           });
         }
 
@@ -284,51 +281,7 @@ export function BasicGoogleMap({
     
     init();
     return () => { mounted = false; };
-  }, []); // 👈 Array vacío: solo montar una vez
-
-  // ✅ Inicializar refs correctamente (solo en primer render)
-  const isFirstRender = useRef(true);
-  useEffect(() => {
-    if (isFirstRender.current) {
-      prevCenterRef.current = center;
-      prevZoomRef.current = zoom || 5;
-      isFirstRender.current = false;
-    }
-  }, []);
-
-  // 2️⃣ Efecto INTELIGENTE: Solo mover si los VALORES numéricos cambiaron
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !center || !mapReady) return;
-
-    // Comparar VALORES numéricos para detectar cambios reales desde el padre
-    const centerLatChanged = Math.abs(center.lat - prevCenterRef.current.lat) > 0.001;
-    const centerLngChanged = Math.abs(center.lng - prevCenterRef.current.lng) > 0.001;
-    const zoomValue = zoom || 5;
-    const prevZoomValue = prevZoomRef.current || 5;
-    const zoomChanged = Math.abs(zoomValue - prevZoomValue) > 0;
-
-    // ✅ SOLO intervenir si hay cambio numérico significativo
-    if (centerLatChanged || centerLngChanged || zoomChanged) {
-      console.log('🔄 [BasicGoogleMap] Valores de props cambiaron, actualizando mapa:', { 
-        centerLatChanged, 
-        centerLngChanged,
-        zoomChanged,
-        anterior: { lat: prevCenterRef.current.lat, lng: prevCenterRef.current.lng, zoom: prevZoomValue },
-        nuevo: { lat: center.lat, lng: center.lng, zoom: zoomValue }
-      });
-      
-      if (centerLatChanged || centerLngChanged) {
-        map.panTo(center);
-        prevCenterRef.current = center;
-      }
-      
-      if (zoomChanged) {
-        map.setZoom(zoomValue);
-        prevZoomRef.current = zoomValue;
-      }
-    }
-  }, [center.lat, center.lng, zoom, mapReady]);
+  }, [center.lat, center.lng, zoom, onReady, onBoundsChanged, onMapError]);
 
   // ✅ Renderizar pastillas de precios estilo Zillow (OPTIMIZADO con diffing)
   useEffect(() => {

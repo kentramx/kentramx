@@ -25,9 +25,6 @@ interface SearchMapProps {
   height?: string;
   onMapError?: (error: string) => void;
   onVisibleCountChange?: (count: number) => void;
-  onBoundsChange?: (bounds: { north: number; south: number; east: number; west: number }) => void;
-  onLoadingChange?: (isLoading: boolean) => void;
-  onClusterClick?: (coordinates: { lat: number; lng: number }) => void;
 }
 
 export const SearchMap: React.FC<SearchMapProps> = ({
@@ -40,9 +37,6 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   height = '100%',
   onMapError,
   onVisibleCountChange,
-  onBoundsChange,
-  onLoadingChange,
-  onClusterClick,
 }) => {
   const navigate = useNavigate();
   const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(null);
@@ -52,27 +46,7 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   const previousMarkersRef = useRef<any[]>([]);
   
   // ✅ Debounce adaptativo de viewport según FPS del dispositivo
-  const debouncedBounds = useAdaptiveDebounce(viewportBounds, 150);
-  
-  // ✅ Calcular bounds iniciales cuando cambian las coordenadas de búsqueda
-  useEffect(() => {
-    if (searchCoordinates) {
-      // Calcular bounds aproximados para zoom 12 (vista de ciudad)
-      const latOffset = 0.05; // ~5.5 km
-      const lngOffset = 0.08; // ~5.5 km (ajustado por latitud)
-      
-      const initialBounds: ViewportBounds = {
-        minLat: searchCoordinates.lat - latOffset,
-        maxLat: searchCoordinates.lat + latOffset,
-        minLng: searchCoordinates.lng - lngOffset,
-        maxLng: searchCoordinates.lng + lngOffset,
-        zoom: 12,
-      };
-      
-      console.log('🗺️ [SearchMap] Inicializando bounds para nueva búsqueda:', initialBounds);
-      setViewportBounds(initialBounds);
-    }
-  }, [searchCoordinates?.lat, searchCoordinates?.lng]);
+  const debouncedBounds = useAdaptiveDebounce(viewportBounds, 300);
 
   // 🚀 TILE-BASED ARCHITECTURE: fetch con escalabilidad infinita
   const { data: viewportData, isLoading, error } = useTiledMap(
@@ -101,11 +75,6 @@ export const SearchMap: React.FC<SearchMapProps> = ({
     
     onVisibleCountChange(totalVisible);
   }, [properties, clusters, onVisibleCountChange]);
-
-  // ✅ Reportar estado de carga al padre
-  useEffect(() => {
-    onLoadingChange?.(isLoading);
-  }, [isLoading, onLoadingChange]);
 
   // ✅ Handler para errores críticos del mapa (Google Maps no carga)
   const handleMapError = useCallback((error: Error) => {
@@ -198,32 +167,18 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   // ✅ Callback memoizado para bounds change
   const handleBoundsChange = useCallback((bounds: ViewportBounds) => {
     setViewportBounds(bounds);
-    
-    // Comunicar bounds al padre para sincronizar la lista
-    if (onBoundsChange) {
-      onBoundsChange({
-        north: bounds.maxLat,
-        south: bounds.minLat,
-        east: bounds.maxLng,
-        west: bounds.minLng,
-      });
-    }
-  }, [onBoundsChange]);
+  }, []);
 
-  // ✅ Callback memoizado para marker click con zoom en clusters
+  // ✅ Callback memoizado para marker click (no navegar si es cluster)
   const handleMarkerClickInternal = useCallback(
     (id: string) => {
-      // Si es un cluster, hacer zoom hacia él
+      // No hacer nada si es un cluster (empieza con "cluster-")
       if (id.startsWith('cluster-')) {
-        const cluster = clusters.find((c) => `cluster-${c.cluster_id}` === id);
-        if (cluster && onClusterClick) {
-          onClusterClick({ lat: cluster.lat, lng: cluster.lng });
-        }
         return;
       }
       onMarkerClick(id);
     },
-    [onMarkerClick, onClusterClick, clusters]
+    [onMarkerClick]
   );
 
   // ✅ Callback para hover que convierte markerId a MapProperty
@@ -261,6 +216,17 @@ export const SearchMap: React.FC<SearchMapProps> = ({
 
       {/* Debug overlay eliminado para producción */}
 
+      {/* 🔄 Overlay de carga */}
+      {isLoading && viewportBounds && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/20 backdrop-blur-[2px]">
+          <div className="rounded-lg bg-background/95 px-4 py-3 shadow-lg">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Cargando propiedades en el mapa...</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ❌ Overlay de error crítico (solo para fallos de Google Maps) */}
       {mapError && (

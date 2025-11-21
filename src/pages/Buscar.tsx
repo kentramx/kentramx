@@ -39,7 +39,7 @@ import { generatePropertyListStructuredData } from '@/utils/structuredData';
 import { PropertyDetailSheet } from '@/components/PropertyDetailSheet';
 import { InfiniteScrollContainer } from '@/components/InfiniteScrollContainer';
 import { monitoring } from '@/lib/monitoring';
-import type { MapProperty, PropertyFilters, HoveredProperty, SearchBounds } from '@/types/property';
+import type { MapProperty, PropertyFilters, HoveredProperty } from '@/types/property';
 
 interface Filters {
   estado: string;
@@ -143,29 +143,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     orden: (searchParams.get('orden') as any) || 'price_desc',
   });
   
-  // Estado para guardar coordenadas de la ubicación buscada (desde URL)
-  const [searchCoordinates, setSearchCoordinates] = useState<{ lat: number; lng: number } | null>(() => {
-    const lat = searchParams.get('lat');
-    const lng = searchParams.get('lng');
-    if (lat && lng) {
-      const latNum = parseFloat(lat);
-      const lngNum = parseFloat(lng);
-      if (!isNaN(latNum) && !isNaN(lngNum)) {
-        return { lat: latNum, lng: lngNum };
-      }
-    }
-    return null;
-  });
-  
-  // ✅ Estado para capturar límites del mapa y sincronizar con lista
-  const [mapBounds, setMapBounds] = useState<SearchBounds | null>(null);
-  
-  // ✅ Resetear mapBounds cuando cambia la búsqueda (nueva ubicación)
-  useEffect(() => {
-    console.log('🔄 Nueva búsqueda detectada, reseteando mapBounds');
-    setMapBounds(null);
-  }, [searchCoordinates?.lat, searchCoordinates?.lng, filters.estado, filters.municipio]);
-  
   // ✅ DEBUG: Logs temporales para rastrear cambios de listingType
   useEffect(() => {
     console.log('[Buscar Debug] filters.listingType changed to:', filters.listingType);
@@ -184,7 +161,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     [filters]
   );
 
-  // ✅ Búsqueda de propiedades con filtros y bounds del mapa
+  // ✅ Búsqueda de propiedades con filtros
   const {
     properties,
     isLoading: loading,
@@ -195,7 +172,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     fetchNextPage,
     hasTooManyResults,
     actualTotal,
-  } = usePropertySearch(propertyFilters, searchCoordinates, mapBounds);
+  } = usePropertySearch(propertyFilters);
 
   // Ordenar propiedades según criterio seleccionado
   // PRIORIDAD: Destacadas primero, luego aplicar orden seleccionado
@@ -239,6 +216,9 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   }, [properties, filters.orden]);
 
   const filteredProperties = sortedProperties;
+  
+  // Estado para guardar coordenadas de la ubicación buscada
+  const [searchCoordinates, setSearchCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   
   // Sincronizar Sheet desde URL
   useEffect(() => {
@@ -322,7 +302,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   const [mobileView, setMobileView] = useState<'map' | 'list'>('list');
   const [mapError, setMapError] = useState<string | null>(null);
   const [mapVisibleCount, setMapVisibleCount] = useState<number>(0);
-  const [mapLoading, setMapLoading] = useState<boolean>(false);
 
   // Normalizar rango de precios para evitar valores fuera de rango al alternar Venta/Renta
   const [minRangeForType, maxRangeForType] = getPriceRangeForListingType(filters.listingType);
@@ -867,9 +846,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   };
 
   const handlePlaceSelect = (location: { address: string; municipality: string; state: string; colonia?: string; lat?: number; lng?: number; }) => {
-    // ✅ Limpiar bounds del mapa anterior al seleccionar nueva ubicación
-    setMapBounds(null);
-    
     setFilters(prev => ({
       ...prev,
       estado: location.state || '',
@@ -892,12 +868,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       description,
     });
   };
-
-  // ✅ Callback para manejar click en clusters del mapa
-  const handleClusterClick = useCallback((coordinates: { lat: number; lng: number }) => {
-    console.log('🎯 Cluster click, moviendo mapa a:', coordinates);
-    setSearchCoordinates(coordinates);
-  }, []);
 
   // Memoizar marcadores para evitar recreación innecesaria
   // Ya no se usa - SearchMap maneja su propia carga de propiedades
@@ -964,7 +934,17 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     return items;
   };
 
-  // ❌ Eliminado: No mostrar pantalla de carga completa, mejor dejar que el contenido se muestre inmediatamente
+  if (loading && !properties.length) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex flex-col items-center justify-center h-screen gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Cargando propiedades...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Generar metadatos SEO dinámicos
   const seoTitle = generateSearchTitle({
@@ -1505,7 +1485,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                 <span className="text-muted-foreground text-sm">
                   {(mobileView === 'map' || window.innerWidth >= 1024 ? mapVisibleCount : totalCount) === 1 ? 'propiedad' : 'propiedades'}
                 </span>
-                {mapLoading && (
+                {isFetching && properties.length > 0 && (
                   <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                 )}
               </div>
@@ -1539,9 +1519,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                 height="100%"
                 onMapError={setMapError}
                 onVisibleCountChange={setMapVisibleCount}
-                onBoundsChange={setMapBounds}
-                onLoadingChange={setMapLoading}
-                onClusterClick={handleClusterClick}
               />
             )}
           </div>

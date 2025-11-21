@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { PropertyFilters, PropertySummary, SearchBounds } from '@/types/property';
+import type { PropertyFilters, PropertySummary } from '@/types/property';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -9,13 +9,9 @@ interface QueryResult {
   count: number | null;
 }
 
-export const usePropertiesInfinite = (
-  filters: PropertyFilters,
-  searchCoordinates: { lat: number; lng: number } | null = null,
-  searchBounds: SearchBounds | null = null
-) => {
+export const usePropertiesInfinite = (filters: PropertyFilters) => {
   const query = useInfiniteQuery({
-    queryKey: ['properties-infinite', filters, searchCoordinates, searchBounds],
+    queryKey: ['properties-infinite', filters],
     initialPageParam: 0 as number,
     getNextPageParam: (lastPage: QueryResult, allPages: QueryResult[]) => {
       if (!lastPage.properties || lastPage.properties.length < ITEMS_PER_PAGE) return undefined;
@@ -31,7 +27,7 @@ export const usePropertiesInfinite = (
       // 1. STATUS: Filtrar solo propiedades activas
       query = query.eq('status', 'activa');
 
-      // 2. UBICACIÓN (Flexible con ilike) - ✅ SIEMPRE APLICAR
+      // 2. UBICACIÓN (Flexible con ilike)
       if (filters.estado && filters.estado.trim() !== '') {
         query = query.ilike('state', `%${filters.estado}%`);
       }
@@ -42,42 +38,8 @@ export const usePropertiesInfinite = (
 
       // ✅ Filtro por Colonia (buscar en colonia o address)
       if (filters.colonia && filters.colonia.trim() !== '') {
+        // Buscar en la columna 'colonia' O en 'address' como fallback
         query = query.or(`colonia.ilike.%${filters.colonia.trim()}%,address.ilike.%${filters.colonia.trim()}%`);
-      }
-
-      // ✅ FILTRO GEOGRÁFICO: Usar bounds del mapa como REFINAMIENTO adicional
-      if (searchBounds) {
-        // Bounds del mapa refinan los resultados, pero NO reemplazan los filtros de ubicación
-        console.log('🗺️ Refinando con bounds del mapa:', searchBounds);
-        query = query
-          .lte('lat', searchBounds.north)
-          .gte('lat', searchBounds.south)
-          .lte('lng', searchBounds.east)
-          .gte('lng', searchBounds.west);
-      } else if (searchCoordinates && searchCoordinates.lat && searchCoordinates.lng) {
-        // Fallback: Radio dinámico basado en especificidad de búsqueda
-        const ROUGH_KM_DEGREE = 0.009; // ~1km
-        let radiusKm = 10; // Default: Municipio/Ciudad
-        
-        // Si hay colonia específica, cerrar el radio
-        if (filters.colonia && filters.colonia.trim() !== '') {
-          console.log('🎯 Búsqueda por Colonia detectada, reduciendo radio a 3km');
-          radiusKm = 3;
-        } 
-        // Si es búsqueda de Estado (sin municipio), ampliar radio
-        else if (filters.estado && (!filters.municipio || filters.municipio === '')) {
-          console.log('🌎 Búsqueda por Estado detectada, ampliando radio a 25km');
-          radiusKm = 25; 
-        }
-        
-        console.log(`📍 Filtrando coordenadas: Radio ${radiusKm}km`);
-        const delta = ROUGH_KM_DEGREE * radiusKm;
-        
-        query = query
-          .gte('lat', searchCoordinates.lat - delta)
-          .lte('lat', searchCoordinates.lat + delta)
-          .gte('lng', searchCoordinates.lng - delta)
-          .lte('lng', searchCoordinates.lng + delta);
       }
 
       // 3. TIPO Y LISTING (Validar que no sea 'undefined')
