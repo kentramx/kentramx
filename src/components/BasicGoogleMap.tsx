@@ -182,6 +182,10 @@ export function BasicGoogleMap({
   
   // 🎯 Estado anterior de markers para diffing
   const previousMarkersRef = useRef<Map<string, MapMarker>>(new Map());
+  
+  // Refs para guardar las props anteriores y detectar cambios externos
+  const prevCenterRef = useRef(center);
+  const prevZoomRef = useRef(zoom);
 
   // Mantener callbacks estables sin re-crear marcadores
   const onMarkerClickRef = useRef<((id: string) => void) | undefined>(onMarkerClick);
@@ -282,22 +286,28 @@ export function BasicGoogleMap({
     return () => { mounted = false; };
   }, []); // 👈 Array vacío: solo montar una vez
 
-  // ✅ Actualizar center/zoom programáticamente (ej: nueva búsqueda)
+  // ✅ Efecto inteligente: Solo mover si la búsqueda cambió externamente (Input del usuario)
   useEffect(() => {
-    if (!mapRef.current || !center) return;
+    const map = mapRef.current;
+    if (!map || !center) return;
 
-    // Solo mover si la diferencia es significativa para no pelear con el usuario
-    const currentCenter = mapRef.current.getCenter();
-    if (currentCenter) {
-      const dist = Math.sqrt(
-        Math.pow(currentCenter.lat() - center.lat, 2) + 
-        Math.pow(currentCenter.lng() - center.lng, 2)
-      );
-      if (dist > 0.001) { // Pequeño umbral
-        console.log('📍 [BasicGoogleMap] Actualizando center/zoom programáticamente');
-        mapRef.current.panTo(center);
-        mapRef.current.setZoom(zoom || 12);
-      }
+    // Detectar si REALMENTE es una nueva ubicación enviada desde el buscador
+    const isNewCenter = 
+      center.lat !== prevCenterRef.current?.lat || 
+      center.lng !== prevCenterRef.current?.lng;
+    const isNewZoom = zoom !== prevZoomRef.current;
+
+    // Actualizar referencias para la próxima
+    prevCenterRef.current = center;
+    prevZoomRef.current = zoom;
+
+    // Solo intervenir si las props cambiaron.
+    // Si el usuario movió el mapa o clicó un cluster, 'center' y 'prevCenterRef' serán iguales
+    // así que NO entraremos aquí, evitando el reset.
+    if (isNewCenter || isNewZoom) {
+      console.log('🗺️ [BasicGoogleMap] Nueva búsqueda detectada, moviendo mapa a:', center);
+      map.panTo(center);
+      if (zoom) map.setZoom(zoom);
     }
   }, [center.lat, center.lng, zoom]);
 
