@@ -5,23 +5,25 @@
  * - Manejo de errores con monitoring
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BasicGoogleMap } from '@/components/BasicGoogleMap';
-import { useTiledMap, ViewportBounds, MIN_ZOOM_FOR_TILES, MAX_PROPERTIES_PER_TILE } from '@/hooks/useTiledMap';
-import { useAdaptiveDebounce } from '@/hooks/useAdaptiveDebounce';
-import type { MapProperty, PropertyFilters, PropertySummary } from '@/types/property';
-import { monitoring } from '@/lib/monitoring';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { BasicGoogleMap } from "@/components/BasicGoogleMap";
+import { useTiledMap, ViewportBounds, MIN_ZOOM_FOR_TILES, MAX_PROPERTIES_PER_TILE } from "@/hooks/useTiledMap";
+import { useAdaptiveDebounce } from "@/hooks/useAdaptiveDebounce";
+import type { MapProperty, PropertyFilters, PropertySummary } from "@/types/property";
+import { monitoring } from "@/lib/monitoring";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // ✅ CONSTANTE DE SEGURIDAD: Si todo falla, mostramos México
 const DEFAULT_CENTER = { lat: 23.6345, lng: -102.5528 };
 const DEFAULT_ZOOM = 5;
 const DEFAULT_BOUNDS: ViewportBounds = {
-  minLat: 14.5388, maxLat: 32.7186,
-  minLng: -118.4662, maxLng: -86.7104,
-  zoom: 5
+  minLat: 14.5388,
+  maxLat: 32.7186,
+  minLng: -118.4662,
+  maxLng: -86.7104,
+  zoom: 5,
 };
 
 // Función auxiliar para calcular estado inicial completo
@@ -37,15 +39,15 @@ const getInitialView = (coords: { lat: number; lng: number } | null) => {
         maxLat: coords.lat + r,
         minLng: coords.lng - r,
         maxLng: coords.lng + r,
-        zoom: 12
-      } as ViewportBounds
+        zoom: 12,
+      } as ViewportBounds,
     };
   }
   // Si no, México default
   return {
     center: DEFAULT_CENTER,
     zoom: DEFAULT_ZOOM,
-    bounds: DEFAULT_BOUNDS
+    bounds: DEFAULT_BOUNDS,
   };
 };
 
@@ -69,30 +71,29 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   onPropertyHover,
   hoveredPropertyId,
   hoveredPropertyCoords,
-  height = '100%',
+  height = "100%",
   onMapError,
   onVisibleCountChange,
   onBoundsChange,
 }) => {
   const navigate = useNavigate();
-  
+
   // ✅ INICIALIZACIÓN SINCRÓNICA: Calculamos TODO el estado inicial de una sola vez
   const [initialState] = useState(() => getInitialView(searchCoordinates));
-  
+
   const [viewState, setViewState] = useState({
     center: initialState.center,
-    zoom: initialState.zoom
+    zoom: initialState.zoom,
   });
 
   const [viewportBounds, setViewportBounds] = useState<ViewportBounds>(initialState.bounds);
   const [mapError, setMapError] = useState<string | null>(null);
-  
+
   // ✅ Mantener datos previos para evitar parpadeos
   const previousMarkersRef = useRef<any[]>([]);
-  
+
   // Ref para detectar cambios reales en la búsqueda (input del usuario)
   const prevSearchCoords = useRef(searchCoordinates);
-  const isFirstRender = useRef(true); // ✅ Flag para carga inicial sin debounce
 
   // 🔔 NOTIFICACIÓN AL MONTAR: Avisar al padre inmediatamente
   useEffect(() => {
@@ -103,57 +104,37 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   // ✅ EFECTO DE RESETEO INTELIGENTE
   // Solo forzamos al mapa a moverse si el usuario REALMENTE buscó una nueva ciudad.
   useEffect(() => {
-    const coordsChanged = searchCoordinates && (
-      !prevSearchCoords.current || 
-      searchCoordinates.lat !== prevSearchCoords.current.lat || 
-      searchCoordinates.lng !== prevSearchCoords.current.lng
-    );
+    const coordsChanged =
+      searchCoordinates &&
+      (!prevSearchCoords.current ||
+        searchCoordinates.lat !== prevSearchCoords.current.lat ||
+        searchCoordinates.lng !== prevSearchCoords.current.lng);
 
     if (coordsChanged) {
       console.log("📍 Nueva búsqueda detectada, moviendo mapa a:", searchCoordinates);
+      const newData = getInitialView(searchCoordinates);
+
       setViewState({
-        center: searchCoordinates!,
-        zoom: 12
+        center: newData.center,
+        zoom: newData.zoom,
       });
-      
-      const r = 0.05;
-      const newBounds = {
-        minLat: searchCoordinates!.lat - r,
-        maxLat: searchCoordinates!.lat + r,
-        minLng: searchCoordinates!.lng - r,
-        maxLng: searchCoordinates!.lng + r,
-        zoom: 12
-      };
-      
-      setViewportBounds(newBounds);
-      onBoundsChange?.(newBounds); // ✅ NOTIFICAR AL PADRE
+
+      setViewportBounds(newData.bounds);
+      onBoundsChange?.(newData.bounds); // ✅ NOTIFICAR AL PADRE
       prevSearchCoords.current = searchCoordinates;
     }
   }, [searchCoordinates, onBoundsChange]);
-  
-  // ✅ Debounce condicional: 0ms en primer render (carga instantánea), 300ms después (UX fluida)
-  const debouncedBounds = useAdaptiveDebounce(
-    viewportBounds,
-    isFirstRender.current ? 0 : 300
-  );
 
-  // Marcar que ya no es el primer render
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-    }
-  }, [viewportBounds]);
+  // ✅ Debounce adaptativo: 300ms para UX fluida
+  const debouncedBounds = useAdaptiveDebounce(viewportBounds, 300);
 
   // 🚀 TILE-BASED ARCHITECTURE: fetch con escalabilidad infinita
-  const { data: viewportData, isLoading, error } = useTiledMap(
-    debouncedBounds,
-    { ...filters, status: ['activa'] }
-  );
+  const { data: viewportData, isLoading, error } = useTiledMap(debouncedBounds, { ...filters, status: ["activa"] });
 
   // ✅ Log de errores
   if (error) {
-    monitoring.error('Error loading properties for map', {
-      component: 'SearchMap',
+    monitoring.error("Error loading properties for map", {
+      component: "SearchMap",
       error,
       filters,
       bounds: debouncedBounds,
@@ -165,25 +146,27 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   // ✅ Calcular y reportar el total de propiedades visibles en el mapa
   useEffect(() => {
     if (!onVisibleCountChange) return;
-    
-    const totalVisible = (properties?.length || 0) + 
-      (clusters?.reduce((acc, c) => acc + c.property_count, 0) || 0);
-    
+
+    const totalVisible = (properties?.length || 0) + (clusters?.reduce((acc, c) => acc + c.property_count, 0) || 0);
+
     onVisibleCountChange(totalVisible);
   }, [properties, clusters, onVisibleCountChange]);
 
   // ✅ Handler para errores críticos del mapa (Google Maps no carga)
-  const handleMapError = useCallback((error: Error) => {
-    const errorMsg = error.message;
-    setMapError(errorMsg);
-    monitoring.error('[SearchMap] Error crítico del mapa', {
-      component: 'SearchMap',
-      error: errorMsg,
-    });
-    onMapError?.(errorMsg);
-  }, [onMapError]);
+  const handleMapError = useCallback(
+    (error: Error) => {
+      const errorMsg = error.message;
+      setMapError(errorMsg);
+      monitoring.error("[SearchMap] Error crítico del mapa", {
+        component: "SearchMap",
+        error: errorMsg,
+      });
+      onMapError?.(errorMsg);
+    },
+    [onMapError],
+  );
 
-  // ✅ Memoizar markers con VALIDACIÓN ROBUSTA - Combinar propiedades y clusters simultáneamente
+  // ✅ Memoizar markers con VALIDACIÓN ROBUSTA
   const mapMarkers = useMemo(() => {
     // Si está cargando y no hay datos nuevos, mantener datos previos para evitar parpadeos
     if (isLoading && properties.length === 0 && clusters.length === 0 && previousMarkersRef.current.length > 0) {
@@ -194,7 +177,7 @@ export const SearchMap: React.FC<SearchMapProps> = ({
 
     // 1) Agregar propiedades individuales con type: 'property' y VALIDACIÓN ROBUSTA
     if (properties && properties.length > 0) {
-      properties.forEach(p => {
+      properties.forEach((p) => {
         // ✅ Validación de coordenadas para evitar crash
         if (p.lat && p.lng && !isNaN(Number(p.lat)) && !isNaN(Number(p.lng))) {
           markers.push({
@@ -203,12 +186,12 @@ export const SearchMap: React.FC<SearchMapProps> = ({
             lng: Number(p.lng),
             title: p.title,
             price: p.price,
-            currency: (p.currency ?? 'MXN') as 'MXN' | 'USD',
-            type: 'property' as const,
+            currency: (p.currency ?? "MXN") as "MXN" | "USD",
+            type: "property" as const,
             bedrooms: p.bedrooms,
             bathrooms: p.bathrooms,
             images: p.images,
-            listing_type: p.listing_type as 'venta' | 'renta',
+            listing_type: p.listing_type as "venta" | "renta",
             address: p.address,
           });
         }
@@ -223,11 +206,11 @@ export const SearchMap: React.FC<SearchMapProps> = ({
         lng: c.lng,
         title: `${c.property_count} propiedades`,
         price: c.avg_price,
-        currency: 'MXN' as const,
-        type: 'cluster' as const,
+        currency: "MXN" as const,
+        type: "cluster" as const,
         count: c.property_count,
       }));
-      
+
       markers.push(...clusterMarkers);
     }
 
@@ -241,31 +224,33 @@ export const SearchMap: React.FC<SearchMapProps> = ({
 
   // ✅ HANDLER ANTISALTO
   // Cuando el usuario mueve el mapa, actualizamos nuestro estado local
-  // para que coincida con la realidad. Así, si React re-renderiza,
-  // le pasará al mapa la posición DONDE YA ESTÁ, evitando el rebote.
-  const handleBoundsChange = useCallback((bounds: ViewportBounds) => {
-    setViewportBounds(bounds);
-    onBoundsChange?.(bounds); // 🗣️ Notificar a Buscar.tsx
-    // NO actualizamos 'viewState' aquí → el mapa sigue fluyendo suavemente
-  }, [onBoundsChange]);
+  // para que coincida con la realidad.
+  const handleBoundsChange = useCallback(
+    (bounds: ViewportBounds) => {
+      setViewportBounds(bounds);
+      onBoundsChange?.(bounds); // 🗣️ Notificar a Buscar.tsx
+      // NO actualizamos 'viewState' aquí → el mapa sigue fluyendo suavemente
+    },
+    [onBoundsChange],
+  );
 
   // ✅ Callback memoizado para marker click (no navegar si es cluster)
   const handleMarkerClickInternal = useCallback(
     (id: string) => {
       // No hacer nada si es un cluster (empieza con "cluster-")
-      if (id.startsWith('cluster-')) {
+      if (id.startsWith("cluster-")) {
         return;
       }
       onMarkerClick(id);
     },
-    [onMarkerClick]
+    [onMarkerClick],
   );
 
   // ✅ Callback para hover que convierte markerId a MapProperty
   const handleMarkerHover = useCallback(
     (markerId: string | null) => {
       if (!onPropertyHover) return;
-      
+
       if (markerId) {
         const property = properties.find((p) => p.id === markerId);
         if (property) {
@@ -275,7 +260,7 @@ export const SearchMap: React.FC<SearchMapProps> = ({
         onPropertyHover(null);
       }
     },
-    [properties, onPropertyHover]
+    [properties, onPropertyHover],
   );
 
   return (
@@ -302,7 +287,7 @@ export const SearchMap: React.FC<SearchMapProps> = ({
         </div>
       )}
 
-      {/* ❌ Overlay de error crítico (solo para fallos de Google Maps) */}
+      {/* ❌ Overlay de error crítico */}
       {mapError && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm">
           <div className="pointer-events-auto rounded-lg bg-background border border-destructive/20 px-6 py-4 shadow-xl max-w-sm">
@@ -310,7 +295,9 @@ export const SearchMap: React.FC<SearchMapProps> = ({
               <AlertCircle className="h-10 w-10 text-destructive" />
               <div>
                 <p className="font-medium text-foreground">No pudimos cargar el mapa</p>
-                <p className="text-sm text-muted-foreground mt-1">Puedes seguir usando la lista de propiedades sin problema.</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Puedes seguir usando la lista de propiedades sin problema.
+                </p>
               </div>
               <Button
                 size="sm"
