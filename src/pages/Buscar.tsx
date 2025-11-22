@@ -40,7 +40,6 @@ import { PropertyDetailSheet } from '@/components/PropertyDetailSheet';
 import { InfiniteScrollContainer } from '@/components/InfiniteScrollContainer';
 import { monitoring } from '@/lib/monitoring';
 import type { MapProperty, PropertyFilters, HoveredProperty } from '@/types/property';
-import type { ViewportBounds } from '@/hooks/useTiledMap';
 
 interface Filters {
   estado: string;
@@ -156,23 +155,10 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   // ✅ ELIMINADO: Efecto duplicado que causaba loops infinitos
   // Este efecto está ahora consolidado en las líneas 543-579
   
-  // Estado para guardar coordenadas de la ubicación buscada y bounds del mapa
-  // ✅ Inicialización sincrónica de coordenadas desde URL (evita "salto" del mapa)
-  const [searchCoordinates, setSearchCoordinates] = useState<{ lat: number; lng: number } | null>(() => {
-    const params = new URLSearchParams(window.location.search);
-    const lat = params.get('lat');
-    const lng = params.get('lng');
-    return lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : null;
-  });
-  const [mapBounds, setMapBounds] = useState<ViewportBounds | null>(null);
-  
   // ✅ Construir filtros de manera unificada
   const propertyFilters = useMemo(
-    () => ({
-      ...buildPropertyFilters(filters),
-      bounds: mapBounds,
-    }),
-    [filters, mapBounds]
+    () => buildPropertyFilters(filters),
+    [filters]
   );
 
   // ✅ Búsqueda de propiedades con filtros
@@ -231,6 +217,8 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
 
   const filteredProperties = sortedProperties;
   
+  // Estado para guardar coordenadas de la ubicación buscada
+  const [searchCoordinates, setSearchCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   
   // Sincronizar Sheet desde URL
   useEffect(() => {
@@ -266,16 +254,16 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   useEffect(() => {
     syncingFromUrl.current = true;
     
-    // ✅ ELIMINADO: La inicialización de searchCoordinates ahora es sincrónica (lazy state)
-    // Solo actualizamos si las coordenadas cambian después del montaje
+    // Cargar coordenadas desde URL si existen
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
-    const newCoords = lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : null;
-    
-    // Comparar coordenadas para evitar re-renders innecesarios
-    const coordsChanged = JSON.stringify(searchCoordinates) !== JSON.stringify(newCoords);
-    if (coordsChanged) {
-      setSearchCoordinates(newCoords);
+    if (lat && lng) {
+      setSearchCoordinates({ 
+        lat: parseFloat(lat), 
+        lng: parseFloat(lng) 
+      });
+    } else {
+      setSearchCoordinates(null);
     }
     
     const newFilters = {
@@ -869,9 +857,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     if (location.lat && location.lng) {
       setSearchCoordinates({ lat: location.lat, lng: location.lng });
     }
-
-    // ✅ Resetear bounds para que la lista use filtros de texto
-    setMapBounds(null);
 
     // ✅ Mostrar colonia en el toast si está disponible
     const description = location.colonia 
@@ -1534,7 +1519,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                 height="100%"
                 onMapError={setMapError}
                 onVisibleCountChange={setMapVisibleCount}
-                onBoundsChange={setMapBounds}
               />
             )}
           </div>
