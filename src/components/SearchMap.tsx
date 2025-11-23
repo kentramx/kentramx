@@ -26,7 +26,7 @@ interface SearchMapProps {
   height?: string;
   onMapError?: (error: string) => void;
   onVisibleCountChange?: (count: number) => void;
-  // ✅ NUEVA PROP: Para avisar que el mapa se movió
+  // ✅ Prop para avisar al padre cuando el mapa se mueve
   onMapPositionChange?: (center: { lat: number; lng: number }, bounds: ViewportBounds) => void;
 }
 
@@ -40,22 +40,20 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   height = "100%",
   onMapError,
   onVisibleCountChange,
-  onMapPositionChange, // ✅ Recibir la prop
+  onMapPositionChange,
 }) => {
   const navigate = useNavigate();
   const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
 
-  // ✅ Mantener datos previos para evitar parpadeos
+  // Ref para evitar bucles de actualización
   const previousMarkersRef = useRef<any[]>([]);
 
-  // ✅ Debounce adaptativo de viewport según FPS del dispositivo
   const debouncedBounds = useAdaptiveDebounce(viewportBounds, 300);
 
-  // 🚀 TILE-BASED ARCHITECTURE: fetch con escalabilidad infinita
+  // Cargar datos del mapa (tiles)
   const { data: viewportData, isLoading, error } = useTiledMap(debouncedBounds, { ...filters, status: ["activa"] });
 
-  // ✅ Log de errores
   if (error) {
     monitoring.error("Error loading properties for map", {
       component: "SearchMap",
@@ -67,16 +65,12 @@ export const SearchMap: React.FC<SearchMapProps> = ({
 
   const { properties = [], clusters = [] } = viewportData || {};
 
-  // ✅ Calcular y reportar el total de propiedades visibles en el mapa
   useEffect(() => {
     if (!onVisibleCountChange) return;
-
     const totalVisible = (properties?.length || 0) + (clusters?.reduce((acc, c) => acc + c.property_count, 0) || 0);
-
     onVisibleCountChange(totalVisible);
   }, [properties, clusters, onVisibleCountChange]);
 
-  // ✅ Handler para errores críticos del mapa (Google Maps no carga)
   const handleMapError = useCallback(
     (error: Error) => {
       const errorMsg = error.message;
@@ -90,7 +84,6 @@ export const SearchMap: React.FC<SearchMapProps> = ({
     [onMapError],
   );
 
-  // ✅ Memoizar markers - Combinar propiedades y clusters
   const mapMarkers = useMemo(() => {
     if (isLoading && properties.length === 0 && clusters.length === 0 && previousMarkersRef.current.length > 0) {
       return previousMarkersRef.current;
@@ -139,7 +132,6 @@ export const SearchMap: React.FC<SearchMapProps> = ({
     return markers;
   }, [properties.length, clusters.length, isLoading, properties, clusters]);
 
-  // ✅ Centro del mapa
   const mapCenter = useMemo(() => {
     if (searchCoordinates) {
       return searchCoordinates;
@@ -149,15 +141,13 @@ export const SearchMap: React.FC<SearchMapProps> = ({
 
   const mapZoom = searchCoordinates ? 12 : 5;
 
-  // ✅ Callback mejorado: Actualiza estado local Y avisa al padre
+  // ✅ Callback CORREGIDO: Usa minLat/maxLat del tipo ViewportBounds
   const handleBoundsChange = useCallback(
     (bounds: ViewportBounds) => {
       setViewportBounds(bounds);
 
-      // Avisar al componente padre que el mapa se movió
-      // Esto permite sincronizar la lista con el viewport del mapa
       if (onMapPositionChange) {
-        // CORRECCIÓN: Usar las propiedades correctas de ViewportBounds (min/max en lugar de north/south)
+        // CORRECCIÓN: Usar las propiedades correctas de tu interfaz ViewportBounds
         const center = {
           lat: (bounds.maxLat + bounds.minLat) / 2,
           lng: (bounds.maxLng + bounds.minLng) / 2,
@@ -240,7 +230,6 @@ export const SearchMap: React.FC<SearchMapProps> = ({
         </div>
       )}
 
-      {/* Aviso de zoom bajo */}
       {viewportBounds && viewportBounds.zoom < MIN_ZOOM_FOR_TILES && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-40">
           <div className="rounded-full bg-background/90 px-4 py-2 text-sm text-muted-foreground shadow-lg backdrop-blur-sm border">
