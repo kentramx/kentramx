@@ -4,10 +4,14 @@
  * - Clustering automático en zoom bajo
  * - Manejo de errores con monitoring
  * - Comunicación bidireccional con la lista
+ *
+ * ✅ FIX CRÍTICO:
+ * Antes el mapa recibía zoom/center "fijos" por props (5 o 12).
+ * Eso causaba que al clickear clusters o hacer zoom, el mapa rebotara al zoom original.
+ * Ahora center/zoom son state internos que se actualizan con el movimiento REAL del mapa.
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { BasicGoogleMap } from "@/components/BasicGoogleMap";
 import { useTiledMap, ViewportBounds, MIN_ZOOM_FOR_TILES } from "@/hooks/useTiledMap";
 import { useAdaptiveDebounce } from "@/hooks/useAdaptiveDebounce";
@@ -26,7 +30,6 @@ interface SearchMapProps {
   height?: string;
   onMapError?: (error: string) => void;
   onVisibleCountChange?: (count: number) => void;
-  // ✅ Prop para avisar al padre cuando el mapa se mueve
   onMapPositionChange?: (center: { lat: number; lng: number }, bounds: ViewportBounds) => void;
 }
 
@@ -42,13 +45,19 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   onVisibleCountChange,
   onMapPositionChange,
 }) => {
-  const navigate = useNavigate();
   const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
 
-  // Ref para evitar bucles de actualización
+  // ✅ Center/Zoom internos (NO fijos)
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(
+    searchCoordinates || { lat: 23.6345, lng: -102.5528 },
+  );
+  const [mapZoom, setMapZoom] = useState<number>(searchCoordinates ? 12 : 5);
+
+  // Ref para evitar bucles y mantener markers previos en loading
   const previousMarkersRef = useRef<any[]>([]);
 
+  // Debounce de bounds para tiles
   const debouncedBounds = useAdaptiveDebounce(viewportBounds, 300);
 
   // ✅ Filtros del mapa estabilizados (sin bounds externos) para evitar refetch infinito
@@ -71,6 +80,7 @@ export const SearchMap: React.FC<SearchMapProps> = ({
 
   const { properties = [], clusters = [] } = viewportData || {};
 
+  // Avisar count visible
   useEffect(() => {
     if (!onVisibleCountChange) return;
     const totalVisible = (properties?.length || 0) + (clusters?.reduce((acc, c) => acc + c.property_count, 0) || 0);
@@ -90,7 +100,9 @@ export const SearchMap: React.FC<SearchMapProps> = ({
     [onMapError],
   );
 
+  // ✅ Construir marcadores (properties + clusters)
   const mapMarkers = useMemo(() => {
+    // Si sigue cargando pero ya había marcadores, no los borres (evita “flash”)
     if (isLoading && properties.length === 0 && clusters.length === 0 && previousMarkersRef.current.length > 0) {
       return previousMarkersRef.current;
     }
@@ -136,34 +148,37 @@ export const SearchMap: React.FC<SearchMapProps> = ({
     }
 
     return markers;
-  }, [properties.length, clusters.length, isLoading, properties, clusters]);
+  }, [properties, clusters, isLoading]);
 
-  const mapCenter = useMemo(() => {
-    if (searchCoordinates) {
-      return searchCoordinates;
-    }
-    return { lat: 23.6345, lng: -102.5528 };
+  // ✅ Si cambia searchCoordinates (usuario buscó una ciudad), ahí sí recentramos y acercamos
+  useEffect(() => {
+    if (!searchCoordinates) return;
+    setMapCenter(searchCoordinates);
+    setMapZoom(12);
   }, [searchCoordinates]);
 
-  const mapZoom = searchCoordinates ? 12 : 5;
-
-  // ✅ Callback CORREGIDO: Usa minLat/maxLat del tipo ViewportBounds
+  // ✅ Bounds change: actualiza viewport para tiles + actualiza zoom/center internos
   const handleBoundsChange = useCallback(
     (bounds: ViewportBounds) => {
       setViewportBounds(bounds);
 
-      if (onMapPositionChange) {
-        // CORRECCIÓN: Usar las propiedades correctas de tu interfaz ViewportBounds
-        const center = {
-          lat: (bounds.maxLat + bounds.minLat) / 2,
-          lng: (bounds.maxLng + bounds.minLng) / 2,
-        };
-        onMapPositionChange(center, bounds);
+      const center = {
+        lat: (bounds.maxLat + bounds.minLat) / 2,
+        lng: (bounds.maxLng + bounds.minLng) / 2,
+      };
+
+      // Actualiza solo si hubo cambio real (evita renders inútiles)
+      setMapCenter((prev) => (prev.lat === center.lat && prev.lng === center.lng ? prev : center));
+      if (typeof bounds.zoom === "number") {
+        setMapZoom((prev) => (prev === bounds.zoom ? prev : bounds.zoom));
       }
+
+      onMapPositionChange?.(center, bounds);
     },
     [onMapPositionChange],
   );
 
+  // ✅ Cluster click: NO lo manejamos aquí. Deja que Google/clusterer haga zoom natural.
   const handleMarkerClickInternal = useCallback(
     (id: string) => {
       if (id.startsWith("cluster-")) return;
