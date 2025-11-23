@@ -78,14 +78,13 @@ const getTipoLabel = (tipo: string) => {
     edificio: "🏛️ Edificio",
     rancho: "🐎 Rancho",
   };
-
-  // helper para comparar bounds y evitar churn/refetch infinito
-  const sameBounds = (a: ViewportBounds | null, b: ViewportBounds | null) => {
-    if (!a || !b) return false;
-    return a.minLat === b.minLat && a.maxLat === b.maxLat && a.minLng === b.minLng && a.maxLng === b.maxLng;
-  };
-
   return labels[tipo] || tipo;
+};
+
+// ✅ Helper para evitar churn por bounds idénticos
+const sameBounds = (a: ViewportBounds | null, b: ViewportBounds | null) => {
+  if (!a || !b) return false;
+  return a.minLat === b.minLat && a.maxLat === b.maxLat && a.minLng === b.minLng && a.maxLng === b.maxLng;
 };
 
 const Buscar = () => {
@@ -94,6 +93,7 @@ const Buscar = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isFiltering, setIsFiltering] = useState(false);
   const { trackGA4Event } = useTracking();
+  const navigate = useNavigate();
 
   const syncingFromUrl = useRef(false);
 
@@ -109,16 +109,12 @@ const Buscar = () => {
   const RENT_MAX_PRICE = 200;
 
   const getPriceRangeForListingType = (listingType: string): [number, number] => {
-    if (listingType === "renta") {
-      return [RENT_MIN_PRICE, RENT_MAX_PRICE];
-    }
+    if (listingType === "renta") return [RENT_MIN_PRICE, RENT_MAX_PRICE];
     return [SALE_MIN_PRICE, SALE_MAX_PRICE];
   };
 
   const convertSliderValueToPrice = (value: number, listingType: string): number => {
-    if (listingType === "renta") {
-      return value * 1000;
-    }
+    if (listingType === "renta") return value * 1000;
     return value * 1000000;
   };
 
@@ -137,7 +133,7 @@ const Buscar = () => {
     precioMin: "",
     precioMax: "",
     tipo: "",
-    listingType: "",
+    listingType: "venta",
     recamaras: "",
     banos: "",
     orden: "price_desc",
@@ -156,13 +152,13 @@ const Buscar = () => {
     orden: (searchParams.get("orden") as any) || "price_desc",
   });
 
-  // 🗺️ Bounds actuales del mapa para sincronizar listado con viewport
+  // 🗺️ Bounds SOLO para sincronizar LISTA con viewport
   const [mapBounds, setMapBounds] = useState<ViewportBounds | null>(null);
 
-  // ✅ Filtros para el MAPA (sin bounds). El mapa usa su propio viewport interno/tiles
+  // ✅ Filtros puros para MAPA (sin bounds)
   const mapFilters = useMemo(() => buildPropertyFilters(filters), [filters]);
 
-  // ✅ Filtros para la LISTA (con bounds cuando existan)
+  // ✅ Filtros para LISTA (con bounds cuando existan)
   const listFilters = useMemo(() => {
     return mapBounds ? { ...mapFilters, bounds: mapBounds } : mapFilters;
   }, [mapFilters, mapBounds]);
@@ -193,8 +189,8 @@ const Buscar = () => {
           return a.price - b.price;
         case "newest":
           return (
-            (a.created_at ? new Date(a.created_at).getTime() : 0) -
-            (b.created_at ? new Date(b.created_at).getTime() : 0) * -1
+            (b.created_at ? new Date(b.created_at).getTime() : 0) -
+            (a.created_at ? new Date(a.created_at).getTime() : 0)
           );
         case "oldest":
           return (
@@ -216,20 +212,19 @@ const Buscar = () => {
 
   const [searchCoordinates, setSearchCoordinates] = useState<{ lat: number; lng: number } | null>(null);
 
-  // ✅ Handler estabilizado: Solo loguea el movimiento, NO actualiza coordenadas
-  // Esto rompe el loop infinito que causaba el flash y bloqueo
-  // ✅ Handler estabilizado: actualiza bounds visibles para sincronizar lista con mapa
-  // Debounce 500ms y evita re-render si no cambiaron bounds
-  const handleMapPositionChange = useCallback((center: { lat: number; lng: number }, bounds: ViewportBounds) => {
-    if (mapMoveTimerRef.current) {
-      clearTimeout(mapMoveTimerRef.current);
-    }
-    mapMoveTimerRef.current = setTimeout(() => {
-      console.log("🗺️ Mapa estabilizado en:", { center, bounds });
-      setMapBounds((prev) => (sameBounds(prev, bounds) ? prev : bounds));
-      // NOTA: No llamamos a setSearchCoordinates aquí para evitar re-renderizados cíclicos
-    }, 500);
-  }, []);
+  // ✅ Actualiza bounds solo si cambian (evita loop tiles)
+  const handleMapPositionChange = useCallback(
+    (center: { lat: number; lng: number }, bounds: ViewportBounds) => {
+      if (mapMoveTimerRef.current) clearTimeout(mapMoveTimerRef.current);
+      mapMoveTimerRef.current = setTimeout(() => {
+        if (!sameBounds(mapBounds, bounds)) {
+          console.log("🗺️ Mapa estabilizado en:", { center, bounds });
+          setMapBounds(bounds);
+        }
+      }, 500);
+    },
+    [mapBounds],
+  );
 
   useEffect(() => {
     const propertyId = searchParams.get("propiedad");
@@ -263,6 +258,7 @@ const Buscar = () => {
 
   useEffect(() => {
     syncingFromUrl.current = true;
+
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
     if (lat && lng) {
@@ -271,7 +267,7 @@ const Buscar = () => {
       setSearchCoordinates(null);
     }
 
-    const newFilters = {
+    const newFilters: Filters = {
       estado: searchParams.get("estado") || "",
       municipio: searchParams.get("municipio") || "",
       colonia: searchParams.get("colonia") || "",
@@ -306,190 +302,10 @@ const Buscar = () => {
     Math.max(minRangeForType, Math.min(priceRange[1], maxRangeForType)),
   ];
 
-  const filteredSavedSearches = savedSearches
-    .filter((search) => search.name.toLowerCase().includes(savedSearchQuery.toLowerCase()))
-    .sort((a, b) =>
-      savedSearchSort === "name"
-        ? a.name.localeCompare(b.name)
-        : new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
-
   const handlePropertyHoverFromMap = useCallback((property: MapProperty | null) => {
     hoverFromMap.current = true;
     setHoveredProperty(property);
   }, []);
-
-  useEffect(() => {
-    const [minRange, maxRange] = getPriceRangeForListingType(filters.listingType);
-    const needsReset =
-      priceRange[0] < minRange || priceRange[0] > maxRange || priceRange[1] < minRange || priceRange[1] > maxRange;
-
-    if (needsReset) {
-      setPriceRange([minRange, maxRange]);
-      setFilters((prev) => ({ ...prev, precioMin: "", precioMax: "" }));
-    }
-  }, [filters.listingType, priceRange]);
-
-  useEffect(() => {
-    if (user) fetchSavedSearches();
-  }, [user]);
-
-  const fetchSavedSearches = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase
-        .from("saved_searches")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      setSavedSearches(data || []);
-    } catch (error) {
-      console.error("Error fetching saved searches:", error);
-    }
-  };
-
-  const handleSaveSearch = async () => {
-    if (!user) return toast({ title: "Inicia sesión", description: "Debes iniciar sesión", variant: "destructive" });
-    if (!searchName.trim()) return toast({ title: "Error", description: "Ingresa un nombre", variant: "destructive" });
-
-    try {
-      const { error } = await supabase
-        .from("saved_searches")
-        .insert([{ user_id: user.id, name: searchName, filters: filters as any }]);
-      if (error) throw error;
-      toast({ title: "Búsqueda guardada", description: `"${searchName}" guardada` });
-      setSearchName("");
-      setSaveDialogOpen(false);
-      fetchSavedSearches();
-    } catch (error: any) {
-      toast({ title: "Error", description: "No se pudo guardar", variant: "destructive" });
-    }
-  };
-
-  const handleLoadSearch = (savedFilters: any) => {
-    setFilters(savedFilters);
-    toast({ title: "Búsqueda cargada", description: "Filtros aplicados" });
-  };
-
-  const handleDeleteSearch = async (id: string, name: string) => {
-    try {
-      const { error } = await supabase.from("saved_searches").delete().eq("id", id);
-      if (error) throw error;
-      toast({ title: "Eliminada", description: `"${name}" eliminada` });
-      fetchSavedSearches();
-    } catch (error) {
-      console.error("Error deleting:", error);
-    }
-  };
-
-  useEffect(() => {
-    const currentListingType = filters.listingType;
-    const [minRange, maxRange] = getPriceRangeForListingType(currentListingType);
-    const minFromUrl = filters.precioMin
-      ? parseFloat(filters.precioMin) / (currentListingType === "renta" ? 1000 : 1000000)
-      : minRange;
-    const maxFromUrl = filters.precioMax
-      ? parseFloat(filters.precioMax) / (currentListingType === "renta" ? 1000 : 1000000)
-      : maxRange;
-    setPriceRange([minFromUrl, maxFromUrl]);
-  }, []);
-
-  const handlePriceRangeChange = (values: number[]) => {
-    setPriceRange(values as [number, number]);
-    const [minRange, maxRange] = getPriceRangeForListingType(filters.listingType);
-    setFilters((prev) => ({
-      ...prev,
-      precioMin: values[0] === minRange ? "" : convertSliderValueToPrice(values[0], prev.listingType).toString(),
-      precioMax: values[1] === maxRange ? "" : convertSliderValueToPrice(values[1], prev.listingType).toString(),
-    }));
-  };
-
-  const formatPriceDisplay = (value: number, listingType?: string) => {
-    const currentListingType = listingType || filters.listingType;
-    const [minRange, maxRange] = getPriceRangeForListingType(currentListingType);
-    if (value === 0 || value === minRange) return "$0";
-    if (value === maxRange) return "Sin límite";
-
-    if (currentListingType === "renta") {
-      return new Intl.NumberFormat("es-MX", {
-        style: "currency",
-        currency: "MXN",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value * 1000);
-    } else {
-      return value >= 1
-        ? `$${value.toFixed(1)}M`
-        : new Intl.NumberFormat("es-MX", {
-            style: "currency",
-            currency: "MXN",
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          }).format(value * 1000000);
-    }
-  };
-
-  useEffect(() => {
-    if (syncingFromUrl.current) return;
-    const params = new URLSearchParams();
-    if (filters.estado) params.set("estado", filters.estado);
-    if (filters.municipio) params.set("municipio", filters.municipio);
-    if (filters.colonia) params.set("colonia", filters.colonia);
-    if (filters.precioMin) params.set("precioMin", filters.precioMin);
-    if (filters.precioMax) params.set("precioMax", filters.precioMax);
-    if (filters.tipo) params.set("tipo", filters.tipo);
-    params.set("listingType", filters.listingType || "venta");
-    if (filters.recamaras) params.set("recamaras", filters.recamaras);
-    if (filters.banos) params.set("banos", filters.banos);
-    if (filters.orden !== "price_desc") params.set("orden", filters.orden);
-
-    if (searchCoordinates) {
-      params.set("lat", searchCoordinates.lat.toString());
-      params.set("lng", searchCoordinates.lng.toString());
-    }
-
-    const propiedad = searchParams.get("propiedad");
-    if (propiedad) params.set("propiedad", propiedad);
-
-    const next = params.toString();
-    const current = searchParams.toString();
-    if (next !== current) setSearchParams(params, { replace: true });
-  }, [filters, searchCoordinates]);
-
-  const removeFilter = (filterKey: keyof Filters) => {
-    setFilters((prev) => ({ ...prev, [filterKey]: filterKey === "orden" ? "price_desc" : "" }));
-  };
-
-  const getActiveFilterChips = () => {
-    const chips: Array<{ key: string; label: string; removeFilter: () => void }> = [];
-    if (filters.estado)
-      chips.push({ key: "estado", label: `Estado: ${filters.estado}`, removeFilter: () => removeFilter("estado") });
-    if (filters.municipio)
-      chips.push({
-        key: "municipio",
-        label: `Municipio: ${filters.municipio}`,
-        removeFilter: () => removeFilter("municipio"),
-      });
-    if (filters.colonia)
-      chips.push({ key: "colonia", label: `Colonia: ${filters.colonia}`, removeFilter: () => removeFilter("colonia") });
-    if (filters.tipo)
-      chips.push({ key: "tipo", label: getTipoLabel(filters.tipo), removeFilter: () => removeFilter("tipo") });
-    return chips;
-  };
-
-  const activeFiltersCount = [
-    filters.precioMin,
-    filters.precioMax,
-    filters.tipo,
-    filters.listingType,
-    filters.recamaras,
-    filters.banos,
-  ].filter(Boolean).length;
-
-  useEffect(() => {
-    setIsFiltering(isFetching && properties.length === 0);
-  }, [isFetching, properties.length]);
 
   const handlePropertyHoverFromList = useCallback((property: HoveredProperty | null) => {
     hoverFromMap.current = false;
@@ -525,11 +341,13 @@ const Buscar = () => {
 
   const handleSearchInputChange = (value: string) => {
     if (!value || value.trim() === "") {
-      setFilters((prev) => {
-        if (!prev.estado && !prev.municipio) return prev;
-        return { ...prev, estado: "", municipio: "" };
-      });
+      setFilters((prev) => ({
+        ...prev,
+        estado: "",
+        municipio: "",
+      }));
       setSearchCoordinates(null);
+      setMapBounds(null);
     }
   };
 
@@ -543,6 +361,7 @@ const Buscar = () => {
     if (location.lat && location.lng) {
       setSearchCoordinates({ lat: location.lat, lng: location.lng });
     }
+    setMapBounds(null);
     toast({ title: "Ubicación seleccionada", description: `${location.municipality}, ${location.state}` });
   };
 
@@ -558,9 +377,6 @@ const Buscar = () => {
     })),
     filters.municipio || filters.estado || "Propiedades en México",
   );
-
-  const handleOrdenChange = (value: string) => setFilters((prev) => ({ ...prev, orden: value as Filters["orden"] }));
-  const handleSavedSearchSortChange = (value: string) => setSavedSearchSort(value as "date" | "name");
 
   if (loading && !properties.length) {
     return (
@@ -601,13 +417,16 @@ const Buscar = () => {
                     onClick={() => {
                       setFilters(DEFAULT_FILTERS);
                       setSearchCoordinates(null);
+                      setMapBounds(null);
                     }}
                   >
                     <X className="h-4 w-4" />
                   </Button>
                 )}
               </div>
+
               <Separator orientation="vertical" className="h-8 hidden lg:block" />
+
               {/* Botón Filtros Móvil */}
               <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
                 <SheetTrigger asChild>
@@ -618,7 +437,6 @@ const Buscar = () => {
                 </SheetTrigger>
                 <SheetContent side="bottom" className="h-[90vh]">
                   <SheetTitle>Filtros</SheetTitle>
-                  {/* Contenido Sheet (Simplificado) */}
                   <ScrollArea className="h-[calc(90vh-120px)] mt-4">
                     <div className="p-4">
                       <p>Opciones de filtro aquí...</p>
@@ -626,6 +444,7 @@ const Buscar = () => {
                   </ScrollArea>
                 </SheetContent>
               </Sheet>
+
               {/* Filtros Desktop */}
               <div className="hidden lg:flex items-center gap-2">
                 <Popover>
@@ -644,7 +463,7 @@ const Buscar = () => {
                     </div>
                   </PopoverContent>
                 </Popover>
-                {/* Más popovers de filtros... */}
+
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" size="sm">
@@ -653,12 +472,27 @@ const Buscar = () => {
                   </PopoverTrigger>
                   <PopoverContent className="w-80">
                     <div className="p-4">
+                      {/* ✅ Slider dinámico correcto */}
                       <Slider
-                        min={0}
-                        max={100}
+                        min={minRangeForType}
+                        max={maxRangeForType}
                         step={1}
                         value={safePriceRange}
-                        onValueChange={handlePriceRangeChange}
+                        onValueChange={(values) => {
+                          setPriceRange(values as [number, number]);
+                          const [minR, maxR] = getPriceRangeForListingType(filters.listingType);
+                          setFilters((prev) => ({
+                            ...prev,
+                            precioMin:
+                              values[0] === minR
+                                ? ""
+                                : convertSliderValueToPrice(values[0], prev.listingType).toString(),
+                            precioMax:
+                              values[1] === maxR
+                                ? ""
+                                : convertSliderValueToPrice(values[1], prev.listingType).toString(),
+                          }));
+                        }}
                       />
                     </div>
                   </PopoverContent>
@@ -712,7 +546,7 @@ const Buscar = () => {
               </div>
             ) : (
               <SearchMap
-                filters={mapFilters}
+                filters={mapFilters} // ✅ MAPA sin bounds externos
                 searchCoordinates={searchCoordinates}
                 onMarkerClick={handleMarkerClick}
                 onPropertyHover={handlePropertyHoverFromMap}
@@ -721,8 +555,7 @@ const Buscar = () => {
                 height="100%"
                 onMapError={setMapError}
                 onVisibleCountChange={setMapVisibleCount}
-                // ✅ CONECTADO: Actualizar lista al mover mapa
-                onMapPositionChange={handleMapPositionChange}
+                onMapPositionChange={handleMapPositionChange} // ✅ manda bounds a lista
               />
             )}
           </div>
@@ -754,7 +587,7 @@ const Buscar = () => {
                 />
               </InfiniteScrollContainer>
             )}
-            {/* Estado vacío */}
+
             {!searchError && !loading && filteredProperties.length === 0 && (
               <div className="flex flex-col items-center justify-center p-12 space-y-4 text-center min-h-[400px]">
                 <div className="rounded-full bg-muted p-6">
@@ -765,6 +598,7 @@ const Buscar = () => {
                   onClick={() => {
                     setFilters(DEFAULT_FILTERS);
                     setSearchCoordinates(null);
+                    setMapBounds(null);
                   }}
                 >
                   Ver todas las zonas
