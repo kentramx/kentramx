@@ -157,9 +157,10 @@ export const SearchMap: React.FC<SearchMapProps> = ({
       // Avisar al componente padre que el mapa se movió
       // Esto permite sincronizar la lista con el viewport del mapa
       if (onMapPositionChange) {
+        // CORRECCIÓN: Usar las propiedades correctas de ViewportBounds (min/max en lugar de north/south)
         const center = {
-          lat: (bounds.north + bounds.south) / 2,
-          lng: (bounds.east + bounds.west) / 2,
+          lat: (bounds.maxLat + bounds.minLat) / 2,
+          lng: (bounds.maxLng + bounds.minLng) / 2,
         };
         onMapPositionChange(center, bounds);
       }
