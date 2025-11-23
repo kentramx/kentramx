@@ -5,14 +5,14 @@
  * - Manejo de estados de carga y vacío
  */
 
-import React, { useMemo, useCallback, useRef } from 'react';
-import { Star, AlertCircle } from 'lucide-react';
-import PropertyCard from '@/components/PropertyCard';
-import { PropertyStats } from '@/components/PropertyStats';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import type { PropertySummary, HoveredProperty } from '@/types/property';
+import React, { useMemo, useCallback, useRef } from "react";
+import { Star, AlertCircle } from "lucide-react";
+import PropertyCard from "@/components/PropertyCard";
+import { PropertyStats } from "@/components/PropertyStats";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { PropertySummary, HoveredProperty } from "@/types/property";
 
 interface SearchResultsListProps {
   properties: PropertySummary[];
@@ -24,6 +24,7 @@ interface SearchResultsListProps {
   onScrollToSavedSearches?: () => void;
   highlightedPropertyId?: string | null;
   scrollToPropertyId?: string | null;
+  hoveredPropertyId?: string | null; // ✅ Nueva prop
 }
 
 export const SearchResultsList: React.FC<SearchResultsListProps> = React.memo(
@@ -37,6 +38,7 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = React.memo(
     onScrollToSavedSearches,
     highlightedPropertyId,
     scrollToPropertyId,
+    hoveredPropertyId, // ✅ Recibir prop
   }) => {
     const propertyCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -46,8 +48,8 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = React.memo(
         const element = propertyCardRefs.current.get(scrollToPropertyId);
         if (element) {
           element.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center',
+            behavior: "smooth",
+            block: "center",
           });
         }
       }
@@ -74,7 +76,7 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = React.memo(
           onPropertyHover(null);
         }
       },
-      [onPropertyHover]
+      [onPropertyHover],
     );
 
     return (
@@ -86,18 +88,13 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = React.memo(
         {savedSearchesCount > 0 && (
           <Card>
             <CardContent className="p-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-between"
-                onClick={onScrollToSavedSearches}
-              >
+              <Button variant="ghost" size="sm" className="w-full justify-between" onClick={onScrollToSavedSearches}>
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4" />
                   <span className="text-sm font-medium">
                     {savedSearchesCount} búsqueda
-                    {savedSearchesCount !== 1 ? 's' : ''} guardada
-                    {savedSearchesCount !== 1 ? 's' : ''}
+                    {savedSearchesCount !== 1 ? "s" : ""} guardada
+                    {savedSearchesCount !== 1 ? "s" : ""}
                   </span>
                 </div>
               </Button>
@@ -124,9 +121,7 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = React.memo(
           <Card>
             <CardContent className="p-8 text-center">
               <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                No encontramos propiedades con estos filtros.
-              </p>
+              <p className="text-muted-foreground">No encontramos propiedades con estos filtros.</p>
             </CardContent>
           </Card>
         ) : (
@@ -136,6 +131,10 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = React.memo(
               const isFeatured = property.is_featured;
               const prevProperty = properties[index - 1];
               const isFirstRegular = index > 0 && prevProperty?.is_featured && !isFeatured;
+
+              // ✅ Estados de highlight y hover
+              const isHighlighted = highlightedPropertyId === property.id;
+              const isHovered = hoveredPropertyId === property.id;
 
               return (
                 <React.Fragment key={property.id}>
@@ -162,10 +161,12 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = React.memo(
                         propertyCardRefs.current.delete(property.id);
                       }
                     }}
-                    className={`transition-all duration-300 ${
-                      highlightedPropertyId === property.id 
-                        ? 'ring-2 ring-sky-500 ring-offset-2 scale-[1.02]' 
-                        : ''
+                    className={`transition-all duration-300 rounded-xl border ${
+                      isHighlighted
+                        ? "ring-2 ring-sky-500 ring-offset-2 border-primary shadow-lg z-10 scale-[1.02]"
+                        : isHovered
+                          ? "ring-2 ring-sky-500 ring-offset-2 border-primary shadow-md z-10" // ✅ Estilo para hover del mapa
+                          : "border-transparent hover:border-border"
                     }`}
                     onMouseEnter={() => handlePropertyHover(property)}
                     onMouseLeave={() => handlePropertyHover(null)}
@@ -203,7 +204,7 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = React.memo(
         )}
       </div>
     );
-  }
+  },
 );
 
-SearchResultsList.displayName = 'SearchResultsList';
+SearchResultsList.displayName = "SearchResultsList";
