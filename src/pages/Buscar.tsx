@@ -149,9 +149,11 @@ const Buscar = () => {
     orden: (searchParams.get("orden") as any) || "price_desc",
   });
 
+  // 🗺️ Bounds actuales del mapa para sincronizar listado con viewport
+  const [mapBounds, setMapBounds] = useState<ViewportBounds | null>(null);
+
   const propertyFilters = useMemo(() => {
     const baseFilters = buildPropertyFilters(filters);
-    // 🗺️ Si hay bounds del mapa, filtramos la lista por viewport
     return mapBounds ? { ...baseFilters, bounds: mapBounds } : baseFilters;
   }, [filters, mapBounds]);
 
