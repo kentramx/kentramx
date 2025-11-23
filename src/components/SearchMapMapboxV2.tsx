@@ -52,6 +52,11 @@ export const SearchMapMapboxV2: React.FC<SearchMapMapboxV2Props> = ({
   const [mapError, setMapError] = useState<string | null>(null);
   const previousMarkersRef = useRef<any[]>([]);
 
+  // ✅ Debug overlay: visible en DEV o con ?debugMap=1
+  const debugEnabled =
+    import.meta.env.DEV ||
+    new URLSearchParams(window.location.search).get('debugMap') === '1';
+
   // 🚀 TILE-BASED ARCHITECTURE V2
   const { data: viewportData, isLoading, error } = useTiledMapV2(
     viewportBounds,
@@ -386,6 +391,24 @@ export const SearchMapMapboxV2: React.FC<SearchMapMapboxV2Props> = ({
           <div className="rounded-full bg-background/90 px-4 py-2 text-sm text-muted-foreground shadow-lg backdrop-blur-sm">
             Acerca un poco más el mapa para ver propiedades.
           </div>
+        </div>
+      )}
+
+      {/* ✅ Debug overlay para diagnóstico */}
+      {debugEnabled && (
+        <div className="absolute bottom-2 left-2 z-50 bg-black/80 text-white text-xs p-3 rounded-lg max-w-xs space-y-1">
+          <div className="font-semibold">Mapbox Debug</div>
+          <div>styleLoaded: {String(mapRef.current?.isStyleLoaded?.())}</div>
+          <div>bounds: {viewportBounds ? JSON.stringify(viewportBounds) : 'null'}</div>
+          <div>properties: {properties.length}</div>
+          <div>clusters: {clusters.length}</div>
+          <div>hasTooManyResults: {String(hasTooManyResults)}</div>
+          <div>tokenPresent: {String(!!(import.meta.env.VITE_MAPBOX_TOKEN || import.meta.env.VITE_MAPBOX_ACCESS_TOKEN))}</div>
+          {mapError && (
+            <div className="text-red-300 break-words">
+              lastError: {mapError}
+            </div>
+          )}
         </div>
       )}
     </div>
