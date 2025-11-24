@@ -140,77 +140,111 @@ export const SearchMapMapboxV2: React.FC<SearchMapMapboxV2Props> = ({
     if (didInitRef.current) return;
     didInitRef.current = true;
 
-    // ✅ Acepta cualquiera de los dos nombres de env (retrocompatibilidad)
-    const token =
-      import.meta.env.VITE_MAPBOX_TOKEN ||
-      import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
-      '';
+    // ✅ Función asíncrona para inicializar el mapa con el token
+    const initializeMap = async () => {
+      // ✅ Primero intentar desde variables de entorno (build-time)
+      let token =
+        import.meta.env.VITE_MAPBOX_TOKEN ||
+        import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
+        '';
 
-    const tokenNameUsed = import.meta.env.VITE_MAPBOX_TOKEN 
-      ? 'VITE_MAPBOX_TOKEN' 
-      : 'VITE_MAPBOX_ACCESS_TOKEN';
+      let tokenSource = 'env';
 
-    // 🔍 Actualizar debug data con token
-    setDebugData(prev => ({
-      ...prev,
-      tokenInfo: {
-        envKeyUsed: tokenNameUsed,
-        tokenLength: token.length,
-      },
-    }));
+      // 🚨 Si no hay token en env, intentar desde edge function (runtime fallback)
+      if (!token) {
+        console.log('⚠️ [Mapbox] Token no encontrado en env, intentando desde edge function...');
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-config`,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            }
+          );
 
-    // 🚨 LOGS SIEMPRE VISIBLES (incluso en preview)
-    console.log('🔑 [Mapbox Token Check] INICIO', {
-      hasVITE_MAPBOX_TOKEN: !!import.meta.env.VITE_MAPBOX_TOKEN,
-      hasVITE_MAPBOX_ACCESS_TOKEN: !!import.meta.env.VITE_MAPBOX_ACCESS_TOKEN,
-      tokenLength: token.length,
-      tokenNameUsed,
-      tokenFirstChars: token ? token.substring(0, 6) + '...' : 'NINGUNO',
-      allEnvKeys: Object.keys(import.meta.env).filter(k => k.includes('MAPBOX')),
-    });
+          if (response.ok) {
+            const config = await response.json();
+            token = config.mapboxAccessToken || '';
+            tokenSource = 'edge-function';
+            console.log('✅ [Mapbox] Token obtenido desde edge function', {
+              tokenLength: token.length,
+              tokenStart: token ? token.substring(0, 6) : 'N/A',
+            });
+          } else {
+            console.error('❌ [Mapbox] Error al cargar config desde edge function:', response.status);
+          }
+        } catch (fetchError) {
+          console.error('❌ [Mapbox] Excepción al cargar config:', fetchError);
+        }
+      }
 
-    if (!token) {
-      const errorMsg =
-        '❌ FALTA TOKEN DE MAPBOX. Configura VITE_MAPBOX_ACCESS_TOKEN en Lovable Cloud Secrets y fuerza un rebuild.';
-      
-      console.error('🚨 [SearchMapMapboxV2] ERROR CRÍTICO:', errorMsg);
-      console.error('🔍 Variables de entorno disponibles:', Object.keys(import.meta.env));
-      console.error('📋 Valores de env:', {
-        VITE_MAPBOX_TOKEN: import.meta.env.VITE_MAPBOX_TOKEN || 'undefined',
-        VITE_MAPBOX_ACCESS_TOKEN: import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 'undefined',
-      });
-      
-      setMapError(errorMsg);
+      const tokenNameUsed = tokenSource === 'env' 
+        ? (import.meta.env.VITE_MAPBOX_TOKEN ? 'VITE_MAPBOX_TOKEN' : 'VITE_MAPBOX_ACCESS_TOKEN')
+        : 'edge-function';
+
+      // 🔍 Actualizar debug data con token
       setDebugData(prev => ({
         ...prev,
-        errors: { ...prev.errors, lastMapboxError: errorMsg },
+        tokenInfo: {
+          envKeyUsed: tokenNameUsed,
+          tokenLength: token.length,
+        },
       }));
-      monitoring.error('[SearchMapMapboxV2] Token no configurado');
-      onMapError?.(errorMsg);
-      return;
-    }
 
-    console.log('✅ [Mapbox] Token configurado correctamente', {
-      tokenLength: token.length,
-      tokenStart: token.substring(0, 6),
-      accessTokenAssigned: !!mapboxgl.accessToken,
-    });
+      // 🚨 LOGS SIEMPRE VISIBLES (incluso en preview)
+      console.log('🔑 [Mapbox Token Check] RESULTADO', {
+        tokenSource,
+        hasVITE_MAPBOX_TOKEN: !!import.meta.env.VITE_MAPBOX_TOKEN,
+        hasVITE_MAPBOX_ACCESS_TOKEN: !!import.meta.env.VITE_MAPBOX_ACCESS_TOKEN,
+        tokenLength: token.length,
+        tokenNameUsed,
+        tokenFirstChars: token ? token.substring(0, 6) + '...' : 'NINGUNO',
+        allEnvKeys: Object.keys(import.meta.env).filter(k => k.includes('MAPBOX')),
+      });
 
-    mapboxgl.accessToken = token;
+      if (!token) {
+        const errorMsg =
+          '❌ Token de Mapbox no disponible. Intenta recargar la página o contacta soporte.';
+        
+        console.error('🚨 [SearchMapMapboxV2] ERROR CRÍTICO:', errorMsg);
+        console.error('🔍 Variables de entorno disponibles:', Object.keys(import.meta.env));
+        console.error('📋 Valores de env:', {
+          VITE_MAPBOX_TOKEN: import.meta.env.VITE_MAPBOX_TOKEN || 'undefined',
+          VITE_MAPBOX_ACCESS_TOKEN: import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 'undefined',
+        });
+        
+        setMapError(errorMsg);
+        setDebugData(prev => ({
+          ...prev,
+          errors: { ...prev.errors, lastMapboxError: errorMsg },
+        }));
+        monitoring.error('[SearchMapMapboxV2] Token no configurado');
+        onMapError?.(errorMsg);
+        return;
+      }
 
-    const center: [number, number] = searchCoordinates
-      ? [searchCoordinates.lng, searchCoordinates.lat]
-      : [-102.5528, 23.6345]; // Centro de México
-    const zoom = searchCoordinates ? 12 : 5;
+      console.log('✅ [Mapbox] Token configurado correctamente', {
+        tokenSource,
+        tokenLength: token.length,
+        tokenStart: token.substring(0, 6),
+      });
 
-    const map = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center,
-      zoom,
-    });
+      mapboxgl.accessToken = token;
 
-    mapRef.current = map;
+      const center: [number, number] = searchCoordinates
+        ? [searchCoordinates.lng, searchCoordinates.lat]
+        : [-102.5528, 23.6345]; // Centro de México
+      const zoom = searchCoordinates ? 12 : 5;
+
+      const map = new mapboxgl.Map({
+        container: mapContainer.current!,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center,
+        zoom,
+      });
+
+      mapRef.current = map;
 
     // ✅ Capturar errores de Mapbox (403 token, CSP, style fail, etc.)
     map.on('error', (e: any) => {
@@ -403,6 +437,10 @@ export const SearchMapMapboxV2: React.FC<SearchMapMapboxV2Props> = ({
       map.remove();
       didInitRef.current = false;
     };
+    };
+
+    // Ejecutar la inicialización
+    initializeMap();
   }, []); // Solo inicializar una vez
 
   // ✅ Update de datos con source.setData()
