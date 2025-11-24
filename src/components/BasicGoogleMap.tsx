@@ -308,7 +308,9 @@ export function BasicGoogleMap({
         
         monitoring.debug('[BasicGoogleMap] Mapa inicializado correctamente');
       } catch (err) {
-        console.error('❌ [BasicGoogleMap] Error al inicializar:', err);
+        if (MAP_DEBUG) {
+          console.error('[KENTRA MAP] Error al inicializar mapa', err);
+        }
         const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
         setError(errorMessage);
         onMapError?.(err instanceof Error ? err : new Error(errorMessage));
