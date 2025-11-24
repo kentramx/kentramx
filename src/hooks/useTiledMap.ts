@@ -45,6 +45,9 @@ import type { MapProperty, PropertyCluster, PropertyFilters, PropertyStatus } fr
 import { monitoring } from '@/lib/monitoring';
 import { useEffect } from 'react';
 
+// 🔧 Debug flag controlado para logs de diagnóstico
+const MAP_DEBUG = typeof window !== 'undefined' && (window as any).__KENTRA_MAP_DEBUG__ === true;
+
 export interface ViewportBounds {
   minLng: number;
   minLat: number;
@@ -138,27 +141,18 @@ export const useTiledMap = (
       if (filters?.recamaras) filtersJson.minBedrooms = parseInt(filters.recamaras);
       if (filters?.banos) filtersJson.minBathrooms = parseInt(filters.banos);
 
-      // 🗺️ Logging completo de filtros para debugging
-      console.log('🗺️ [useTiledMap] Llamada a get_map_tiles:', {
-        bounds: {
-          minLng: bounds.minLng.toFixed(4),
-          minLat: bounds.minLat.toFixed(4),
-          maxLng: bounds.maxLng.toFixed(4),
-          maxLat: bounds.maxLat.toFixed(4),
-          zoom: bounds.zoom
-        },
-        filtersJson,
-        rawFilters: {
-          estado: filters?.estado,
-          municipio: filters?.municipio,
-          listingType: filters?.listingType,
-          tipo: filters?.tipo,
-          precioMin: filters?.precioMin,
-          precioMax: filters?.precioMax,
-          recamaras: filters?.recamaras,
-          banos: filters?.banos
-        }
-      });
+      if (MAP_DEBUG) {
+        console.log('[KENTRA MAP] Cargando tiles', {
+          bounds: {
+            minLng: bounds.minLng.toFixed(4),
+            minLat: bounds.minLat.toFixed(4),
+            maxLng: bounds.maxLng.toFixed(4),
+            maxLat: bounds.maxLat.toFixed(4),
+            zoom: bounds.zoom
+          },
+          filters: filtersJson
+        });
+      }
 
       // 🎯 Llamar a función RPC simple
       const { data, error } = await supabase.rpc('get_map_tiles', {
@@ -181,13 +175,6 @@ export const useTiledMap = (
       }
 
       const loadTime = performance.now() - startTime;
-
-      // 📊 Log de performance
-      monitoring.debug('[useTiledMap] Tiles loaded', {
-        zoom: bounds.zoom,
-        loadTimeMs: Math.round(loadTime),
-        dataReceived: data ? 'yes' : 'no',
-      });
 
       if (!data) {
         return { clusters: [], properties: [] };
@@ -235,12 +222,14 @@ export const useTiledMap = (
         properties.length = MAX_PROPERTIES_PER_TILE;
       }
 
-      monitoring.debug('[useTiledMap] Data processed', {
-        zoom: bounds.zoom,
-        clustersCount: clusters.length,
-        propertiesCount: properties.length,
-        loadTimeMs: Math.round(loadTime),
-      });
+      if (MAP_DEBUG) {
+        console.log('[KENTRA MAP] Tiles procesados', {
+          zoom: bounds.zoom,
+          clusters: clusters.length,
+          properties: properties.length,
+          loadTimeMs: Math.round(loadTime)
+        });
+      }
 
       return { clusters, properties };
     },

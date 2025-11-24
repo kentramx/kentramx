@@ -41,13 +41,13 @@ import { monitoring } from '@/lib/monitoring';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+// 🔧 Debug flag controlado para logs de diagnóstico
+const MAP_DEBUG = typeof window !== 'undefined' && (window as any).__KENTRA_MAP_DEBUG__ === true;
+
 interface SearchMapProps {
   filters: PropertyFilters;
   searchCoordinates: { lat: number; lng: number } | null;
   onMarkerClick: (id: string) => void;
-  onPropertyHover?: (property: MapProperty | null) => void;
-  hoveredPropertyId?: string | null;
-  hoveredPropertyCoords?: { lat: number; lng: number } | null;
   height?: string;
   onMapError?: (error: string) => void;
   onVisibleCountChange?: (count: number) => void;
@@ -57,9 +57,6 @@ export const SearchMap: React.FC<SearchMapProps> = ({
   filters,
   searchCoordinates,
   onMarkerClick,
-  onPropertyHover,
-  hoveredPropertyId,
-  hoveredPropertyCoords,
   height = '100%',
   onMapError,
   onVisibleCountChange,
@@ -207,22 +204,6 @@ export const SearchMap: React.FC<SearchMapProps> = ({
     [onMarkerClick]
   );
 
-  // ✅ Callback para hover que convierte markerId a MapProperty
-  const handleMarkerHover = useCallback(
-    (markerId: string | null) => {
-      if (!onPropertyHover) return;
-      
-      if (markerId) {
-        const property = properties.find((p) => p.id === markerId);
-        if (property) {
-          onPropertyHover(property);
-        }
-      } else {
-        onPropertyHover(null);
-      }
-    },
-    [properties, onPropertyHover]
-  );
 
   return (
     <div className="relative w-full" style={{ height }}>
@@ -233,9 +214,6 @@ export const SearchMap: React.FC<SearchMapProps> = ({
         enableClustering={true}
         onBoundsChanged={handleBoundsChange}
         onMarkerClick={handleMarkerClickInternal}
-        onMarkerHover={handleMarkerHover}
-        hoveredMarkerId={hoveredPropertyId}
-        hoveredPropertyCoords={hoveredPropertyCoords}
         disableAutoFit={true}
         onMapError={handleMapError}
       />
