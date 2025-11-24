@@ -40,6 +40,10 @@
  * No crear loaders alternativos o cargar el script manualmente en otros lugares.
  */
 /// <reference types="google.maps" />
+
+// 🔧 Debug flag controlado para logs de diagnóstico
+const MAP_DEBUG = typeof window !== 'undefined' && (window as any).__KENTRA_MAP_DEBUG__ === true;
+
 let googleMapsPromise: Promise<typeof google.maps> | null = null;
 
 export const loadGoogleMaps = (): Promise<typeof google.maps> => {
@@ -82,7 +86,9 @@ export const loadGoogleMaps = (): Promise<typeof google.maps> => {
       // Callback global cuando el script se carga exitosamente
       (window as any).initGoogleMaps = () => {
         if (window.google && window.google.maps) {
-          console.log('[GoogleMaps] loaded OK ✓');
+          if (MAP_DEBUG) {
+            console.log('[KENTRA MAP] Google Maps API cargada correctamente');
+          }
           window.dispatchEvent(new Event('google-maps-loaded'));
           resolve(window.google.maps);
         } else {

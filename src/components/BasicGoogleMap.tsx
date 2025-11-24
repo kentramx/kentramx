@@ -39,6 +39,9 @@ import { loadGoogleMaps } from '@/lib/loadGoogleMaps';
 import { MarkerClusterer, GridAlgorithm } from '@googlemaps/markerclusterer';
 import { monitoring } from '@/lib/monitoring';
 
+// 🔧 Debug flag controlado para logs de diagnóstico
+const MAP_DEBUG = typeof window !== 'undefined' && (window as any).__KENTRA_MAP_DEBUG__ === true;
+
 // 🚀 Caché global de SVGs para evitar regenerar el mismo ícono muchas veces
 const svgCache = new Map<string, string>();
 
@@ -177,11 +180,7 @@ interface BasicGoogleMapProps {
   onReady?: (map: google.maps.Map) => void;
   enableClustering?: boolean;
   onMarkerClick?: (id: string) => void;
-  onFavoriteClick?: (id: string) => void;
   disableAutoFit?: boolean;
-  hoveredMarkerId?: string | null;
-  hoveredPropertyCoords?: { lat: number; lng: number } | null;
-  onMarkerHover?: (id: string | null) => void;
   onBoundsChanged?: (bounds: {
     minLat: number;
     maxLat: number;
@@ -233,11 +232,13 @@ export function BasicGoogleMap({
         await loadGoogleMaps();
         if (!mounted || !containerRef.current) return;
         
-        console.log('🗺️ [BasicGoogleMap] Inicializando mapa con marcadores nativos:', {
-          center,
-          zoom,
-          totalMarkers: markers.length
-        });
+        if (MAP_DEBUG) {
+          console.log('[KENTRA MAP] Inicializando mapa', {
+            center,
+            zoom,
+            totalMarkers: markers.length
+          });
+        }
 
         mapRef.current = new google.maps.Map(containerRef.current, {
           center,
@@ -275,14 +276,15 @@ export function BasicGoogleMap({
                 const sw = bounds.getSouthWest();
                 const mapCenter = mapRef.current.getCenter();
                 
-                console.log('🗺️ [BasicGoogleMap] Bounds cambiados:', {
-                  minLng: sw.lng(),
-                  minLat: sw.lat(),
-                  maxLng: ne.lng(),
-                  maxLat: ne.lat(),
-                  zoom,
-                  center: { lat: mapCenter?.lat(), lng: mapCenter?.lng() }
-                });
+                if (MAP_DEBUG) {
+                  console.log('[KENTRA MAP] Bounds actualizados', {
+                    minLng: sw.lng().toFixed(4),
+                    minLat: sw.lat().toFixed(4),
+                    maxLng: ne.lng().toFixed(4),
+                    maxLat: ne.lat().toFixed(4),
+                    zoom
+                  });
+                }
                 
                 onBoundsChanged({
                   minLat: sw.lat(),
@@ -365,16 +367,20 @@ export function BasicGoogleMap({
     
     // ✅ Si no hay cambios, skip completo
     if (changesDetected === 0) {
-      console.log('⚡ [BasicGoogleMap] Sin cambios detectados, skip renderizado');
+      if (MAP_DEBUG) {
+        console.log('[KENTRA MAP] Sin cambios, skip renderizado');
+      }
       return;
     }
     
-    console.log('🎯 [BasicGoogleMap] Diffing:', { 
-      total: markers.length,
-      toAdd: toAdd.size,
-      toUpdate: toUpdate.size, 
-      toRemove: toRemove.size 
-    });
+    if (MAP_DEBUG) {
+      console.log('[KENTRA MAP] Actualizando marcadores', { 
+        total: markers.length,
+        toAdd: toAdd.size,
+        toUpdate: toUpdate.size, 
+        toRemove: toRemove.size 
+      });
+    }
 
     // 🗑️ Eliminar marcadores obsoletos
     toRemove.forEach(id => {
@@ -491,15 +497,6 @@ export function BasicGoogleMap({
     // 💾 Actualizar estado anterior para próximo diffing
     previousMarkersRef.current = currentMarkersMap;
 
-    console.log('✅ [BasicGoogleMap] Marcadores actualizados:', { 
-      total: markers.length,
-      valid: validMarkersCount,
-      hasBackendClusters,
-      added: toAdd.size,
-      updated: toUpdate.size,
-      removed: toRemove.size
-    });
-
     // Aplicar clustering solo si NO hay clusters del backend
     if (enableClustering && !hasBackendClusters && newMarkers.length > 0) {
       try {
@@ -538,9 +535,10 @@ export function BasicGoogleMap({
           renderer: customRenderer,
         });
         
-        console.log('🎨 [BasicGoogleMap] Clustering aplicado');
+        if (MAP_DEBUG) {
+          console.log('[KENTRA MAP] Clustering aplicado');
+        }
       } catch (err) {
-        console.error('❌ Error al crear clusterer:', err);
         monitoring.error('[BasicGoogleMap] Error al crear clusterer', { error: err });
       }
     }
@@ -562,11 +560,14 @@ export function BasicGoogleMap({
     }
 
     const renderTime = performance.now() - renderStartTime;
-    monitoring.debug(`[BasicGoogleMap] Renderizado completo`, { 
-      markersCount: validMarkersCount,
-      renderTime: `${renderTime.toFixed(2)}ms`,
-      clustering: enableClustering 
-    });
+    
+    if (MAP_DEBUG) {
+      console.log('[KENTRA MAP] Renderizado completo', { 
+        markersCount: validMarkersCount,
+        renderTimeMs: renderTime.toFixed(2),
+        clustering: enableClustering 
+      });
+    }
 
   }, [markers, enableClustering, disableAutoFit, mapReady, currentZoom]);
 

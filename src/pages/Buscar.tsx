@@ -1509,13 +1509,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                 filters={propertyFilters}
                 searchCoordinates={searchCoordinates}
                 onMarkerClick={handleMarkerClick}
-                onPropertyHover={handlePropertyHoverFromMap}
-                hoveredPropertyId={hoveredProperty?.id || null}
-                hoveredPropertyCoords={
-                  hoveredProperty?.lat && hoveredProperty?.lng
-                    ? { lat: hoveredProperty.lat, lng: hoveredProperty.lng }
-                    : null
-                }
                 height="100%"
                 onMapError={setMapError}
                 onVisibleCountChange={setMapVisibleCount}
