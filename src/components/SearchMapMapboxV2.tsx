@@ -1,4 +1,4 @@
-// Rebuild trigger: 2025-11-23 16:35 - Forzar rebuild para inyectar VITE_MAPBOX_ACCESS_TOKEN
+// Rebuild trigger: 2025-11-23 16:42 - LOGS AGRESIVOS SIEMPRE VISIBLES
 /**
  * ✅ Componente de mapa V2 con Mapbox GL JS (WebGL layers)
  * - Arquitectura ultra-escalable tipo Zillow
@@ -126,7 +126,18 @@ export const SearchMapMapboxV2: React.FC<SearchMapMapboxV2Props> = ({
 
   // ✅ Inicialización Mapbox estable (solo una vez con didInitRef)
   useEffect(() => {
-    if (didInitRef.current || !mapContainer.current) return;
+    if (!mapContainer.current) return;
+
+    // 🚨 LOG AGRESIVO: Verificar montaje del componente
+    console.log('🗺️ [SearchMapMapboxV2] COMPONENTE MONTADO', {
+      timestamp: new Date().toISOString(),
+      containerExists: !!mapContainer.current,
+      didInitRef: didInitRef.current,
+      isDEV: import.meta.env.DEV,
+      isPreview: window.location.hostname.includes('lovable.app'),
+    });
+
+    if (didInitRef.current) return;
     didInitRef.current = true;
 
     // ✅ Acepta cualquiera de los dos nombres de env (retrocompatibilidad)
@@ -148,18 +159,27 @@ export const SearchMapMapboxV2: React.FC<SearchMapMapboxV2Props> = ({
       },
     }));
 
-    if (import.meta.env.DEV) {
-      console.log('[Mapbox Token Check]', {
-        hasVITE_MAPBOX_TOKEN: !!import.meta.env.VITE_MAPBOX_TOKEN,
-        hasVITE_MAPBOX_ACCESS_TOKEN: !!import.meta.env.VITE_MAPBOX_ACCESS_TOKEN,
-        tokenLength: token.length,
-        tokenNameUsed,
-      });
-    }
+    // 🚨 LOGS SIEMPRE VISIBLES (incluso en preview)
+    console.log('🔑 [Mapbox Token Check] INICIO', {
+      hasVITE_MAPBOX_TOKEN: !!import.meta.env.VITE_MAPBOX_TOKEN,
+      hasVITE_MAPBOX_ACCESS_TOKEN: !!import.meta.env.VITE_MAPBOX_ACCESS_TOKEN,
+      tokenLength: token.length,
+      tokenNameUsed,
+      tokenFirstChars: token ? token.substring(0, 6) + '...' : 'NINGUNO',
+      allEnvKeys: Object.keys(import.meta.env).filter(k => k.includes('MAPBOX')),
+    });
 
     if (!token) {
       const errorMsg =
-        'Falta token de Mapbox. Configura VITE_MAPBOX_TOKEN (o VITE_MAPBOX_ACCESS_TOKEN) en Lovable Cloud Secrets.';
+        '❌ FALTA TOKEN DE MAPBOX. Configura VITE_MAPBOX_ACCESS_TOKEN en Lovable Cloud Secrets y fuerza un rebuild.';
+      
+      console.error('🚨 [SearchMapMapboxV2] ERROR CRÍTICO:', errorMsg);
+      console.error('🔍 Variables de entorno disponibles:', Object.keys(import.meta.env));
+      console.error('📋 Valores de env:', {
+        VITE_MAPBOX_TOKEN: import.meta.env.VITE_MAPBOX_TOKEN || 'undefined',
+        VITE_MAPBOX_ACCESS_TOKEN: import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 'undefined',
+      });
+      
       setMapError(errorMsg);
       setDebugData(prev => ({
         ...prev,
@@ -169,6 +189,12 @@ export const SearchMapMapboxV2: React.FC<SearchMapMapboxV2Props> = ({
       onMapError?.(errorMsg);
       return;
     }
+
+    console.log('✅ [Mapbox] Token configurado correctamente', {
+      tokenLength: token.length,
+      tokenStart: token.substring(0, 6),
+      accessTokenAssigned: !!mapboxgl.accessToken,
+    });
 
     mapboxgl.accessToken = token;
 
