@@ -186,6 +186,15 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   const viewportProperties = viewportData?.properties ?? [];
   const viewportClusters = viewportData?.clusters ?? [];
 
+  // 🔍 LOGS TEMPORALES - Verificar que bounds y properties se cargan
+  useEffect(() => {
+    console.log('[PARENT bounds]', viewportBounds);
+  }, [viewportBounds]);
+
+  useEffect(() => {
+    console.log('[PARENT viewportProperties]', viewportProperties.length);
+  }, [viewportProperties]);
+
   // Ordenar propiedades según criterio seleccionado
   // PRIORIDAD: Destacadas primero, luego aplicar orden seleccionado
   const sortedProperties = useMemo(() => {
