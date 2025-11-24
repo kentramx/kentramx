@@ -71,6 +71,11 @@ export const SearchMapMapboxV2: React.FC<SearchMapMapboxV2Props> = ({
       tokenLength: 0,
     },
     workerFixEnabled: true, // CSP worker fix siempre activo
+    webglInfo: {
+      supported: false,
+      vendor: '',
+      renderer: '',
+    },
     viewport: {
       boundsKey: null as string | null,
       zoom: 5,
@@ -232,19 +237,81 @@ export const SearchMapMapboxV2: React.FC<SearchMapMapboxV2Props> = ({
 
       mapboxgl.accessToken = token;
 
+      // 🖥️ Verificar soporte WebGL ANTES de crear el mapa
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') as WebGLRenderingContext | null || 
+                 canvas.getContext('experimental-webgl') as WebGLRenderingContext | null;
+      const webglSupported = !!gl;
+      const webglVendor = gl ? (gl.getParameter(gl.VENDOR) as string) : 'N/A';
+      const webglRenderer = gl ? (gl.getParameter(gl.RENDERER) as string) : 'N/A';
+
+      console.log('🖥️ [WebGL Check]', {
+        supported: webglSupported,
+        vendor: webglVendor,
+        renderer: webglRenderer,
+      });
+
+      // 🔍 Actualizar debug data con WebGL info
+      setDebugData(prev => ({
+        ...prev,
+        webglInfo: {
+          supported: webglSupported,
+          vendor: webglVendor,
+          renderer: webglRenderer,
+        },
+      }));
+
+      if (!webglSupported) {
+        const errorMsg = '❌ Tu navegador no soporta WebGL (requerido para el mapa). Intenta actualizar tu navegador o usar Chrome/Firefox.';
+        console.error('🚨 [WebGL] No disponible');
+        setMapError(errorMsg);
+        setDebugData(prev => ({
+          ...prev,
+          errors: { ...prev.errors, lastMapboxError: errorMsg },
+        }));
+        onMapError?.(errorMsg);
+        return;
+      }
+
       const center: [number, number] = searchCoordinates
         ? [searchCoordinates.lng, searchCoordinates.lat]
         : [-102.5528, 23.6345]; // Centro de México
       const zoom = searchCoordinates ? 12 : 5;
 
-      const map = new mapboxgl.Map({
-        container: mapContainer.current!,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center,
-        zoom,
-      });
-
-      mapRef.current = map;
+      // ✅ Wrap map creation en try-catch para capturar errores síncronos de WebGL
+      let map: mapboxgl.Map;
+      try {
+        map = new mapboxgl.Map({
+          container: mapContainer.current!,
+          style: 'mapbox://styles/mapbox/streets-v12',
+          center,
+          zoom,
+        });
+        mapRef.current = map;
+        console.log('✅ [Mapbox] Mapa creado exitosamente');
+      } catch (error: any) {
+        const errorMsg = error?.message || 'Error al inicializar el mapa';
+        console.error('🚨 [Mapbox] Error durante new mapboxgl.Map():', error);
+        
+        // Detectar error WebGL específicamente
+        if (errorMsg.toLowerCase().includes('webgl')) {
+          const webglError = '❌ Tu navegador no puede inicializar WebGL (requerido para el mapa). Intenta cerrar otras pestañas o actualizar tu navegador.';
+          setMapError(webglError);
+          setDebugData(prev => ({
+            ...prev,
+            errors: { ...prev.errors, lastMapboxError: webglError },
+          }));
+          onMapError?.(webglError);
+        } else {
+          setMapError(errorMsg);
+          setDebugData(prev => ({
+            ...prev,
+            errors: { ...prev.errors, lastMapboxError: errorMsg },
+          }));
+          onMapError?.(errorMsg);
+        }
+        return;
+      }
 
     // ✅ Capturar errores de Mapbox (403 token, CSP, style fail, etc.)
     map.on('error', (e: any) => {
@@ -536,13 +603,28 @@ export const SearchMapMapboxV2: React.FC<SearchMapMapboxV2Props> = ({
       {/* ❌ Overlay de error crítico */}
       {mapError && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm">
-          <div className="pointer-events-auto rounded-lg bg-background border border-destructive/20 px-6 py-4 shadow-xl max-w-sm">
+          <div className="pointer-events-auto rounded-lg bg-background border border-destructive/20 px-6 py-4 shadow-xl max-w-md mx-4">
             <div className="flex flex-col items-center gap-3 text-center">
               <AlertCircle className="h-10 w-10 text-destructive" />
-              <div>
+              <div className="space-y-2">
                 <p className="font-medium text-foreground">No pudimos cargar el mapa</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Configura VITE_MAPBOX_ACCESS_TOKEN en Lovable Cloud Secrets.
+                <p className="text-sm text-muted-foreground">{mapError}</p>
+                
+                {/* ⚠️ Soluciones específicas para WebGL */}
+                {mapError.toLowerCase().includes('webgl') && (
+                  <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md text-left border border-amber-200 dark:border-amber-800">
+                    <p className="text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                      <strong className="block mb-1">💡 Posibles soluciones:</strong>
+                      <span className="block">• Cierra otras pestañas con mapas o videos</span>
+                      <span className="block">• Actualiza tu navegador a la última versión</span>
+                      <span className="block">• Intenta usar Chrome o Firefox</span>
+                      <span className="block">• Verifica que WebGL esté habilitado en tu navegador</span>
+                    </p>
+                  </div>
+                )}
+                
+                <p className="text-xs text-muted-foreground mt-2">
+                  Puedes seguir usando la lista de propiedades sin problema.
                 </p>
               </div>
               <Button
