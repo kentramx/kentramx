@@ -34,8 +34,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BasicGoogleMap } from '@/components/BasicGoogleMap';
-import { useTiledMap, ViewportBounds, MIN_ZOOM_FOR_TILES, MAX_PROPERTIES_PER_TILE } from '@/hooks/useTiledMap';
-import { useAdaptiveDebounce } from '@/hooks/useAdaptiveDebounce';
+import { ViewportBounds, MIN_ZOOM_FOR_TILES, MAX_PROPERTIES_PER_TILE } from '@/hooks/useTiledMap';
 import type { MapProperty, PropertyFilters, PropertySummary } from '@/types/property';
 import { monitoring } from '@/lib/monitoring';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -45,49 +44,35 @@ import { Button } from '@/components/ui/button';
 const MAP_DEBUG = typeof window !== 'undefined' && (window as any).__KENTRA_MAP_DEBUG__ === true;
 
 interface SearchMapProps {
+  properties: MapProperty[];
+  clusters: { lat: number; lng: number; property_count: number; avg_price: number; cluster_id: string }[];
+  isLoading: boolean;
   filters: PropertyFilters;
   searchCoordinates: { lat: number; lng: number } | null;
   onMarkerClick: (id: string) => void;
+  onBoundsChanged: (bounds: ViewportBounds) => void;
   height?: string;
   onMapError?: (error: string) => void;
   onVisibleCountChange?: (count: number) => void;
 }
 
 export const SearchMap: React.FC<SearchMapProps> = ({
+  properties,
+  clusters,
+  isLoading,
   filters,
   searchCoordinates,
   onMarkerClick,
+  onBoundsChanged,
   height = '100%',
   onMapError,
   onVisibleCountChange,
 }) => {
   const navigate = useNavigate();
-  const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   
   // ✅ Mantener datos previos para evitar parpadeos
   const previousMarkersRef = useRef<any[]>([]);
-  
-  // ✅ Debounce adaptativo de viewport según FPS del dispositivo
-  const debouncedBounds = useAdaptiveDebounce(viewportBounds, 300);
-
-  // 🚀 TILE-BASED ARCHITECTURE: fetch con escalabilidad infinita
-  const { data: viewportData, isLoading, error } = useTiledMap(
-    debouncedBounds,
-    { ...filters, status: ['activa'] }
-  );
-
-  // ✅ Log de errores
-  if (error) {
-    monitoring.error('Error loading properties for map', {
-      component: 'SearchMap',
-      error,
-      filters,
-      bounds: debouncedBounds,
-    });
-  }
-
-  const { properties = [], clusters = [] } = viewportData || {};
 
   // ✅ Calcular y reportar el total de propiedades visibles en el mapa
   useEffect(() => {
@@ -109,16 +94,6 @@ export const SearchMap: React.FC<SearchMapProps> = ({
     });
     onMapError?.(errorMsg);
   }, [onMapError]);
-
-  // ✅ Log de errores de tiles (NO bloqueante, se mantienen datos anteriores)
-  if (error) {
-    monitoring.error('[SearchMap] Error cargando tiles (no crítico)', {
-      component: 'SearchMap',
-      error,
-      filters,
-      bounds: debouncedBounds,
-    });
-  }
 
   // ✅ Memoizar markers - Combinar propiedades y clusters simultáneamente
   // Usa comparación primitiva para evitar recálculos innecesarios
@@ -174,7 +149,7 @@ export const SearchMap: React.FC<SearchMapProps> = ({
     }
 
     return markers;
-  }, [properties.length, clusters.length, isLoading, properties, clusters]);
+  }, [properties, clusters, isLoading]);
 
   // ✅ Centro del mapa
   const mapCenter = useMemo(() => {
@@ -189,8 +164,8 @@ export const SearchMap: React.FC<SearchMapProps> = ({
 
   // ✅ Callback memoizado para bounds change
   const handleBoundsChange = useCallback((bounds: ViewportBounds) => {
-    setViewportBounds(bounds);
-  }, []);
+    onBoundsChanged(bounds);
+  }, [onBoundsChanged]);
 
   // ✅ Callback memoizado para marker click (no navegar si es cluster)
   const handleMarkerClickInternal = useCallback(
@@ -221,7 +196,7 @@ export const SearchMap: React.FC<SearchMapProps> = ({
       {/* Debug overlay eliminado para producción */}
 
       {/* 🔄 Overlay de carga */}
-      {isLoading && viewportBounds && (
+      {isLoading && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/20 backdrop-blur-[2px]">
           <div className="rounded-lg bg-background/95 px-4 py-3 shadow-lg">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -254,15 +229,6 @@ export const SearchMap: React.FC<SearchMapProps> = ({
                 Reintentar
               </Button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ℹ️ Mensaje de zoom bajo */}
-      {viewportBounds && viewportBounds.zoom < MIN_ZOOM_FOR_TILES && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="rounded-full bg-background/90 px-4 py-2 text-sm text-muted-foreground shadow-lg backdrop-blur-sm">
-            Acerca un poco más el mapa para ver propiedades.
           </div>
         </div>
       )}

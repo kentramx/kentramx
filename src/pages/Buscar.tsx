@@ -40,6 +40,7 @@ import { PropertyDetailSheet } from '@/components/PropertyDetailSheet';
 import { InfiniteScrollContainer } from '@/components/InfiniteScrollContainer';
 import { monitoring } from '@/lib/monitoring';
 import type { MapProperty, PropertyFilters, HoveredProperty } from '@/types/property';
+import { ViewportBounds, useTiledMap } from '@/hooks/useTiledMap';
 
 interface Filters {
   estado: string;
@@ -85,6 +86,9 @@ const Buscar = () => {
   
   // ✅ Estado para sincronizar clic en mapa con tarjeta de lista
   const [selectedPropertyFromMap, setSelectedPropertyFromMap] = useState<string | null>(null);
+  
+  // 🗺️ Estado para los límites del viewport del mapa
+  const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(null);
   
 // Rangos para VENTA (en millones)
 const SALE_MIN_PRICE = 0;
@@ -173,6 +177,14 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     hasTooManyResults,
     actualTotal,
   } = usePropertySearch(propertyFilters);
+
+  // 🗺️ Fetching de tiles del mapa (movido desde SearchMap)
+  const { data: viewportData, isLoading: mapLoading, error: mapTilesError } =
+    useTiledMap(viewportBounds, propertyFilters);
+
+  // Extraer properties y clusters del viewport
+  const viewportProperties = viewportData?.properties ?? [];
+  const viewportClusters = viewportData?.clusters ?? [];
 
   // Ordenar propiedades según criterio seleccionado
   // PRIORIDAD: Destacadas primero, luego aplicar orden seleccionado
@@ -1506,9 +1518,13 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
               </div>
             ) : (
               <SearchMap
+                properties={viewportProperties}
+                clusters={viewportClusters}
+                isLoading={mapLoading}
                 filters={propertyFilters}
                 searchCoordinates={searchCoordinates}
                 onMarkerClick={handleMarkerClick}
+                onBoundsChanged={setViewportBounds}
                 height="100%"
                 onMapError={setMapError}
                 onVisibleCountChange={setMapVisibleCount}
