@@ -179,6 +179,33 @@ export const SearchMap: React.FC<SearchMapProps> = ({
     [onMarkerClick]
   );
 
+  // ✅ Handler para sembrar bounds iniciales cuando el mapa está listo
+  const handleMapReady = useCallback((map: google.maps.Map) => {
+    const bounds = map.getBounds();
+    if (!bounds) return;
+    
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    const mapCenter = map.getCenter();
+
+    const initialBounds = {
+      minLat: sw.lat(),
+      maxLat: ne.lat(),
+      minLng: sw.lng(),
+      maxLng: ne.lng(),
+      zoom: map.getZoom() ?? 11,
+      center: {
+        lat: mapCenter?.lat() ?? searchCoordinates?.lat ?? 23.6345,
+        lng: mapCenter?.lng() ?? searchCoordinates?.lng ?? -102.5528,
+      },
+    };
+
+    if (MAP_DEBUG) {
+      console.log('[KENTRA MAP] Sembrando bounds iniciales', initialBounds);
+    }
+
+    onBoundsChanged(initialBounds);
+  }, [onBoundsChanged, searchCoordinates]);
 
   return (
     <div className="relative w-full" style={{ height }}>
@@ -187,6 +214,7 @@ export const SearchMap: React.FC<SearchMapProps> = ({
         zoom={mapZoom}
         markers={mapMarkers as any}
         enableClustering={true}
+        onReady={handleMapReady}
         onBoundsChanged={handleBoundsChange}
         onMarkerClick={handleMarkerClickInternal}
         disableAutoFit={true}
