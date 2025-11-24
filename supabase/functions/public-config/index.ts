@@ -11,15 +11,20 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Public endpoint - no authentication required
-    const googleMapsApiKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY') || '';
-    const mapboxAccessToken = Deno.env.get('VITE_MAPBOX_ACCESS_TOKEN') || '';
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization') ?? '' },
+        },
+      }
+    );
 
-    console.log('[public-config] Tokens disponibles:', {
-      hasGoogleMaps: !!googleMapsApiKey,
-      hasMapbox: !!mapboxAccessToken,
-      mapboxLength: mapboxAccessToken.length,
-    });
+    // Optional: ensure user session exists (not strictly required for public config)
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const googleMapsApiKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY') || '';
 
     if (!googleMapsApiKey) {
       return new Response(
@@ -30,9 +35,10 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        // Public, safe to expose to clients (estos son tokens públicos)
+        // Public, safe to expose to clients
         googleMapsApiKey,
-        mapboxAccessToken,
+        // Optionally include other publishable config here later
+        authenticated: !!user,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

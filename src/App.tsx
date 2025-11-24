@@ -1,4 +1,3 @@
-// [CRITICAL REBUILD 2025-11-23 19:35] Force complete rebuild to inject VITE_MAPBOX_ACCESS_TOKEN
 import './App.css';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -27,7 +26,6 @@ import NotificationSettings from "./pages/NotificationSettings";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Buscar from "./pages/Buscar";
-import BuscarV2 from "./pages/BuscarV2";
 import MessagesPage from "./pages/MessagesPage";
 import NotFound from "./pages/NotFound";
 import MapPreloader from "@/components/MapPreloader";
@@ -89,7 +87,6 @@ const AppContent = () => {
               <Route path="/notificaciones" element={<NotificationSettings />} />
               <Route path="/configuracion" element={<Settings />} />
               <Route path="/buscar" element={<Buscar />} />
-              <Route path="/buscar-v2" element={<BuscarV2 />} />
               <Route path="/favoritos" element={<Favorites />} />
               <Route path="/comparar" element={<ComparePage />} />
               <Route path="/panel-agente" element={<AgentDashboard />} />
