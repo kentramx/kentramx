@@ -231,9 +231,10 @@ export const SearchMap: React.FC<SearchMapProps> = ({
         <div className="pointer-events-none absolute left-2 top-2 z-20">
           <div className="pointer-events-auto max-w-xs rounded-md bg-black/80 px-3 py-2 text-[11px] text-white space-y-1">
             <div className="font-semibold">MAP DEBUG</div>
-            <div>propsViewport: {properties.length}</div>
-            <div>clustersViewport: {clusters.length}</div>
-            <div>isLoading: {isLoading ? 'true' : 'false'}</div>
+      <div>propsViewport: {properties.length}</div>
+      <div>clustersViewport: {clusters.length}</div>
+      <div>mapMarkers: {mapMarkers.length}</div>
+      <div>isLoading: {isLoading ? 'true' : 'false'}</div>
             <div>MIN_ZOOM_FOR_TILES: {MIN_ZOOM_FOR_TILES}</div>
             <div>MAX_PROPERTIES_PER_TILE: {MAX_PROPERTIES_PER_TILE}</div>
             {debugViewportBounds && (
