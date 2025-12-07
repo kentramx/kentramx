@@ -151,6 +151,7 @@ export const useTiledMap = (
       const filtersJson: Record<string, any> = {};
       if (filters?.estado) filtersJson.estado = filters.estado;
       if (filters?.municipio) filtersJson.municipio = filters.municipio;
+      if (filters?.colonia) filtersJson.colonia = filters.colonia;
       if (filters?.listingType) filtersJson.listingType = filters.listingType;
       // SQL espera propertyType como array JSONB
       if (filters?.tipo && typeof filters.tipo === 'string') {
