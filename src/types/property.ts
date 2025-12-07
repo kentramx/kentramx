@@ -1,4 +1,4 @@
-import type { ViewportBounds } from '@/hooks/useTiledMap';
+import type { ViewportBounds } from '@/hooks/useMapSearch';
 
 /**
  * Tipo central unificado para Property
