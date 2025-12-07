@@ -88,9 +88,24 @@ const Buscar = () => {
   
   // ✅ Estado para sincronizar clic en mapa con tarjeta de lista
   const [selectedPropertyFromMap, setSelectedPropertyFromMap] = useState<string | null>(null);
-  
+
+  // ✅ Estado para centrar el mapa cuando se hace clic en lista
+  const [centerMapOnCoords, setCenterMapOnCoords] = useState<{ lat: number; lng: number } | null>(null);
+
   // 🗺️ Estado para los límites del viewport del mapa
-  const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(null);
+  // ✅ Inicializar con bounds de México para evitar mapa vacío al inicio
+  const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(() => {
+    // Bounds iniciales: Vista general de México
+    // Se actualizarán cuando el mapa dispare onBoundsChanged
+    return {
+      minLat: 14.53,
+      maxLat: 32.72,
+      minLng: -118.40,
+      maxLng: -86.70,
+      zoom: 5,
+      center: { lat: 23.6345, lng: -102.5528 }
+    };
+  });
   
 // Rangos para VENTA (en millones)
 const SALE_MIN_PRICE = 0;
@@ -266,15 +281,15 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   // 4️⃣ LISTA FINAL PARA RENDERIZADO
   // ============================================================================
   // REGLA DE NEGOCIO:
-  // - Si viewport activo (usuario navega el mapa) → usa propiedades del viewport
+  // - Si viewport activo (usuario navega el mapa) → usa propiedades del viewport (sin límite artificial)
   // - Si NO hay viewport activo → usa propiedades de infinite scroll
   // ============================================================================
   const listProperties = useMemo(() => {
     if (isViewportActive && properties.length > 0) {
-      // Modo mapa: mostrar propiedades del viewport actual (máximo 50)
-      return sortedProperties.slice(0, 50);
+      // Modo mapa: mostrar TODAS las propiedades del viewport (límite controlado en backend)
+      return sortedProperties;
     }
-    // Modo lista: usar infinite scroll sin límite
+    // Modo lista: usar infinite scroll
     return listPropertiesRaw;
   }, [isViewportActive, properties.length, sortedProperties, listPropertiesRaw]);
   
@@ -293,14 +308,22 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     }
   }, [searchParams]);
   
-  // Función para abrir Sheet
+  // Función para abrir Sheet y centrar mapa
   const handlePropertyClick = useCallback((id: string) => {
     setSelectedPropertyId(id);
     setSheetOpen(true);
     const newParams = new URLSearchParams(searchParams);
     newParams.set('propiedad', id);
     setSearchParams(newParams, { replace: true });
-  }, [searchParams, setSearchParams]);
+
+    // ✅ Buscar coordenadas de la propiedad y centrar mapa
+    const property = properties.find(p => p.id === id);
+    if (property?.lat && property?.lng) {
+      setCenterMapOnCoords({ lat: property.lat, lng: property.lng });
+      // Limpiar después de un tiempo para permitir futuras centraciones
+      setTimeout(() => setCenterMapOnCoords(null), 1000);
+    }
+  }, [searchParams, setSearchParams, properties]);
   
   // Función para cerrar Sheet
   const handleCloseSheet = () => {
@@ -1573,6 +1596,8 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                 height="100%"
                 onMapError={setMapError}
                 onVisibleCountChange={setMapVisibleCount}
+                hoveredPropertyId={hoveredProperty?.id}
+                centerOnCoordinates={centerMapOnCoords}
                 debugViewportReason={viewportDebugReason}
                 debugViewportBounds={viewportBounds}
               />
@@ -1683,23 +1708,18 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
               >
                 {/* Contador de resultados */}
                 <div className="px-4 pt-2 pb-1 text-sm text-muted-foreground">
-                  {isViewportActive ? (
+                  {hasTooManyResults ? (
                     <p>
-                      Mostrando <span className="font-medium text-foreground">{listProperties.length}</span>{' '}
-                      {listProperties.length >= 50 && 'de 50+'} propiedades en el mapa actual
-                    </p>
-                  ) : hasTooManyResults ? (
-                    <p>
-                      Mostrando <span className="font-medium text-foreground">{properties.length}</span> de{' '}
-                      <span className="font-medium text-foreground">{actualTotal}+</span> resultados.{' '}
+                      Mostrando <span className="font-medium text-foreground">{listProperties.length}</span> de{' '}
+                      <span className="font-medium text-foreground">{actualTotal}+</span> propiedades.{' '}
                       <span className="text-amber-600 dark:text-amber-500">
-                        Refina tus filtros para ver todos.
+                        Acerca el mapa o usa filtros para ver menos resultados.
                       </span>
                     </p>
                   ) : (
                     <p>
-                      Mostrando <span className="font-medium text-foreground">{properties.length}</span> de{' '}
-                      <span className="font-medium text-foreground">{actualTotal}</span> resultados
+                      <span className="font-medium text-foreground">{listProperties.length}</span>{' '}
+                      {listProperties.length === 1 ? 'propiedad encontrada' : 'propiedades encontradas'}
                     </p>
                   )}
                 </div>
@@ -1718,19 +1738,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                   highlightedPropertyId={selectedPropertyFromMap}
                   scrollToPropertyId={selectedPropertyFromMap}
                 />
-
-                {/* Botón fallback para cargar más si IntersectionObserver falla */}
-                {!isViewportActive && hasNextPage && !isFetching && (
-                  <div className="flex justify-center py-4 px-4">
-                    <Button 
-                      onClick={() => fetchNextPage()} 
-                      variant="outline"
-                      size="lg"
-                    >
-                      Cargar más propiedades
-                    </Button>
-                  </div>
-                )}
               </InfiniteScrollContainer>
             )}
 
