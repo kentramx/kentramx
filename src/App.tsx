@@ -28,7 +28,6 @@ import Auth from "./pages/Auth";
 import Buscar from "./pages/Buscar";
 import MessagesPage from "./pages/MessagesPage";
 import NotFound from "./pages/NotFound";
-// MapPreloader eliminado - Google Maps removido
 import Publicar from "./pages/Publicar";
 import PricingAgente from "./pages/PricingAgente";
 import PricingInmobiliaria from "./pages/PricingInmobiliaria";
@@ -130,7 +129,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        {/* MapPreloader eliminado */}
+        
         <BrowserRouter>
           <AuthProvider>
             <AppContent />

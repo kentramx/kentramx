@@ -60,35 +60,19 @@ All colors MUST be HSL.
   }
 }
 
-/* Google Places Autocomplete - asegurar visibilidad */
-.pac-container {
-  z-index: 9999 !important;
-  background: hsl(var(--popover));
-  color: hsl(var(--popover-foreground));
-  box-shadow: 0 10px 30px -10px hsl(var(--primary) / 0.25);
-  border: 1px solid hsl(var(--border));
-  border-radius: calc(var(--radius) - 2px);
-  margin-top: 4px;
-}
-.pac-item { padding: 8px 12px; cursor: pointer; }
-.pac-item:hover { background: hsl(var(--muted)); }
-.pac-item-query { color: hsl(var(--foreground)); font-weight: 500; }
-
-/* Estilos personalizados para etiquetas de precio en marcadores del mapa */
+/* Estilos para futuros marcadores de mapa (Mapbox FASE 2) */
 .marker-price-label {
-  background: white !important;
-  padding: 2px 6px !important;
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+  padding: 4px 8px !important;
   border-radius: 8px !important;
-  font-weight: 700 !important;
-  font-size: 10px !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
-  border: 1.5px solid currentColor !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid hsl(var(--border)) !important;
   white-space: nowrap !important;
-  margin-top: -50px !important;
-  display: inline-block !important;
 }
 
-/* Custom price markers estilo Airbnb */
 .custom-price-marker {
   background: hsl(var(--background)) !important;
   color: hsl(var(--foreground)) !important;
@@ -101,7 +85,6 @@ All colors MUST be HSL.
   white-space: nowrap !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
-  animation: none !important;
 }
 
 .custom-price-marker:hover {
@@ -111,17 +94,4 @@ All colors MUST be HSL.
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
   z-index: 1000 !important;
   border-color: hsl(var(--primary)) !important;
-}
-
-/* Estilos para marcadores destacados/hover desde cards */
-.gm-style > div:first-child > div > div:nth-child(3) > div {
-  animation-timing-function: ease-in-out !important;
-}
-
-/* Forzar ancho del web component de Google Places */
-gmp-place-autocomplete {
-  display: block;
-  width: 100% !important;
-  max-width: none !important;
-  box-sizing: border-box;
 }

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { PropertyImageGallery } from "@/components/PropertyImageGallery";
-// PropertyMap eliminado - Google Maps removido
+// PropertyMap eliminado - mapa pendiente de implementar con Mapbox
 import PropertyCard from "@/components/PropertyCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent } from "@/components/ui/sheet";

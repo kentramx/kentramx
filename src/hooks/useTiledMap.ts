@@ -6,7 +6,7 @@
  * 
  * 📍 PROPÓSITO:
  * Este es el hook OFICIAL para cargar propiedades en el mapa usando arquitectura
- * de tiles (similar a Zillow/Google Maps). Cualquier optimización o mejora al
+ * de tiles (similar a Zillow). Cualquier optimización o mejora al
  * sistema de carga de propiedades en mapa DEBE integrarse aquí.
  * 
  * 🛠️ ARQUITECTURA:

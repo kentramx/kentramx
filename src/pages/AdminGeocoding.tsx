@@ -361,7 +361,7 @@ export default function AdminGeocoding() {
         <CardHeader>
           <CardTitle>Ejecutar Geocodificación</CardTitle>
           <CardDescription>
-            Procesa propiedades sin coordenadas usando Google Maps Geocoding API.
+            Procesa propiedades sin coordenadas usando Geocoding API.
             El sistema geocodifica basándose en colonia, municipio y estado, agregando variación
             aleatoria de ±500 metros para distribuir propiedades de la misma ubicación.
           </CardDescription>
@@ -477,7 +477,7 @@ export default function AdminGeocoding() {
           <p><strong>Cron job:</strong> Ejecuta diariamente a las 4 AM procesando hasta {limit} propiedades/día (lotes paralelos).</p>
           <p><strong>Variación espacial:</strong> ±500 metros para evitar marcadores apilados en la misma ubicación exacta.</p>
           <p><strong>Fallback inteligente:</strong> Si falla con colonia, reintenta solo con municipio y estado.</p>
-          <p><strong>Rate limit:</strong> Lotes de {batchSize} en paralelo con backoff exponencial para respetar límites de Google Maps API.</p>
+          <p><strong>Rate limit:</strong> Lotes de {batchSize} en paralelo con backoff exponencial para respetar límites de Geocoding API.</p>
           <p className="text-xs opacity-70 mt-4">Geocoding UI v1.3 • Función v2.0</p>
         </CardContent>
       </Card>
