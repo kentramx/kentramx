@@ -12,7 +12,7 @@
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 'pk.eyJ1Ijoia2VudHJhIiwiYSI6ImNtaDN6d2UyNTFnZmswc285Mms0M3RmaWgifQ.U-9iKz8BnLdmpSj8scN5Pg';
 
 // Debug logging para diagnosticar el token
 console.log('[Mapbox] Token check:', {
