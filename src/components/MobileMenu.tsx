@@ -40,7 +40,7 @@ export function MobileMenu() {
           <Link to="/buscar">
             <Button variant="ghost" className="w-full justify-start">
               <Search className="mr-2 h-4 w-4" />
-              Buscar con Mapa
+              Buscar Propiedades
             </Button>
           </Link>
 
