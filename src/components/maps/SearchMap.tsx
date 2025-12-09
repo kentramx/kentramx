@@ -1,62 +1,55 @@
 /**
  * KENTRA MAP STACK - OFICIAL
- * Mapa de búsqueda completo con clusters y marcadores
+ * Mapa de búsqueda con Google Maps
  */
 
 import { useState, useCallback, useRef, memo } from 'react';
-import { GoogleMapBase } from './GoogleMapBase';
-import { PriceMarker } from './PriceMarker';
-import { ClusterMarker } from './ClusterMarker';
-import { useMapData } from '@/hooks/useMapData';
-import { MapBounds, MapFilters, PropertyCluster } from '@/types/map';
-import { Loader2, MapPin } from 'lucide-react';
+import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import { Loader2, MapPin, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+
+const containerStyle = { width: '100%', height: '100%' };
+const libraries: ("places" | "geometry")[] = ['places', 'geometry'];
+
+// Centro de México
+const defaultCenter = { lat: 23.6345, lng: -102.5528 };
+const defaultZoom = 5;
+
+interface MapFilters {
+  listing_type?: 'venta' | 'renta' | null;
+  property_type?: string | null;
+  price_min?: number | null;
+  price_max?: number | null;
+  bedrooms_min?: number | null;
+  bathrooms_min?: number | null;
+  state?: string | null;
+  municipality?: string | null;
+}
 
 interface SearchMapProps {
   filters?: MapFilters;
   selectedPropertyId?: string | null;
-  hoveredPropertyId?: string | null;
   onPropertyClick?: (propertyId: string) => void;
-  onPropertyHover?: (propertyId: string | null) => void;
   className?: string;
 }
 
 function SearchMapComponent({
   filters = {},
   selectedPropertyId,
-  hoveredPropertyId,
   onPropertyClick,
-  onPropertyHover,
   className = '',
 }: SearchMapProps) {
   const mapRef = useRef<google.maps.Map | null>(null);
-  const [bounds, setBounds] = useState<MapBounds | null>(null);
-  const [zoom, setZoom] = useState(5);
 
-  const { data, isLoading, isFetching } = useMapData({
-    bounds,
-    zoom,
-    filters,
-    enabled: !!bounds,
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries,
   });
 
   const handleMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
-  }, []);
-
-  const handleBoundsChange = useCallback((newBounds: MapBounds) => {
-    setBounds(newBounds);
-  }, []);
-
-  const handleZoomChange = useCallback((newZoom: number) => {
-    setZoom(newZoom);
-  }, []);
-
-  const handleClusterClick = useCallback((cluster: PropertyCluster) => {
-    if (mapRef.current) {
-      mapRef.current.panTo({ lat: cluster.lat, lng: cluster.lng });
-      mapRef.current.setZoom(cluster.expansion_zoom);
-    }
   }, []);
 
   const handleLocateUser = useCallback(() => {
@@ -77,60 +70,51 @@ function SearchMapComponent({
     }
   }, []);
 
+  if (loadError) {
+    return (
+      <div className={`flex items-center justify-center bg-muted h-full ${className}`}>
+        <div className="text-center p-4">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-2" />
+          <p className="text-destructive font-medium">Error al cargar Google Maps</p>
+          <p className="text-sm text-muted-foreground">Verifica la API key</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className={`flex items-center justify-center bg-muted h-full ${className}`}>
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`relative ${className}`}>
-      <GoogleMapBase
-        className="w-full h-full"
-        onMapLoad={handleMapLoad}
-        onBoundsChange={handleBoundsChange}
-        onZoomChange={handleZoomChange}
-      >
-        {/* Clusters */}
-        {data?.clusters.map((cluster) => (
-          <ClusterMarker
-            key={cluster.id}
-            cluster={cluster}
-            onClick={handleClusterClick}
-          />
-        ))}
-
-        {/* Property markers */}
-        {data?.properties.map((property) => (
-          <PriceMarker
-            key={property.id}
-            property={property}
-            isSelected={property.id === selectedPropertyId}
-            isHovered={property.id === hoveredPropertyId}
-            onClick={onPropertyClick}
-            onHover={onPropertyHover}
-          />
-        ))}
-      </GoogleMapBase>
-
-      {/* Loading indicator */}
-      {(isLoading || isFetching) && (
-        <div className="absolute top-4 left-4 bg-background rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 z-10">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-          <span className="text-sm font-medium">Cargando propiedades...</span>
-        </div>
-      )}
-
-      {/* Property count badge */}
-      {data && !isLoading && (
-        <div className="absolute top-4 left-4 bg-background rounded-lg shadow-lg px-4 py-2 z-10">
-          <span className="text-sm font-bold text-foreground">
-            {data.total_count.toLocaleString()}
-          </span>
-          <span className="text-sm text-muted-foreground ml-1">
-            propiedades
-          </span>
-          {data.is_clustered && (
-            <span className="text-xs text-muted-foreground ml-2">
-              (agrupadas)
-            </span>
-          )}
-        </div>
-      )}
+    <div className={`relative h-full ${className}`}>
+      <GoogleMap
+        mapContainerStyle={containerStyle}
+        center={defaultCenter}
+        zoom={defaultZoom}
+        onLoad={handleMapLoad}
+        options={{
+          minZoom: 4,
+          maxZoom: 19,
+          disableDefaultUI: false,
+          zoomControl: true,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: true,
+          gestureHandling: 'greedy',
+          styles: [
+            { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+            { featureType: 'transit', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+          ],
+        }}
+      />
 
       {/* Locate user button */}
       <Button

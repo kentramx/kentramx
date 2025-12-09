@@ -19,7 +19,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { MapPin, Bed, Bath, Car, Search, AlertCircle, Save, Star, Trash2, X, Tag, TrendingUp, ChevronDown, SlidersHorizontal, Loader2, Map, List } from 'lucide-react';
-import type { ViewMode, MapFilters } from '@/types/map';
+import type { ViewMode } from '@/types/map';
 import { SearchMap } from '@/components/maps/SearchMap';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -1528,16 +1528,6 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
             viewMode === 'split' && 'hidden lg:block lg:w-1/2'
           )}>
             <SearchMap
-              filters={{
-                listing_type: filters.listingType as 'venta' | 'renta' | null,
-                property_type: filters.tipo || null,
-                price_min: filters.precioMin ? Number(filters.precioMin) : null,
-                price_max: filters.precioMax ? Number(filters.precioMax) : null,
-                bedrooms_min: filters.recamaras ? Number(filters.recamaras) : null,
-                bathrooms_min: filters.banos ? Number(filters.banos) : null,
-                state: filters.estado || null,
-                municipality: filters.municipio || null,
-              }}
               selectedPropertyId={selectedPropertyId}
               onPropertyClick={handlePropertyClick}
               className="h-full"
