@@ -64,6 +64,7 @@ const Navbar = () => {
     
     const params = new URLSearchParams(searchParams);
     params.set("listingType", "venta");
+    // ✅ Mantener coordenadas para no resetear el mapa
     navigate(`/buscar?${params.toString()}`);
   }, [listingType, searchParams, navigate]);
 
@@ -75,6 +76,7 @@ const Navbar = () => {
     
     const params = new URLSearchParams(searchParams);
     params.set("listingType", "renta");
+    // ✅ Mantener coordenadas para no resetear el mapa
     navigate(`/buscar?${params.toString()}`);
   }, [listingType, searchParams, navigate]);
 

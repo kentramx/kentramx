@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { PropertyImageGallery } from "@/components/PropertyImageGallery";
+import { PropertyMap } from "@/components/PropertyMap";
 import PropertyCard from "@/components/PropertyCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -669,24 +670,19 @@ export function PropertyDetailSheet({ propertyId, open, onClose }: PropertyDetai
             </CardContent>
           </Card>
 
-          {/* Ubicación con Mapa */}
-          {(property.lat && property.lng) && (
+          {/* Mapa */}
+          {property.lat && property.lng && (
             <Card>
               <CardHeader>
                 <CardTitle>Ubicación</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-2 text-muted-foreground mb-4">
-                  <MapPin className="h-5 w-5" />
-                  <span>{property.address}, {property.municipality}, {property.state}</span>
-                </div>
-                
-                {/* Ubicación */}
-                {property.lat && property.lng && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Coordenadas: {property.lat.toFixed(6)}, {property.lng.toFixed(6)}
-                  </p>
-                )}
+                <PropertyMap 
+                  lat={property.lat} 
+                  lng={property.lng} 
+                  address={`${property.address}, ${property.municipality}, ${property.state}`}
+                  height="300px"
+                />
               </CardContent>
             </Card>
           )}

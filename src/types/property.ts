@@ -1,3 +1,5 @@
+import type { ViewportBounds } from '@/hooks/useTiledMap';
+
 /**
  * Tipo central unificado para Property
  * ✅ Fuente única de verdad para todas las propiedades del sistema
@@ -113,7 +115,43 @@ export interface PropertySummary {
   created_at: string;
 }
 
-// Reservado para uso futuro
+/**
+ * Versión para mapas (solo coordenadas y datos básicos)
+ */
+export interface MapProperty {
+  id: string;
+  title: string;
+  price: number;
+  currency: string;
+  lat: number;
+  lng: number;
+  type: PropertyType;
+  listing_type: ListingType;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  parking: number | null;
+  sqft: number | null;
+  address: string;
+  state: string;
+  municipality: string;
+  images: PropertyImage[];
+  agent_id: string;
+  status: PropertyStatus;
+  is_featured: boolean;
+  created_at: string;
+}
+
+/**
+ * Versión para clusters en el mapa
+ */
+export interface PropertyCluster {
+  cluster_id: string;
+  lat: number;
+  lng: number;
+  property_count: number;
+  avg_price: number;
+  property_ids: string[];
+}
 
 /**
  * Versión ligera para hover (sin coordenadas)
@@ -194,16 +232,25 @@ export type AIModerationStatus =
 
 // ============= FILTROS =============
 
+export interface MapBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+  zoom: number;
+}
+
 export interface PropertyFilters {
   estado?: string;
   municipio?: string;
-  colonia?: string;
-  tipo?: string;
-  listingType?: string;
+  colonia?: string; // ✅ Agregado para búsqueda por colonia
+  tipo?: string; // Acepta string para compatibilidad con filtros existentes
+  listingType?: string; // Acepta string para compatibilidad
   precioMin?: number;
   precioMax?: number;
   recamaras?: string;
   banos?: string;
   status?: string[];
-  orden?: string;
+  orden?: string; // ✅ Agregado para ordenamiento
+  bounds?: ViewportBounds; // ✅ Unificado con el sistema de tiles
 }

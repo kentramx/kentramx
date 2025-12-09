@@ -1,3 +1,4 @@
+/// <reference types="google.maps" />
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -107,6 +108,12 @@ const Home = () => {
     if (selectedLocation) {
       if (selectedLocation.state) params.set('estado', selectedLocation.state);
       if (selectedLocation.municipality) params.set('municipio', selectedLocation.municipality);
+      
+      // Pasar coordenadas para centrar el mapa
+      if (selectedLocation.lat && selectedLocation.lng) {
+        params.set('lat', selectedLocation.lat.toString());
+        params.set('lng', selectedLocation.lng.toString());
+      }
     }
     
     if (priceMin) params.set('precioMin', priceMin);

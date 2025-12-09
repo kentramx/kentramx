@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { SearchMap } from '@/components/SearchMap';
 import { SearchResultsList } from '@/components/SearchResultsList';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePropertiesInfinite } from '@/hooks/usePropertiesInfinite';
+import { usePropertySearch } from '@/hooks/usePropertySearch';
 import { PlaceAutocomplete } from '@/components/PlaceAutocomplete';
 import { buildPropertyFilters } from '@/utils/buildPropertyFilters';
 import type { PropertySummary } from '@/types/property';
@@ -18,9 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { MapPin, Bed, Bath, Car, Search, AlertCircle, Save, Star, Trash2, X, Tag, TrendingUp, ChevronDown, SlidersHorizontal, Loader2, Map, List } from 'lucide-react';
-import type { ViewMode } from '@/types/map';
-import { SearchMap } from '@/components/maps/SearchMap';
+import { MapPin, Bed, Bath, Car, Search, AlertCircle, Save, Star, Trash2, X, Tag, TrendingUp, ChevronDown, SlidersHorizontal, Loader2, Map as MapIcon, List as ListIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -41,12 +40,13 @@ import { generatePropertyListStructuredData } from '@/utils/structuredData';
 import { PropertyDetailSheet } from '@/components/PropertyDetailSheet';
 import { InfiniteScrollContainer } from '@/components/InfiniteScrollContainer';
 import { monitoring } from '@/lib/monitoring';
-import { cn } from '@/lib/utils';
+import type { MapProperty, PropertyFilters, HoveredProperty } from '@/types/property';
+import { ViewportBounds, useTiledMap, MIN_ZOOM_FOR_TILES } from '@/hooks/useTiledMap';
 
 interface Filters {
   estado: string;
   municipio: string;
-  colonia: string;
+  colonia: string; // ✅ Agregado para búsqueda por colonia
   precioMin: string;
   precioMax: string;
   tipo: string;
@@ -85,6 +85,12 @@ const Buscar = () => {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   
+  // ✅ Estado para sincronizar clic en mapa con tarjeta de lista
+  const [selectedPropertyFromMap, setSelectedPropertyFromMap] = useState<string | null>(null);
+  
+  // 🗺️ Estado para los límites del viewport del mapa
+  const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(null);
+  
 // Rangos para VENTA (en millones)
 const SALE_MIN_PRICE = 0;
 const SALE_MAX_PRICE = 100; // $100M o más
@@ -114,16 +120,12 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   const [savedSearchQuery, setSavedSearchQuery] = useState('');
   const [savedSearchSort, setSavedSearchSort] = useState<'date' | 'name'>('date');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('split');
-  
-  
-  // Valores por defecto para filtros
   
   // Valores por defecto para filtros
   const DEFAULT_FILTERS: Filters = {
     estado: '',
     municipio: '',
-    colonia: '',
+    colonia: '', // ✅ Agregado
     precioMin: '',
     precioMax: '',
     tipo: '',
@@ -136,7 +138,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
   const [filters, setFilters] = useState<Filters>({
     estado: searchParams.get('estado') || '',
     municipio: searchParams.get('municipio') || '',
-    colonia: searchParams.get('colonia') || '',
+    colonia: searchParams.get('colonia') || '', // ✅ Agregado
     precioMin: searchParams.get('precioMin') || '',
     precioMax: searchParams.get('precioMax') || '',
     tipo: searchParams.get('tipo') || '',
@@ -146,34 +148,101 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     orden: (searchParams.get('orden') as any) || 'price_desc',
   });
   
-  // Construir filtros para la query
+  // ✅ DEBUG: Logs temporales para rastrear cambios de listingType
+  useEffect(() => {
+    console.log('[Buscar Debug] filters.listingType changed to:', filters.listingType);
+  }, [filters.listingType]);
+
+  useEffect(() => {
+    console.log('[Buscar Debug] URL listingType changed to:', searchParams.get('listingType'));
+  }, [searchParams]);
+  
+  // ✅ ELIMINADO: Efecto duplicado que causaba loops infinitos
+  // Este efecto está ahora consolidado en las líneas 543-579
+  
+  // ✅ Construir filtros de manera unificada
   const propertyFilters = useMemo(
     () => buildPropertyFilters(filters),
     [filters]
   );
 
-  // FUENTE ÚNICA DE DATOS: usePropertiesInfinite
+  // ✅ Búsqueda de propiedades con filtros
   const {
     properties,
-    totalCount,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
     isLoading: loading,
     isFetching,
     error: searchError,
-  } = usePropertiesInfinite(propertyFilters);
+    totalCount,
+    hasNextPage,
+    fetchNextPage,
+    hasTooManyResults,
+    actualTotal,
+  } = usePropertySearch(propertyFilters);
 
-  // Aplicar ordenamiento (destacadas primero, luego criterio seleccionado)
+  // 🗺️ Fetching de tiles del mapa (movido desde SearchMap)
+  const { data: viewportData, isLoading: mapLoading, error: mapTilesError } =
+    useTiledMap(viewportBounds, propertyFilters);
+
+  // Extraer properties y clusters del viewport
+  const viewportProperties = viewportData?.properties ?? [];
+  const viewportClusters = viewportData?.clusters ?? [];
+
+  // 🔍 LOGS TEMPORALES - Verificar que bounds y properties se cargan
+  useEffect(() => {
+    console.log('[PARENT bounds]', viewportBounds);
+  }, [viewportBounds]);
+
+  useEffect(() => {
+    console.log('[PARENT viewportProperties]', viewportProperties.length);
+  }, [viewportProperties]);
+
+  // 🔍 Diagnóstico derivado del estado del viewport (solo para debug)
+  const viewportDebugReason = useMemo(() => {
+    if (mapLoading) {
+      return 'Cargando tiles del viewport...';
+    }
+
+    if (!viewportBounds) {
+      return 'Sin bounds (mapa no inicializado o movimiento en proceso)';
+    }
+
+    if (viewportBounds.zoom < MIN_ZOOM_FOR_TILES) {
+      return `Zoom muy lejano (${viewportBounds.zoom} < ${MIN_ZOOM_FOR_TILES})`;
+    }
+
+    if (viewportProperties.length === 0 && viewportClusters.length === 0) {
+      return '0 propiedades para los filtros actuales en este cuadro de mapa';
+    }
+
+    return null;
+  }, [mapLoading, viewportBounds, viewportProperties, viewportClusters]);
+
+  // 1️⃣ Flag de viewport activo
+  const isViewportActive = !!viewportBounds;
+
+  // 2️⃣ Fuente activa única: viewport cuando hay bounds, si no properties del hook global
+  const activeProperties = isViewportActive
+    ? viewportProperties.map((p): PropertySummary => ({
+        ...p,
+        for_sale: p.listing_type === 'venta',
+        for_rent: p.listing_type === 'renta',
+        sale_price: p.listing_type === 'venta' ? p.price : null,
+        rent_price: p.listing_type === 'renta' ? p.price : null,
+        colonia: null, // MapProperty no incluye colonia
+      }))
+    : properties;
+
+  // Ordenar propiedades según criterio seleccionado
+  // PRIORIDAD: Destacadas primero, luego aplicar orden seleccionado
   const sortedProperties = useMemo(() => {
-    const sorted = [...properties];
+    const sorted = [...activeProperties];
     
     sorted.sort((a, b) => {
       // 1. Prioridad principal: Destacadas primero
       const aFeatured = a.is_featured ? 1 : 0;
       const bFeatured = b.is_featured ? 1 : 0;
       if (aFeatured !== bFeatured) {
-        return bFeatured - aFeatured;
+        return bFeatured - aFeatured; // Destacadas primero
       }
       
       // 2. Ordenamiento secundario según criterio seleccionado
@@ -202,11 +271,14 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     });
     
     return sorted;
-  }, [properties, filters.orden]);
+  }, [activeProperties, filters.orden]);
 
-  // Alias para compatibilidad
   const filteredProperties = sortedProperties;
-  const listProperties = sortedProperties;
+
+  // 📋 Lista final: limitar a 50 cuando viewport activo
+  const listProperties = isViewportActive
+    ? sortedProperties.slice(0, 50)
+    : sortedProperties;
   
   // Estado para guardar coordenadas de la ubicación buscada
   const [searchCoordinates, setSearchCoordinates] = useState<{ lat: number; lng: number } | null>(null);
@@ -241,7 +313,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     setSearchParams(newParams, { replace: true });
   };
   
-  // Sincronizar filters con searchParams cuando la URL cambia
+  // ✅ Sincronizar filters con searchParams cuando la URL cambia
   useEffect(() => {
     syncingFromUrl.current = true;
     
@@ -260,24 +332,26 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     const newFilters = {
       estado: searchParams.get('estado') || '',
       municipio: searchParams.get('municipio') || '',
-      colonia: searchParams.get('colonia') || '',
+      colonia: searchParams.get('colonia') || '', // ✅ Agregado
       precioMin: searchParams.get('precioMin') || '',
       precioMax: searchParams.get('precioMax') || '',
       tipo: searchParams.get('tipo') || '',
-      listingType: searchParams.get('listingType') || 'venta',
+      listingType: searchParams.get('listingType') || 'venta', // ✅ Siempre default a 'venta'
       recamaras: searchParams.get('recamaras') || '',
       banos: searchParams.get('banos') || '',
       orden: (searchParams.get('orden') as any) || 'price_desc',
     };
     
+    // Solo actualizar si hay cambios reales para evitar loops infinitos
     if (JSON.stringify(newFilters) !== JSON.stringify(filters)) {
       setFilters(newFilters);
     }
     
+    // ✅ Liberar flag en microtask para garantizar que el otro efecto lo vea
     Promise.resolve().then(() => {
       syncingFromUrl.current = false;
     });
-  }, [searchParams]);
+  }, [searchParams]); // ✅ Remover 'filters' de dependencias para evitar loops
   
   // Construir el valor de visualización para el input de ubicación
   const locationDisplayValue = filters.municipio && filters.estado
@@ -286,6 +360,11 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
 
   const [estados] = useState<string[]>(mexicoStates);
   const [municipios, setMunicipios] = useState<string[]>([]);
+  const [hoveredProperty, setHoveredProperty] = useState<MapProperty | null>(null);
+  const hoverFromMap = useRef(false);
+  const [mobileView, setMobileView] = useState<'map' | 'list'>('list');
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [mapVisibleCount, setMapVisibleCount] = useState<number>(0);
 
   // Normalizar rango de precios para evitar valores fuera de rango al alternar Venta/Renta
   const [minRangeForType, maxRangeForType] = getPriceRangeForListingType(filters.listingType);
@@ -304,11 +383,18 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       }
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
+  
+  // ✅ Callback para manejar hover de propiedades desde el mapa
+  const handlePropertyHoverFromMap = useCallback((property: MapProperty | null) => {
+    hoverFromMap.current = true;
+    setHoveredProperty(property);
+  }, []);
 
-  // Reiniciar y normalizar precio al cambiar tipo de operación
+  // ✅ Reiniciar y normalizar precio al cambiar tipo de operación (optimizado)
   useEffect(() => {
     const [minRange, maxRange] = getPriceRangeForListingType(filters.listingType);
     
+    // Solo resetear si los valores actuales están fuera de rango
     const needsReset = 
       priceRange[0] < minRange || 
       priceRange[0] > maxRange || 
@@ -318,13 +404,14 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     if (needsReset) {
       setPriceRange([minRange, maxRange]);
       
+      // ✅ Usar callback para evitar dependencia directa de filters
       setFilters((prev) => ({
         ...prev,
         precioMin: '',
         precioMax: '',
       }));
     }
-  }, [filters.listingType, priceRange]);
+  }, [filters.listingType, priceRange]); // ✅ Agregar priceRange como dependencia
 
   // Track búsqueda en GA4 cuando se aplican filtros
   useEffect(() => {
@@ -517,9 +604,11 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     }
   };
 
-  // Sincronización filters → URL
+  // ✅ Sincronización filters → URL (optimizado para evitar loops infinitos)
   useEffect(() => {
+    // 🚫 Si estamos sincronizando desde URL, no sobrescribir
     if (syncingFromUrl.current) {
+      console.log('[Buscar] Sincronización bloqueada: syncingFromUrl activo');
       return;
     }
     
@@ -527,40 +616,48 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     
     if (filters.estado) params.set('estado', filters.estado);
     if (filters.municipio) params.set('municipio', filters.municipio);
-    if (filters.colonia) params.set('colonia', filters.colonia);
+    if (filters.colonia) params.set('colonia', filters.colonia); // ✅ Agregado
     if (filters.precioMin) params.set('precioMin', filters.precioMin);
     if (filters.precioMax) params.set('precioMax', filters.precioMax);
     if (filters.tipo) params.set('tipo', filters.tipo);
     
+    // ✅ CRÍTICO: Siempre persistir listingType (no condicional)
     params.set('listingType', filters.listingType || 'venta');
     
     if (filters.recamaras) params.set('recamaras', filters.recamaras);
     if (filters.banos) params.set('banos', filters.banos);
     if (filters.orden !== 'price_desc') params.set('orden', filters.orden);
     
+    // Agregar coordenadas si existen
     if (searchCoordinates) {
       params.set('lat', searchCoordinates.lat.toString());
       params.set('lng', searchCoordinates.lng.toString());
     }
 
+    // Preserve propiedad parameter
     const propiedad = searchParams.get('propiedad');
     if (propiedad) {
       params.set('propiedad', propiedad);
     }
 
+    // ✅ Solo actualizar si el string de parámetros cambió realmente
     const next = params.toString();
     const current = searchParams.toString();
     
     if (next !== current) {
+      console.log('[Buscar] Actualizando URL:', { next, current });
       setSearchParams(params, { replace: true });
+    } else {
+      console.log('[Buscar] URL sin cambios, skip update');
     }
-  }, [filters, searchCoordinates]);
+  }, [filters, searchCoordinates]); // ✅ Removidas dependencias circulares searchParams y setSearchParams
 
   useEffect(() => {
     if (filters.estado) {
       setMunicipios(mexicoMunicipalities[filters.estado] || []);
     } else {
       setMunicipios([]);
+      // No modificar filters aquí - dejar que el usuario limpie municipio manualmente
     }
   }, [filters.estado]);
 
@@ -594,6 +691,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       });
     }
 
+    // ✅ Chip para colonia
     if (filters.colonia) {
       chips.push({
         key: 'colonia',
@@ -672,9 +770,55 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     filters.banos,
   ].filter(Boolean).length;
 
+  // Solo mostrar loading completo en carga inicial (sin datos previos)
   useEffect(() => {
     setIsFiltering(isFetching && properties.length === 0);
   }, [isFetching, properties.length]);
+
+  // ✅ Callback para hover de propiedades desde la lista
+  const handlePropertyHoverFromList = useCallback((property: HoveredProperty | null) => {
+    hoverFromMap.current = false;
+    
+    if (property && property.lat && property.lng) {
+      // ✅ Ahora SÍ tenemos coordenadas, establecer hoveredProperty
+      setHoveredProperty({
+        id: property.id,
+        title: property.title,
+        price: property.price,
+        currency: property.currency,
+        lat: property.lat,
+        lng: property.lng,
+      } as MapProperty);
+    } else {
+      setHoveredProperty(null);
+    }
+  }, []);
+
+  // ✅ Handler: cuando se hace clic en un marcador del mapa
+  const handleMarkerClick = useCallback((propertyId: string) => {
+    monitoring.debug('[Buscar] Click en marcador del mapa', {
+      component: 'Buscar',
+      action: 'markerClick',
+      propertyId,
+    });
+    
+    // 1. Establecer la propiedad seleccionada para scroll + resaltado
+    setSelectedPropertyFromMap(propertyId);
+    
+    // 2. Abrir el Sheet con los detalles de la propiedad
+    handlePropertyClick(propertyId);
+    
+    // 3. Remover el resaltado después de 2 segundos
+    setTimeout(() => {
+      setSelectedPropertyFromMap(null);
+    }, 2000);
+    
+    // 4. Tracking de evento
+    trackGA4Event('select_item', {
+      item_list_name: 'search_map',
+      items: [{ item_id: propertyId }],
+    });
+  }, [handlePropertyClick, trackGA4Event]);
 
   const handleFavoriteClick = async (propertyId: string) => {
     if (!user) {
@@ -687,6 +831,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     }
 
     try {
+      // Verificar si ya está en favoritos
       const { data: existing } = await supabase
         .from('favorites')
         .select('id')
@@ -695,6 +840,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
         .maybeSingle();
 
       if (existing) {
+        // Eliminar de favoritos
         const { error } = await supabase
           .from('favorites')
           .delete()
@@ -707,6 +853,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
           description: 'La propiedad se eliminó de tus favoritos',
         });
       } else {
+        // Agregar a favoritos
         const { error } = await supabase
           .from('favorites')
           .insert([{
@@ -735,9 +882,20 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     }
   };
 
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price);
+  };
+
   const handleSearchInputChange = (value: string) => {
+    // Solo limpiar si el input está realmente vacío
     if (!value || value.trim() === '') {
       setFilters(prev => {
+        // Si ya están vacíos, no hacer nada
         if (!prev.estado && !prev.municipio) return prev;
         
         return {
@@ -746,7 +904,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
           municipio: ''
         };
       });
-      setSearchCoordinates(null);
+      setSearchCoordinates(null); // Limpiar coordenadas
     }
   };
 
@@ -758,10 +916,12 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       colonia: location.colonia || '',
     }));
 
+    // Guardar coordenadas de la búsqueda
     if (location.lat && location.lng) {
       setSearchCoordinates({ lat: location.lat, lng: location.lng });
     }
 
+    // ✅ Mostrar colonia en el toast si está disponible
     const description = location.colonia 
       ? `${location.colonia}, ${location.municipality}, ${location.state}`
       : `${location.municipality}, ${location.state}`;
@@ -771,6 +931,38 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       description,
     });
   };
+
+  // Memoizar marcadores para evitar recreación innecesaria
+  // Ya no se usa - SearchMap maneja su propia carga de propiedades
+
+  // Conteo total de propiedades filtradas
+  // ✅ Usar SearchResultsList en lugar de renderizado manual
+  const totalCountFromData = properties.length;
+
+  const hasActiveFilters = !!(
+    filters.estado || 
+    filters.municipio || 
+    filters.tipo || 
+    filters.listingType || 
+    filters.precioMin || 
+    filters.precioMax || 
+    filters.recamaras || 
+    filters.banos
+  );
+
+  // Detectar si hay filtros geográficos/específicos (excluye listingType)
+  const hasLocationFilters = !!(
+    filters.estado || 
+    filters.municipio || 
+    filters.tipo || 
+    filters.precioMin || 
+    filters.precioMax || 
+    filters.recamaras || 
+    filters.banos
+  );
+
+  // Map center and zoom are now managed by SearchMap internally
+  // Ya no es necesario actualizar el centro y zoom manualmente
 
   const getBreadcrumbItems = (): BreadcrumbItem[] => {
     const items: BreadcrumbItem[] = [
@@ -844,7 +1036,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
     filters.municipio || filters.estado || 'Propiedades en México'
   );
 
-  // Handlers for form controls
+  // Handlers for form controls (defined outside JSX to avoid type parsing issues)
   const handleOrdenChange = (value: string) => {
     setFilters(prev => ({ ...prev, orden: value as Filters['orden'] }));
   };
@@ -863,8 +1055,8 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
       />
       <Navbar />
       
-      <div className="pt-20">
-        {/* Barra de búsqueda y filtros compacta */}
+      <div className="pt-16">
+        {/* Barra de búsqueda y filtros compacta estilo Zillow */}
         <div className="border-b bg-background sticky top-16 z-30">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center gap-2 flex-wrap">
@@ -1059,7 +1251,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                 </SheetContent>
               </Sheet>
 
-              {/* Filtros Desktop - Popovers */}
+              {/* Filtros Desktop - Popovers (ocultos en móvil) */}
               <div className="hidden lg:flex items-center gap-2">
               {/* 2. Tipo */}
               <Popover>
@@ -1309,6 +1501,7 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
                     setFilters(DEFAULT_FILTERS);
                     setSearchCoordinates(null);
                     setPriceRange([SALE_MIN_PRICE, SALE_MAX_PRICE]);
+                    // La URL se limpiará automáticamente por el useEffect de sincronización
                   }}
                 >
                   Limpiar filtros
@@ -1318,220 +1511,298 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
           </div>
         </div>
 
-        {/* Botones de vista (móvil) */}
-        <div className="lg:hidden flex justify-center gap-2 py-2 border-b bg-background">
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('list')}
-          >
-            <List className="h-4 w-4 mr-1" />
-            Lista
-          </Button>
-          <Button
-            variant={viewMode === 'map' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('map')}
-          >
-            <Map className="h-4 w-4 mr-1" />
-            Mapa
-          </Button>
-        </div>
-
-        {/* Contenedor principal: Split View */}
-        <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 180px)' }}>
-          {/* Lista de propiedades */}
-          <div className={cn(
-            "flex-1 overflow-y-auto",
-            viewMode === 'map' && 'hidden lg:block',
-            viewMode === 'split' && 'lg:w-1/2',
-            viewMode === 'list' && 'w-full'
-          )}>
-            <div className="p-4 space-y-4">
-              {/* Estado de error */}
-              {searchError && (
-                <div className="flex flex-col items-center justify-center p-8 space-y-4 min-h-[400px]">
-                  <AlertCircle className="h-12 w-12 text-destructive" />
-                  <div className="text-center space-y-2">
-                    <h3 className="text-lg font-semibold">Error al cargar propiedades</h3>
-                    <p className="text-sm text-muted-foreground max-w-md">
-                      Ocurrió un problema al buscar las propiedades. Por favor, intenta de nuevo.
-                    </p>
-                  </div>
-                  <Button 
-                    onClick={() => window.location.reload()}
-                    variant="outline"
-                  >
-                    Reintentar
-                  </Button>
-                </div>
-              )}
-
-              {/* Estado de carga inicial */}
-              {!searchError && loading && properties.length === 0 && (
-                <div className="p-6 space-y-4">
-                  <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    <span className="text-sm text-muted-foreground">Buscando propiedades...</span>
-                  </div>
-                  {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-48 w-full" />
-                  ))}
-                </div>
-              )}
-
-              {/* Estado vacío - sin resultados */}
-              {!searchError && !loading && listProperties.length === 0 && (
-                <div className="flex flex-col items-center justify-center p-12 space-y-4 text-center min-h-[400px]">
-                  <div className="rounded-full bg-muted p-6">
-                    <Search className="h-12 w-12 text-muted-foreground" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-semibold">No encontramos propiedades</h3>
-                    <p className="text-muted-foreground max-w-md">
-                      No hay propiedades que coincidan con tus filtros actuales.
-                    </p>
-                  </div>
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <p>Intenta:</p>
-                    <ul className="space-y-1">
-                      <li>• Ampliar el rango de precio</li>
-                      <li>• Cambiar la ubicación</li>
-                      <li>• Ajustar los filtros de recámaras y baños</li>
-                    </ul>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      setFilters(DEFAULT_FILTERS);
-                      setSearchCoordinates(null);
-                      setPriceRange([SALE_MIN_PRICE, SALE_MAX_PRICE]);
-                    }}
-                    variant="outline"
-                  >
-                    Limpiar todos los filtros
-                  </Button>
-                </div>
-              )}
-
-              {/* Lista de propiedades con resultados */}
-              {!searchError && listProperties.length > 0 && (
-                <InfiniteScrollContainer
-                  onLoadMore={() => {
-                    if (hasNextPage && !isFetching) {
-                      fetchNextPage();
-                    }
-                  }}
-                  hasMore={!!hasNextPage}
-                  isLoading={isFetchingNextPage}
-                  className="space-y-4"
-                >
-                  {/* Contador de resultados */}
-                  <div className="pb-2 text-sm text-muted-foreground">
-                    <p>
-                      <span className="font-medium text-foreground">{totalCount}</span>{' '}
-                      {totalCount === 1 ? 'propiedad encontrada' : 'propiedades encontradas'}
-                    </p>
-                  </div>
-
-                  <SearchResultsList
-                    properties={listProperties}
-                    isLoading={loading && listProperties.length === 0}
-                    listingType={filters.listingType}
-                    onPropertyClick={handlePropertyClick}
-                    savedSearchesCount={user ? savedSearches.length : 0}
-                    onScrollToSavedSearches={() => {
-                      const element = document.getElementById('saved-searches');
-                      element?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                  />
-                </InfiniteScrollContainer>
-              )}
-
-              {/* Búsquedas guardadas */}
-              {user && savedSearches.length > 0 && (
-                <div id="saved-searches" className="pt-8">
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <Star className="h-4 w-4" />
-                          <Label className="font-semibold">Búsquedas guardadas</Label>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 mb-3">
-                        <Input
-                          placeholder="Buscar..."
-                          value={savedSearchQuery}
-                          onChange={(e) => setSavedSearchQuery(e.target.value)}
-                        />
-                        <Select value={savedSearchSort} onValueChange={handleSavedSearchSortChange}>
-                          <SelectTrigger className="w-auto">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="date">Fecha</SelectItem>
-                            <SelectItem value="name">Nombre</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {filteredSavedSearches.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-                          <p className="text-sm">No se encontraron búsquedas</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
-                          {filteredSavedSearches.map((search) => (
-                            <div
-                              key={search.id}
-                              className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
-                            >
-                              <button
-                                onClick={() => handleLoadSearch(search.filters)}
-                                className="flex-1 text-left"
-                              >
-                                <p className="font-medium text-sm">{search.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(search.created_at).toLocaleDateString('es-MX', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
-                                </p>
-                              </button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteSearch(search.id, search.name)}
-                                className="hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+        {/* Layout estilo Zillow: Mapa a la izquierda, lista a la derecha */}
+        <div className="flex flex-col lg:flex-row lg:h-full" style={{ height: 'calc(100vh - 140px)' }}>
+          {/* Toggle móvil para cambiar entre mapa y lista */}
+          <div className="lg:hidden sticky top-0 z-20 bg-background border-b p-2">
+            <div className="flex gap-2">
+                    <Button
+                      variant={mobileView === 'list' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setMobileView('list')}
+                      className="flex-1"
+                    >
+                      <ListIcon className="h-4 w-4 mr-2" />
+                      Lista ({totalCount > 0 ? totalCount.toLocaleString() : '0'})
+                    </Button>
+              <Button
+                variant={mobileView === 'map' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setMobileView('map')}
+                className="flex-1"
+              >
+                <MapIcon className="h-4 w-4 mr-2" />
+                Mapa
+              </Button>
             </div>
           </div>
 
-          {/* Mapa */}
-          <div className={cn(
-            "border-l bg-muted/30",
-            viewMode === 'list' && 'hidden lg:hidden',
-            viewMode === 'map' && 'w-full lg:w-1/2',
-            viewMode === 'split' && 'hidden lg:block lg:w-1/2'
-          )}>
-            <SearchMap
-              selectedPropertyId={selectedPropertyId}
-              onPropertyClick={handlePropertyClick}
-              className="h-full"
-            />
+          {/* Mapa a la izquierda - 50% width en desktop, condicional en móvil */}
+          <div className={`relative ${mobileView === 'map' ? 'block' : 'hidden'} lg:block lg:w-1/2 lg:h-full`} style={{ height: 'calc(100vh - 200px)' }}>
+            {/* Contador de resultados */}
+            <div className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg border">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-lg">
+                  {mobileView === 'map' || window.innerWidth >= 1024 ? mapVisibleCount : totalCount}
+                </span>
+                <span className="text-muted-foreground text-sm">
+                  {(mobileView === 'map' || window.innerWidth >= 1024 ? mapVisibleCount : totalCount) === 1 ? 'propiedad' : 'propiedades'}
+                </span>
+                {isFetching && properties.length > 0 && (
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                )}
+              </div>
+            </div>
+
+            {/* ✅ Mapa con filtros unificados y manejo de errores */}
+            {mapError ? (
+              <div className="flex h-full items-center justify-center p-8">
+                <div className="text-center max-w-md">
+                  <MapIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <p className="text-sm text-muted-foreground mb-2">
+                    No pudimos cargar el mapa en este momento.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Puedes seguir usando la lista de propiedades sin problema.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <SearchMap
+                properties={viewportProperties}
+                clusters={viewportClusters}
+                isLoading={mapLoading}
+                filters={propertyFilters}
+                searchCoordinates={searchCoordinates}
+                onMarkerClick={handleMarkerClick}
+                onBoundsChanged={setViewportBounds}
+                height="100%"
+                onMapError={setMapError}
+                onVisibleCountChange={setMapVisibleCount}
+              />
+            )}
+          </div>
+
+          {/* ✅ Lista de propiedades con estados mejorados */}
+          <div className={`w-full lg:w-1/2 overflow-y-auto ${mobileView === 'list' ? 'block' : 'hidden'} lg:block`}>
+            {/* Estado de error */}
+            {searchError && (
+              <div className="flex flex-col items-center justify-center p-8 space-y-4 min-h-[400px]">
+                <AlertCircle className="h-12 w-12 text-destructive" />
+                <div className="text-center space-y-2">
+                  <h3 className="text-lg font-semibold">Error al cargar propiedades</h3>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Ocurrió un problema al buscar las propiedades. Por favor, intenta de nuevo.
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                >
+                  Reintentar
+                </Button>
+              </div>
+            )}
+
+            {/* Estado de carga inicial */}
+            {!searchError && loading && properties.length === 0 && (
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Buscando propiedades...</span>
+                </div>
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} className="h-48 w-full" />
+                ))}
+              </div>
+            )}
+
+            {/* Estado vacío - sin resultados */}
+            {!searchError && !loading && listProperties.length === 0 && (
+              <div className="flex flex-col items-center justify-center p-12 space-y-4 text-center min-h-[400px]">
+                <div className="rounded-full bg-muted p-6">
+                  <Search className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold">No encontramos propiedades</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    No hay propiedades que coincidan con tus filtros actuales.
+                  </p>
+                </div>
+                {/* 🔍 NUEVO: Panel de diagnóstico en modo debug */}
+                {typeof window !== 'undefined' && (window as any).__KENTRA_MAP_DEBUG__ === true && (
+                  <div className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-xs font-mono text-yellow-900 max-w-2xl">
+                    <div className="font-bold mb-1">🔍 DEBUG INFO:</div>
+                    <div>Razón: {viewportDebugReason || 'N/A'}</div>
+                    <div>Zoom: {viewportBounds?.zoom?.toFixed(2) || 'N/A'}</div>
+                    <div>Estado: {filters.estado || '(ninguno)'}</div>
+                    <div>Municipio: {filters.municipio || '(ninguno)'}</div>
+                    <div>Colonia: {filters.colonia || '(ninguno)'}</div>
+                    <div>Tipo: {filters.tipo || '(todos)'}</div>
+                    <div>Operación: {filters.listingType}</div>
+                    {viewportBounds && (
+                      <div>
+                        Bounds: {viewportBounds.minLat.toFixed(4)},{viewportBounds.minLng.toFixed(4)} →{' '}
+                        {viewportBounds.maxLat.toFixed(4)},{viewportBounds.maxLng.toFixed(4)}
+                      </div>
+                    )}
+                    <div>Properties viewport: {viewportProperties.length}</div>
+                    <div>Clusters viewport: {viewportClusters.length}</div>
+                    <div>isViewportActive: {isViewportActive ? 'true' : 'false'}</div>
+                    <div>listProperties.length: {listProperties.length}</div>
+                  </div>
+                )}
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>Intenta:</p>
+                  <ul className="space-y-1">
+                    <li>• Ampliar el rango de precio</li>
+                    <li>• Cambiar la ubicación</li>
+                    <li>• Ajustar los filtros de recámaras y baños</li>
+                  </ul>
+                </div>
+                <Button
+                  onClick={() => {
+                    setFilters(DEFAULT_FILTERS);
+                    setSearchCoordinates(null);
+                    setPriceRange([SALE_MIN_PRICE, SALE_MAX_PRICE]);
+                  }}
+                  variant="outline"
+                >
+                  Limpiar todos los filtros
+                </Button>
+              </div>
+            )}
+
+            {/* Lista de propiedades con resultados */}
+            {!searchError && listProperties.length > 0 && (
+              <InfiniteScrollContainer
+                onLoadMore={() => {
+                  if (!isViewportActive && hasNextPage && !isFetching) {
+                    fetchNextPage();
+                  }
+                }}
+                hasMore={!!hasNextPage}
+                isLoading={isFetching}
+                className="space-y-4"
+              >
+                {/* Contador de resultados */}
+                <div className="px-4 pt-2 pb-1 text-sm text-muted-foreground">
+                  {hasTooManyResults ? (
+                    <p>
+                      Mostrando <span className="font-medium text-foreground">{properties.length}</span> de{' '}
+                      <span className="font-medium text-foreground">{actualTotal}+</span> resultados.{' '}
+                      <span className="text-amber-600 dark:text-amber-500">
+                        Refina tus filtros para ver todos.
+                      </span>
+                    </p>
+                  ) : (
+                    <p>
+                      Mostrando <span className="font-medium text-foreground">{properties.length}</span> de{' '}
+                      <span className="font-medium text-foreground">{actualTotal}</span> resultados
+                    </p>
+                  )}
+                </div>
+
+                <SearchResultsList
+                  properties={listProperties}
+                  isLoading={loading && properties.length === 0}
+                  listingType={filters.listingType}
+                  onPropertyClick={handlePropertyClick}
+                  onPropertyHover={handlePropertyHoverFromList}
+                  savedSearchesCount={user ? savedSearches.length : 0}
+                  onScrollToSavedSearches={() => {
+                    const element = document.getElementById('saved-searches');
+                    element?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  highlightedPropertyId={selectedPropertyFromMap}
+                  scrollToPropertyId={selectedPropertyFromMap}
+                />
+
+                {/* Botón fallback para cargar más si IntersectionObserver falla */}
+                {!isViewportActive && hasNextPage && !isFetching && (
+                  <div className="flex justify-center py-4 px-4">
+                    <Button 
+                      onClick={() => fetchNextPage()} 
+                      variant="outline"
+                      size="lg"
+                    >
+                      Cargar más propiedades
+                    </Button>
+                  </div>
+                )}
+              </InfiniteScrollContainer>
+            )}
+
+            {/* Búsquedas guardadas expandido */}
+            {user && savedSearches.length > 0 && (
+              <div id="saved-searches" className="pt-8 px-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Star className="h-4 w-4" />
+                        <Label className="font-semibold">Búsquedas guardadas</Label>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-3">
+                      <Input
+                        placeholder="Buscar..."
+                        value={savedSearchQuery}
+                        onChange={(e) => setSavedSearchQuery(e.target.value)}
+                      />
+                      <Select value={savedSearchSort} onValueChange={handleSavedSearchSortChange}>
+                        <SelectTrigger className="w-auto">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="date">Fecha</SelectItem>
+                          <SelectItem value="name">Nombre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {filteredSavedSearches.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                        <p className="text-sm">No se encontraron búsquedas</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {filteredSavedSearches.map((search) => (
+                          <div
+                            key={search.id}
+                            className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                          >
+                            <button
+                              onClick={() => handleLoadSearch(search.filters)}
+                              className="flex-1 text-left"
+                            >
+                              <p className="font-medium text-sm">{search.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(search.created_at).toLocaleDateString('es-MX', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </p>
+                            </button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteSearch(search.id, search.name)}
+                              className="hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1546,3 +1817,4 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
 };
 
 export default Buscar;
+
