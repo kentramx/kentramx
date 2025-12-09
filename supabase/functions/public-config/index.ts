@@ -24,7 +24,6 @@ Deno.serve(async (req) => {
     // Optional: ensure user session exists (not strictly required for public config)
     const { data: { user } } = await supabaseClient.auth.getUser();
 
-    // Google Maps API key removed - no longer needed
     // Mapbox token will be added in FASE 2 if needed from backend
 
     return new Response(
