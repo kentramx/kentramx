@@ -115,23 +115,23 @@ export function useMapSearch({
 
   // ✅ Usar totalCount del backend (más preciso que calcular en frontend)
   const totalCount = useMemo(() => {
-    // Si tenemos el total del backend, usarlo
-    if (tileData?.totalCount !== undefined) {
+    // Type guard: verificar si tileData tiene totalCount
+    if (tileData && 'totalCount' in tileData && typeof tileData.totalCount === 'number') {
       return tileData.totalCount;
     }
     // Fallback: calcular en frontend
     const propertiesCount = properties.length;
     const clusteredCount = clusters.reduce((acc, c) => acc + (c.property_count || 0), 0);
     return propertiesCount + clusteredCount;
-  }, [tileData?.totalCount, properties.length, clusters]);
+  }, [tileData, properties.length, clusters]);
 
   // ✅ Detectar si hay demasiados resultados (del backend o heurística)
   const hasTooManyResults = useMemo(() => {
-    // Si el backend nos dice que hay más, confiar en él
-    if (tileData?.hasMore) return true;
+    // Type guard: verificar si tileData tiene hasMore
+    if (tileData && 'hasMore' in tileData && tileData.hasMore) return true;
     // Fallback: si llegamos al límite de propiedades
     return mapProperties.length >= MAX_PROPERTIES_PER_TILE;
-  }, [tileData?.hasMore, mapProperties.length]);
+  }, [tileData, mapProperties.length]);
 
   // ✅ Razón de debug cuando no hay datos
   const debugReason = useMemo((): string | null => {

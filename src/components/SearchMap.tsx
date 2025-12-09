@@ -1,351 +1,68 @@
+import React from 'react';
+import { MapPin } from 'lucide-react';
+import type { MapProperty, PropertyCluster } from '@/types/property';
+import type { ViewportBounds } from '@/hooks/useTiledMap';
+
 /**
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║                   KENTRA MAP STACK - COMPONENTE OFICIAL                      ║
- * ║                         Mapa de Búsqueda Principal                           ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
+ * SearchMap - Placeholder (Google Maps eliminado)
  * 
- * 📍 PROPÓSITO:
- * Este es el componente OFICIAL del mapa de búsqueda de Kentra.
- * Cualquier nueva funcionalidad relacionada con mapas en la página de búsqueda
- * DEBE integrarse aquí. No crear componentes alternativos o experimentales.
- * 
- * 🛠️ TECNOLOGÍA:
- * - Google Maps JavaScript API
- * - Arquitectura tile-based para escalabilidad (1M+ propiedades)
- * - Clustering adaptativo según zoom level
- * - Viewport-based loading con debounce
- * 
- * 🎯 CARACTERÍSTICAS:
- * - Renderizado eficiente con diffing de marcadores
- * - Manejo robusto de errores con monitoring
- * - Sincronización con lista de propiedades
- * - Preloading de tiles vecinos (desactivado temporalmente)
- * 
- * 📦 DEPENDENCIAS OFICIALES:
- * - BasicGoogleMap (componente base)
- * - useMapSearch (hook unificado de datos)
- * - loadGoogleMaps (loader de API)
- * 
- * ⚠️ IMPORTANTE:
- * Este componente es parte del stack de producción estable.
- * Cualquier modificación debe ser cuidadosamente testeada.
+ * Este componente es un stub temporal mientras se implementa Mapbox en FASE 2.
+ * Mantiene la misma interfaz para no romper Buscar.tsx
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BasicGoogleMap } from '@/components/BasicGoogleMap';
-import { ViewportBounds, MIN_ZOOM_FOR_TILES, MAX_PROPERTIES_PER_TILE, CLUSTER_ZOOM_THRESHOLD } from '@/hooks/useMapSearch';
-import type { MapProperty, PropertyFilters, PropertySummary } from '@/types/property';
-import { monitoring } from '@/lib/monitoring';
-import { Loader2, AlertCircle, ZoomIn, Info } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+// Re-exportar tipos para compatibilidad
+export type { ViewportBounds } from '@/hooks/useTiledMap';
+export { MIN_ZOOM_FOR_TILES, MAX_PROPERTIES_PER_TILE, CLUSTER_ZOOM_THRESHOLD } from '@/hooks/useTiledMap';
 
-// 🔧 Debug flag controlado para logs de diagnóstico
-const MAP_DEBUG = typeof window !== 'undefined' && (window as any).__KENTRA_MAP_DEBUG__ === true;
-
-interface SearchMapProps {
-  properties: MapProperty[];
-  clusters: { lat: number; lng: number; property_count: number; avg_price: number; cluster_id: string }[];
-  isLoading: boolean;
-  filters: PropertyFilters;
-  searchCoordinates: { lat: number; lng: number } | null;
-  onMarkerClick: (id: string) => void;
-  onBoundsChanged: (bounds: ViewportBounds) => void;
-  height?: string;
-  onMapError?: (error: string) => void;
-  onVisibleCountChange?: (count: number) => void;
-
-  // ✅ Hover sync: resaltar marker cuando usuario pasa mouse sobre lista
+export interface SearchMapProps {
+  properties?: MapProperty[];
+  clusters?: PropertyCluster[];
+  isLoading?: boolean;
+  isFetching?: boolean;
+  filters?: any;
+  searchCoordinates?: { lat: number; lng: number } | null;
+  onMarkerClick?: (propertyId: string) => void;
+  onPropertyHover?: (propertyId: string | null) => void;
   hoveredPropertyId?: string | null;
-
-  // ✅ Click sync: centrar mapa cuando usuario hace clic en lista
-  centerOnCoordinates?: { lat: number; lng: number } | null;
-
-  // 🔍 Props de debug para diagnóstico de viewport
+  onBoundsChanged?: (bounds: ViewportBounds) => void;
+  onVisibleCountChange?: (count: number) => void;
+  onMapError?: (error: string) => void;
   debugViewportReason?: string | null;
   debugViewportBounds?: ViewportBounds | null;
-
-  // ✅ Nuevas props para UX mejorada
+  height?: string;
   totalCount?: number;
   hasTooManyResults?: boolean;
+  centerOnCoordinates?: { lat: number; lng: number } | null;
 }
 
 export const SearchMap: React.FC<SearchMapProps> = ({
-  properties,
-  clusters,
-  isLoading,
-  filters,
-  searchCoordinates,
-  onMarkerClick,
-  onBoundsChanged,
-  height = '100%',
-  onMapError,
-  onVisibleCountChange,
-  hoveredPropertyId,
-  centerOnCoordinates,
-  debugViewportReason,
-  debugViewportBounds,
-  totalCount,
-  hasTooManyResults,
+  properties = [],
+  clusters = [],
+  isLoading = false,
 }) => {
-  const navigate = useNavigate();
-  const [mapError, setMapError] = useState<string | null>(null);
-  
-  // ✅ Mantener datos previos para evitar parpadeos
-  const previousMarkersRef = useRef<any[]>([]);
-
-  // ✅ Calcular y reportar el total de propiedades visibles en el mapa
-  useEffect(() => {
-    if (!onVisibleCountChange) return;
-    
-    const totalVisible = (properties?.length || 0) + 
-      (clusters?.reduce((acc, c) => acc + c.property_count, 0) || 0);
-    
-    onVisibleCountChange(totalVisible);
-  }, [properties, clusters, onVisibleCountChange]);
-
-  // ✅ Handler para errores críticos del mapa (Google Maps no carga)
-  const handleMapError = useCallback((error: Error) => {
-    const errorMsg = error.message;
-    setMapError(errorMsg);
-    monitoring.error('[SearchMap] Error crítico del mapa', {
-      component: 'SearchMap',
-      error: errorMsg,
-    });
-    onMapError?.(errorMsg);
-  }, [onMapError]);
-
-  // ✅ Memoizar markers - Combinar propiedades y clusters simultáneamente
-  // Usa comparación primitiva para evitar recálculos innecesarios
-  const mapMarkers = useMemo(() => {
-    // Si está cargando y no hay datos nuevos, mantener datos previos para evitar parpadeos
-    if (isLoading && properties.length === 0 && clusters.length === 0 && previousMarkersRef.current.length > 0) {
-      return previousMarkersRef.current;
-    }
-
-    const markers: any[] = [];
-
-    // 1) Agregar propiedades individuales con type: 'property'
-    if (properties && properties.length > 0) {
-      const propertyMarkers = properties
-        .filter((p) => p.lat != null && p.lng != null)
-        .map((p) => ({
-          id: p.id,
-          lat: Number(p.lat),
-          lng: Number(p.lng),
-          title: p.title,
-          price: p.price,
-          currency: (p.currency ?? 'MXN') as 'MXN' | 'USD',
-          type: 'property' as const,
-          bedrooms: p.bedrooms,
-          bathrooms: p.bathrooms,
-          images: p.images,
-          listing_type: p.listing_type as 'venta' | 'renta',
-          address: p.address,
-        }));
-      
-      markers.push(...propertyMarkers);
-    }
-
-    // 2) Agregar clusters con type: 'cluster' y count
-    if (clusters && clusters.length > 0) {
-      const clusterMarkers = clusters.map((c) => ({
-        id: `cluster-${c.cluster_id}`,
-        lat: c.lat,
-        lng: c.lng,
-        title: `${c.property_count} propiedades`,
-        price: c.avg_price,
-        currency: 'MXN' as const,
-        type: 'cluster' as const,
-        count: c.property_count,
-      }));
-      
-      markers.push(...clusterMarkers);
-    }
-
-    // Actualizar ref con nuevos markers
-    if (markers.length > 0) {
-      previousMarkersRef.current = markers;
-    }
-
-    return markers;
-  }, [properties, clusters, isLoading]);
-
-  // ✅ Centro del mapa
-  const mapCenter = useMemo(() => {
-    if (searchCoordinates) {
-      return searchCoordinates;
-    }
-    // Centro de México por defecto
-    return { lat: 23.6345, lng: -102.5528 };
-  }, [searchCoordinates]);
-
-
-// ✅ Zoom del mapa estilo Zillow - más cercano cuando hay búsqueda específica
-const mapZoom = useMemo(() => {
-  // Cuando hay coordenadas de búsqueda (ciudad/zona), usar zoom que muestre propiedades individuales
-  // Zoom 14 = muestra píldoras de precio directamente (threshold es 13)
-  if (searchCoordinates) {
-    return 14;
-  }
-  // Vista nivel país por defecto
-  return 5;
-}, [searchCoordinates]);
-
-// ✅ Callback memoizado para bounds change
-  const handleBoundsChange = useCallback((bounds: ViewportBounds) => {
-    onBoundsChanged(bounds);
-  }, [onBoundsChanged]);
-
-  // ✅ Callback memoizado para marker click (no navegar si es cluster)
-  const handleMarkerClickInternal = useCallback(
-    (id: string) => {
-      // No hacer nada si es un cluster (empieza con "cluster-")
-      if (id.startsWith('cluster-')) {
-        return;
-      }
-      onMarkerClick(id);
-    },
-    [onMarkerClick]
-  );
-
-  // ✅ Handler para sembrar bounds iniciales cuando el mapa está listo
-  const handleMapReady = useCallback((map: google.maps.Map) => {
-    const bounds = map.getBounds();
-    if (!bounds) return;
-    
-    const ne = bounds.getNorthEast();
-    const sw = bounds.getSouthWest();
-    const mapCenter = map.getCenter();
-
-    const initialBounds = {
-      minLat: sw.lat(),
-      maxLat: ne.lat(),
-      minLng: sw.lng(),
-      maxLng: ne.lng(),
-      zoom: map.getZoom() ?? 11,
-      center: {
-        lat: mapCenter?.lat() ?? searchCoordinates?.lat ?? 23.6345,
-        lng: mapCenter?.lng() ?? searchCoordinates?.lng ?? -102.5528,
-      },
-    };
-
-    if (MAP_DEBUG) {
-      console.log('[KENTRA MAP] Sembrando bounds iniciales', initialBounds);
-    }
-
-    onBoundsChanged(initialBounds);
-  }, [onBoundsChanged, searchCoordinates]);
+  const totalProperties = properties.length + clusters.reduce((acc, c) => acc + (c.property_count || 0), 0);
 
   return (
-    <div className="relative w-full" style={{ height }}>
-      <BasicGoogleMap
-        center={mapCenter}
-        markers={mapMarkers as any}
-        enableClustering={true}
-        onReady={handleMapReady}
-        onBoundsChanged={handleBoundsChange}
-        onMarkerClick={handleMarkerClickInternal}
-        disableAutoFit={true}
-        onMapError={handleMapError}
-        hoveredMarkerId={hoveredPropertyId}
-        centerOnCoordinates={centerOnCoordinates}
-      />
-
-      {/* 🔍 Debug overlay - controlled by window.__KENTRA_MAP_DEBUG__ */}
-      {MAP_DEBUG && (
-        <div className="pointer-events-none absolute left-2 top-2 z-20">
-          <div className="pointer-events-auto max-w-xs rounded-md bg-black/80 px-3 py-2 text-[11px] text-white space-y-1">
-            <div className="font-semibold">MAP DEBUG</div>
-      <div>propsViewport: {properties.length}</div>
-      <div>clustersViewport: {clusters.length}</div>
-      <div>mapMarkers: {mapMarkers.length}</div>
-      <div>isLoading: {isLoading ? 'true' : 'false'}</div>
-            <div>MIN_ZOOM_FOR_TILES: {MIN_ZOOM_FOR_TILES}</div>
-            <div>MAX_PROPERTIES_PER_TILE: {MAX_PROPERTIES_PER_TILE}</div>
-            {debugViewportBounds && (
-              <>
-                <div>zoom: {debugViewportBounds.zoom.toFixed(2)}</div>
-                <div>
-                  bounds: {debugViewportBounds.minLat.toFixed(3)},
-                  {debugViewportBounds.minLng.toFixed(3)} →{' '}
-                  {debugViewportBounds.maxLat.toFixed(3)},
-                  {debugViewportBounds.maxLng.toFixed(3)}
-                </div>
-              </>
-            )}
-            {typeof debugViewportReason !== 'undefined' && (
-              <div>
-                reason:{' '}
-                {debugViewportReason && debugViewportReason.length > 0
-                  ? debugViewportReason
-                  : 'N/A'}
-              </div>
-            )}
-          </div>
+    <div className="flex h-full w-full flex-col items-center justify-center rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 text-muted-foreground">
+      <div className="text-center p-6 max-w-sm">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+          <MapPin className="h-8 w-8 opacity-50" />
         </div>
-      )}
-
-      {/* 🔄 Overlay de carga */}
-      {isLoading && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/20 backdrop-blur-[2px]">
-          <div className="rounded-lg bg-background/95 px-4 py-3 shadow-lg">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Cargando propiedades en el mapa...</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 📍 Indicador de zoom bajo - sugerir acercar el mapa */}
-      {!isLoading && debugViewportBounds && debugViewportBounds.zoom < CLUSTER_ZOOM_THRESHOLD && clusters.length > 0 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
-          <div className="flex items-center gap-2 bg-black/80 text-white px-4 py-2 rounded-full shadow-lg text-sm">
-            <ZoomIn className="h-4 w-4" />
-            <span>Acerca el mapa para ver propiedades individuales</span>
-          </div>
-        </div>
-      )}
-
-      {/* ⚠️ Indicador de muchos resultados */}
-      {!isLoading && hasTooManyResults && properties.length > 0 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
-          <div className="flex items-center gap-2 bg-amber-500/90 text-white px-4 py-2 rounded-full shadow-lg text-sm">
-            <Info className="h-4 w-4" />
-            <span>
-              Mostrando {properties.length} de {totalCount || 'muchas'} propiedades
-              {totalCount && totalCount > properties.length && ' - Acerca el mapa o usa filtros'}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* ❌ Overlay de error crítico (solo para fallos de Google Maps) */}
-      {mapError && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm">
-          <div className="pointer-events-auto rounded-lg bg-background border border-destructive/20 px-6 py-4 shadow-xl max-w-sm">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <AlertCircle className="h-10 w-10 text-destructive" />
-              <div>
-                <p className="font-medium text-foreground">No pudimos cargar el mapa</p>
-                <p className="text-sm text-muted-foreground mt-1">Puedes seguir usando la lista de propiedades sin problema.</p>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setMapError(null);
-                  window.location.reload();
-                }}
-                className="mt-2"
-              >
-                Reintentar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+        <h3 className="text-lg font-medium mb-2">Mapa desactivado temporalmente</h3>
+        <p className="text-sm opacity-75 mb-4">
+          Google Maps ha sido eliminado. Próximamente versión con Mapbox.
+        </p>
+        {!isLoading && totalProperties > 0 && (
+          <p className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full inline-block">
+            {totalProperties} propiedades disponibles
+          </p>
+        )}
+        {isLoading && (
+          <p className="text-xs opacity-50">Cargando datos...</p>
+        )}
+      </div>
     </div>
   );
 };
+
+export default SearchMap;

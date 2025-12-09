@@ -24,21 +24,13 @@ Deno.serve(async (req) => {
     // Optional: ensure user session exists (not strictly required for public config)
     const { data: { user } } = await supabaseClient.auth.getUser();
 
-    const googleMapsApiKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY') || '';
-
-    if (!googleMapsApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'GOOGLE_MAPS_API_KEY_NOT_CONFIGURED' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Google Maps API key removed - no longer needed
+    // Mapbox token will be added in FASE 2 if needed from backend
 
     return new Response(
       JSON.stringify({
-        // Public, safe to expose to clients
-        googleMapsApiKey,
-        // Optionally include other publishable config here later
         authenticated: !!user,
+        // Future: add mapboxToken here if needed from backend secrets
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
