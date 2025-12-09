@@ -3,3 +3,4 @@
  */
 
 export { MapboxMap } from './MapboxMap';
+export { MapTest } from './MapTest';
