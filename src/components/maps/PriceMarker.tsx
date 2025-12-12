@@ -3,17 +3,18 @@
  * KENTRA MAP STACK - OFICIAL
  */
 
-import { OverlayView } from '@react-google-maps/api';
 import { memo, useCallback, useMemo } from 'react';
+import { StableOverlay } from './StableOverlay';
 import type { PropertyMarker } from '@/types/map';
 import { cn } from '@/lib/utils';
 
 interface PriceMarkerProps {
+  map: google.maps.Map | null;
   property: PropertyMarker;
   isSelected?: boolean;
   isHovered?: boolean;
   isVisited?: boolean;
-  hidden?: boolean; // Para pool de markers - ocultar sin desmontar
+  hidden?: boolean;
   onClick?: (id: string) => void;
   onHover?: (property: PropertyMarker | null) => void;
 }
@@ -74,6 +75,7 @@ const MARKER_STYLES = {
 } as const;
 
 export const PriceMarker = memo(function PriceMarker({
+  map,
   property,
   isSelected = false,
   isHovered = false,
@@ -103,20 +105,17 @@ export const PriceMarker = memo(function PriceMarker({
   const styles = MARKER_STYLES[state];
 
   return (
-    <OverlayView
+    <StableOverlay
+      map={map}
       position={{ lat: property.lat, lng: property.lng }}
-      mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+      zIndex={styles.zIndex}
+      hidden={hidden}
     >
       <div
         className="absolute"
         style={{ 
-          zIndex: hidden ? -1 : styles.zIndex,
           transform: 'translate(-50%, -100%)',
           paddingBottom: '8px',
-          opacity: hidden ? 0 : 1,
-          pointerEvents: hidden ? 'none' : 'auto',
-          visibility: hidden ? 'hidden' : 'visible',
-          transition: 'opacity 150ms ease-out',
         }}
       >
         <button
@@ -132,9 +131,7 @@ export const PriceMarker = memo(function PriceMarker({
             styles.border,
             'transition-all duration-150 ease-out',
             'cursor-pointer select-none',
-            'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1',
-            // Transición suave para evitar flickering
-            'animate-in fade-in-0 zoom-in-95 duration-150'
+            'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1'
           )}
           style={{
             boxShadow: styles.shadow,
@@ -155,6 +152,6 @@ export const PriceMarker = memo(function PriceMarker({
           />
         </button>
       </div>
-    </OverlayView>
+    </StableOverlay>
   );
 });

@@ -173,6 +173,7 @@ export function SearchMap({
         {allClusters.map((cluster) => (
           <ClusterMarker
             key={cluster.id}
+            map={map}
             cluster={cluster}
             onClick={handleClusterClick}
             hidden={!visibleClusterIds.has(cluster.id)}
@@ -185,6 +186,7 @@ export function SearchMap({
         {allProperties.map((property) => (
           <PriceMarker
             key={property.id}
+            map={map}
             property={property}
             isSelected={property.id === selectedPropertyId}
             isHovered={property.id === hoveredPropertyId}
