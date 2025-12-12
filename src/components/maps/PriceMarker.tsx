@@ -1,12 +1,18 @@
 /**
  * Marcador de precio premium estilo Zillow
  * KENTRA MAP STACK - OFICIAL
+ * 
+ * Features:
+ * - Estilo compacto con precio formateado
+ * - Estados: default, hover, selected, visited, featured
+ * - Propiedades destacadas con borde dorado y estrella
  */
 
 import { memo, useCallback, useMemo } from 'react';
 import { StableOverlay } from './StableOverlay';
 import type { PropertyMarker } from '@/types/map';
 import { cn } from '@/lib/utils';
+import { Star } from 'lucide-react';
 
 interface PriceMarkerProps {
   map: google.maps.Map | null;
@@ -14,6 +20,7 @@ interface PriceMarkerProps {
   isSelected?: boolean;
   isHovered?: boolean;
   isVisited?: boolean;
+  isFeatured?: boolean;
   hidden?: boolean;
   onClick?: (id: string) => void;
   onHover?: (property: PropertyMarker | null) => void;
@@ -34,7 +41,10 @@ function formatPrice(price: number, currency: string): string {
   return `${symbol}${price.toLocaleString()}`;
 }
 
-// Configuración de estilos por estado
+// ═══════════════════════════════════════════════════════════
+// CONFIGURACIÓN DE ESTILOS POR ESTADO
+// Prioridad: selected > hover > featured > visited > default
+// ═══════════════════════════════════════════════════════════
 const MARKER_STYLES = {
   default: {
     bg: 'bg-black',
@@ -43,6 +53,16 @@ const MARKER_STYLES = {
     shadow: '0 4px 12px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.2)',
     scale: 1,
     zIndex: 20,
+    triangleColor: 'border-t-black',
+  },
+  // ✨ FEATURED: Borde dorado, ligeramente más grande, mayor z-index
+  featured: {
+    bg: 'bg-black',
+    text: 'text-white',
+    border: 'border-amber-400',
+    shadow: '0 4px 14px rgba(245, 158, 11, 0.35), 0 2px 6px rgba(0,0,0,0.25)',
+    scale: 1.05,
+    zIndex: 30,
     triangleColor: 'border-t-black',
   },
   hover: {
@@ -80,6 +100,7 @@ export const PriceMarker = memo(function PriceMarker({
   isSelected = false,
   isHovered = false,
   isVisited = false,
+  isFeatured = false,
   hidden = false,
   onClick,
   onHover,
@@ -101,8 +122,20 @@ export const PriceMarker = memo(function PriceMarker({
     [property.price, property.currency]
   );
 
-  const state = isSelected ? 'selected' : isHovered ? 'hover' : isVisited ? 'visited' : 'default';
+  // Prioridad de estados: selected > hover > featured > visited > default
+  const state = isSelected 
+    ? 'selected' 
+    : isHovered 
+      ? 'hover' 
+      : isFeatured 
+        ? 'featured'
+        : isVisited 
+          ? 'visited' 
+          : 'default';
   const styles = MARKER_STYLES[state];
+  
+  // Mostrar estrella si es featured (incluso en otros estados excepto visited)
+  const showFeaturedBadge = isFeatured && !isVisited;
 
   return (
     <StableOverlay
@@ -137,10 +170,25 @@ export const PriceMarker = memo(function PriceMarker({
             boxShadow: styles.shadow,
             transform: `scale(${styles.scale})`,
           }}
-          aria-label={`${property.title} - ${priceLabel}`}
+          aria-label={`${property.title} - ${priceLabel}${isFeatured ? ' - Destacada' : ''}`}
         >
           {priceLabel}
           
+          {/* ✨ Badge de estrella para propiedades destacadas */}
+          {showFeaturedBadge && (
+            <span 
+              className={cn(
+                'absolute -top-1.5 -right-1.5',
+                'bg-amber-400 rounded-full p-0.5',
+                'shadow-sm',
+                'transition-transform duration-150'
+              )}
+            >
+              <Star className="h-2 w-2 text-white fill-white" />
+            </span>
+          )}
+          
+          {/* Triángulo inferior (pointer) */}
           <span 
             className={cn(
               'absolute left-1/2 top-full -translate-x-1/2 -mt-px',
