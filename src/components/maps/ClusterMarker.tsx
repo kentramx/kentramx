@@ -3,14 +3,15 @@
  * KENTRA MAP STACK - OFICIAL
  */
 
-import { OverlayView } from '@react-google-maps/api';
 import { memo, useCallback, useState } from 'react';
+import { StableOverlay } from './StableOverlay';
 import type { PropertyCluster } from '@/types/map';
 import { cn } from '@/lib/utils';
 
 interface ClusterMarkerProps {
+  map: google.maps.Map | null;
   cluster: PropertyCluster;
-  hidden?: boolean; // Para pool de markers - ocultar sin desmontar
+  hidden?: boolean;
   onClick?: (cluster: PropertyCluster) => void;
 }
 
@@ -72,6 +73,7 @@ function getClusterStyle(count: number): {
 }
 
 export const ClusterMarker = memo(function ClusterMarker({
+  map,
   cluster,
   hidden = false,
   onClick,
@@ -87,9 +89,11 @@ export const ClusterMarker = memo(function ClusterMarker({
   const countLabel = formatCount(cluster.count);
 
   return (
-    <OverlayView
+    <StableOverlay
+      map={map}
       position={{ lat: cluster.lat, lng: cluster.lng }}
-      mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+      zIndex={30}
+      hidden={hidden}
     >
       <button
         onClick={handleClick}
@@ -102,9 +106,7 @@ export const ClusterMarker = memo(function ClusterMarker({
           'font-bold text-white tracking-tight',
           'transition-all duration-200 ease-out',
           'cursor-pointer select-none',
-          'focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-transparent',
-          // Transición suave para evitar flickering
-          'animate-in fade-in-0 zoom-in-95 duration-150'
+          'focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-transparent'
         )}
         style={{
           width: size,
@@ -114,16 +116,11 @@ export const ClusterMarker = memo(function ClusterMarker({
           border: '3px solid white',
           boxShadow: isHovered ? style.shadowHover : style.shadowNormal,
           transform: isHovered ? 'translate(-50%, -50%) scale(1.12)' : 'translate(-50%, -50%) scale(1)',
-          opacity: hidden ? 0 : 1,
-          pointerEvents: hidden ? 'none' : 'auto',
-          visibility: hidden ? 'hidden' : 'visible',
-          transition: 'opacity 200ms ease-out, transform 200ms ease-out',
         }}
-        aria-hidden={hidden}
         aria-label={`Grupo de ${cluster.count} propiedades. Click para acercar.`}
       >
         {countLabel}
       </button>
-    </OverlayView>
+    </StableOverlay>
   );
 });
