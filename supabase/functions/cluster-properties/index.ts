@@ -88,7 +88,9 @@ Deno.serve(async (req) => {
       .gte("lng", bounds.west - 0.5)
       .lte("lng", bounds.east + 0.5);
 
-    // Aplicar filtros
+    // Aplicar filtros NO geográficos (los bounds ya filtran por ubicación)
+    // ✅ listing_type, property_type, price, bedrooms, bathrooms
+    // ❌ state, municipality, colonia - redundantes con bounds geográficos
     if (filters.listing_type) {
       query = query.eq("listing_type", filters.listing_type);
     }
@@ -107,15 +109,8 @@ Deno.serve(async (req) => {
     if (filters.min_bathrooms) {
       query = query.gte("bathrooms", filters.min_bathrooms);
     }
-    if (filters.state) {
-      query = query.ilike("state", `%${filters.state}%`);
-    }
-    if (filters.municipality) {
-      query = query.ilike("municipality", `%${filters.municipality}%`);
-    }
-    if (filters.colonia) {
-      query = query.ilike("colonia", `%${filters.colonia}%`);
-    }
+    // NOTA: state/municipality/colonia ignorados - bounds geográficos son suficientes
+    // Esto evita problemas de nomenclatura (Cancún vs Benito Juárez, etc.)
 
     const { data: properties, error: dbError } = await query;
 
