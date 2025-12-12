@@ -27,7 +27,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <div className={`w-full ${className}`}>
       <div className="group relative mx-auto flex w-full max-w-4xl items-center gap-2 rounded-full border-2 border-primary/60 bg-background p-2 shadow-2xl ring-offset-background focus-within:ring-2 focus-within:ring-primary/60 focus-within:ring-offset-2">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 text-foreground">
           <PlaceAutocomplete
             onPlaceSelect={onPlaceSelect}
             placeholder={placeholder}
