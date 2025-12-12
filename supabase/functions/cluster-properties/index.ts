@@ -63,13 +63,27 @@ Deno.serve(async (req) => {
     const body: RequestBody = await req.json();
     const { bounds, zoom, filters = {} } = body;
 
-    console.log(`[cluster-properties] Request: zoom=${zoom}, bounds=[${bounds.south.toFixed(3)},${bounds.north.toFixed(3)}]`);
+    console.log(`[cluster-properties] Request: zoom=${zoom}, bounds=[${bounds.south.toFixed(3)},${bounds.north.toFixed(3)}], limit=${zoom <= 7 ? 50000 : zoom <= 10 ? 20000 : 10000}`);
 
     // Cliente Supabase
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // ═══════════════════════════════════════════════════════════
+    // LÍMITES DINÁMICOS BASADOS EN ZOOM
+    // Supabase limita a 1,000 por defecto - necesitamos más para vista nacional
+    // ═══════════════════════════════════════════════════════════
+    const MAX_PROPERTIES_NATIONAL = 50000;  // Zoom 0-7 (vista nacional)
+    const MAX_PROPERTIES_REGIONAL = 20000;  // Zoom 8-10 (vista regional)
+    const MAX_PROPERTIES_LOCAL = 10000;     // Zoom 11+ (vista local)
+    
+    const queryLimit = zoom <= 7 
+      ? MAX_PROPERTIES_NATIONAL 
+      : zoom <= 10 
+        ? MAX_PROPERTIES_REGIONAL 
+        : MAX_PROPERTIES_LOCAL;
 
     // Cargar propiedades con buffer para clustering correcto en bordes
     let query = supabase
@@ -87,7 +101,8 @@ Deno.serve(async (req) => {
       .gte("lat", bounds.south - 0.5)
       .lte("lat", bounds.north + 0.5)
       .gte("lng", bounds.west - 0.5)
-      .lte("lng", bounds.east + 0.5);
+      .lte("lng", bounds.east + 0.5)
+      .limit(queryLimit);
 
     // Aplicar filtros NO geográficos (los bounds ya filtran por ubicación)
     // ✅ listing_type, property_type, price, bedrooms, bathrooms
