@@ -1,16 +1,19 @@
 /**
  * Componente base de Google Maps para Kentra
+ * KENTRA MAP STACK - OFICIAL
  * 
  * RESPONSABILIDADES:
  * - Cargar API de Google Maps
  * - Renderizar mapa con configuración estándar
  * - Emitir eventos de viewport change
  * - Manejar estados de carga y error
+ * - Soportar Dark Mode automático
  */
 
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
-import { GOOGLE_MAPS_CONFIG, GOOGLE_MAPS_LIBRARIES } from '@/config/googleMaps';
+import { GOOGLE_MAPS_CONFIG, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_DARK_STYLES } from '@/config/googleMaps';
+import { useIsDarkMode } from '@/hooks/useIsDarkMode';
 import type { MapViewport } from '@/types/map';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,6 +39,7 @@ export function GoogleMapBase({
 }: GoogleMapBaseProps) {
   const mapRef = useRef<google.maps.Map | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const isDarkMode = useIsDarkMode();
 
   // Cargar API de Google Maps
   const { isLoaded, loadError } = useJsApiLoader({
@@ -136,6 +140,20 @@ export function GoogleMapBase({
     );
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // ESTILOS DINÁMICOS - Responde al modo oscuro del sistema
+  // ═══════════════════════════════════════════════════════════
+  const mapStyles = isDarkMode 
+    ? GOOGLE_MAPS_DARK_STYLES 
+    : (GOOGLE_MAPS_CONFIG.styles as google.maps.MapTypeStyle[]);
+
+  // Actualizar estilos cuando cambia el tema
+  useEffect(() => {
+    if (mapRef.current) {
+      mapRef.current.setOptions({ styles: mapStyles });
+    }
+  }, [isDarkMode, mapStyles]);
+
   // Opciones del mapa - solo se crean cuando isLoaded es true
   const mapOptions: google.maps.MapOptions = {
     minZoom: GOOGLE_MAPS_CONFIG.zoom.min,
@@ -151,7 +169,7 @@ export function GoogleMapBase({
     zoomControlOptions: {
       position: window.google?.maps?.ControlPosition?.RIGHT_TOP ?? 3,
     },
-    styles: GOOGLE_MAPS_CONFIG.styles as google.maps.MapTypeStyle[],
+    styles: mapStyles,
   };
 
   return (
