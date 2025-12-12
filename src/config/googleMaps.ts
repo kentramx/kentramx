@@ -56,7 +56,7 @@ export const GOOGLE_MAPS_CONFIG = {
 
   // Debounce para eventos de mapa
   debounce: {
-    boundsChange: 300,
+    boundsChange: 500, // Aumentado de 300ms para reducir flickering
     search: 500,
   },
 

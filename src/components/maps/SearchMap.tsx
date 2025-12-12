@@ -72,36 +72,26 @@ export function SearchMap({
   
   // ═══════════════════════════════════════════════════════════
   // CACHE DE MARKERS - Evita flickering durante navegación
-  // Solo actualizar cuando hay datos nuevos válidos
+  // NO limpiar cache al cambiar modo - dejar que datos nuevos lo reemplacen
   // ═══════════════════════════════════════════════════════════
   const [cachedProperties, setCachedProperties] = useState<PropertyMarker[]>([]);
   const [cachedClusters, setCachedClusters] = useState<PropertyCluster[]>([]);
-  const prevIsClustered = useRef(isClustered);
+  const hasLoadedOnce = useRef(false);
   
-  // Actualizar cache solo cuando hay datos válidos
+  // Actualizar cache solo cuando hay datos válidos (sin limpiar agresivamente)
   useEffect(() => {
-    // Si el modo cambia (cluster <-> markers), limpiar cache inmediatamente
-    if (prevIsClustered.current !== isClustered) {
-      prevIsClustered.current = isClustered;
-      setCachedProperties([]);
-      setCachedClusters([]);
-    }
-    
-    // Solo actualizar cache cuando tenemos datos nuevos O ya terminó de cargar
+    // Solo actualizar cache cuando tenemos datos nuevos Y terminó de cargar
     if (!isFetching) {
-      if (!isClustered && properties.length > 0) {
+      if (properties.length > 0) {
         setCachedProperties(properties);
-      } else if (!isClustered && properties.length === 0) {
-        setCachedProperties([]);
+        hasLoadedOnce.current = true;
       }
-      
-      if (isClustered && clusters.length > 0) {
+      if (clusters.length > 0) {
         setCachedClusters(clusters);
-      } else if (isClustered && clusters.length === 0) {
-        setCachedClusters([]);
+        hasLoadedOnce.current = true;
       }
     }
-  }, [properties, clusters, isFetching, isClustered]);
+  }, [properties, clusters, isFetching]);
 
   // Handler de viewport
   const handleViewportChange = useCallback((newViewport: MapViewport) => {
@@ -126,20 +116,18 @@ export function SearchMap({
     }
   }, [map, onClusterClick]);
 
-  // Usar CACHE en lugar de props directos para evitar flickering
+  // SIEMPRE preferir props si tienen datos, sino usar cache
   const visibleProperties = useMemo(() => {
-    if (isClustered) return []; // En modo cluster, NO mostrar markers individuales
-    // Usar cache durante fetching, datos frescos cuando está listo
-    const source = isFetching ? cachedProperties : properties;
+    if (isClustered) return [];
+    const source = properties.length > 0 ? properties : cachedProperties;
     return source.slice(0, MAX_VISIBLE_MARKERS);
-  }, [properties, cachedProperties, isClustered, isFetching]);
+  }, [properties, cachedProperties, isClustered]);
 
-  // Usar CACHE para clusters
+  // SIEMPRE preferir props si tienen datos, sino usar cache  
   const visibleClusters = useMemo(() => {
-    if (!isClustered) return []; // En modo markers, NO mostrar clusters
-    // Usar cache durante fetching
-    return isFetching ? cachedClusters : clusters;
-  }, [clusters, cachedClusters, isClustered, isFetching]);
+    if (!isClustered) return [];
+    return clusters.length > 0 ? clusters : cachedClusters;
+  }, [clusters, cachedClusters, isClustered]);
 
   // Formatear contador elegante
   const countDisplay = useMemo(() => {
@@ -211,9 +199,9 @@ export function SearchMap({
       </div>
 
       {/* ═══════════════════════════════════════════════════════════
-          INDICADOR DE CARGA - Esquina superior derecha
+          INDICADOR DE CARGA - Solo en carga inicial (no en navegación)
           ═══════════════════════════════════════════════════════════ */}
-      {(isLoading || isFetching) && (
+      {isLoading && !hasLoadedOnce.current && (
         <div className="absolute top-3 right-3 z-10">
           <Badge 
             variant="outline" 
