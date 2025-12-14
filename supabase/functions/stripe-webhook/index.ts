@@ -214,6 +214,35 @@ Deno.serve(async (req) => {
           console.error('Error creating subscription:', subError);
         } else {
           console.log('Subscription created successfully for user:', userId);
+
+          // === ENVIAR EMAIL DE BIENVENIDA (PAGO) ===
+          // Obtener detalles del plan para el email
+          const { data: planDetails } = await supabaseClient
+            .from('subscription_plans')
+            .select('display_name, features')
+            .eq('id', planId)
+            .single();
+
+          if (planDetails) {
+            const features = planDetails.features as Record<string, any>;
+            await supabaseClient.functions.invoke('send-subscription-notification', {
+              body: {
+                userId: userId,
+                type: 'welcome_paid',
+                metadata: {
+                  planName: planDetails.display_name,
+                  maxProperties: features?.max_properties || 'ilimitadas',
+                  featuredPerMonth: features?.featured_per_month || 0,
+                  nextBillingDate: new Date(periodEnd).toLocaleDateString('es-MX', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  }),
+                },
+              },
+            });
+            console.log('Welcome email sent to user:', userId);
+          }
         }
 
         break;

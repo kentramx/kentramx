@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.create-portal-session]
 verify_jwt = true
+
+[functions.send-trial-expiring-reminder]
+verify_jwt = false

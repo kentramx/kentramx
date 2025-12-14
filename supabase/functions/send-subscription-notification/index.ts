@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface NotificationRequest {
   userId: string;
-  type: 'renewal_success' | 'payment_failed' | 'payment_failed_day_3' | 'payment_failed_day_5' | 'payment_failed_day_7' | 'subscription_canceled' | 'subscription_expiring' | 'downgrade_confirmed' | 'trial_expired' | 'trial_started' | 'subscription_suspended';
+  type: 'renewal_success' | 'payment_failed' | 'payment_failed_day_3' | 'payment_failed_day_5' | 'payment_failed_day_7' | 'subscription_canceled' | 'subscription_expiring' | 'downgrade_confirmed' | 'upgrade_confirmed' | 'trial_expired' | 'trial_started' | 'trial_expiring' | 'subscription_suspended' | 'welcome_paid';
   metadata?: Record<string, any>;
 }
 
@@ -290,6 +290,86 @@ Deno.serve(async (req) => {
           
           <p>Si tienes alguna pregunta sobre tu cuenta, contáctanos.</p>
           <p>Equipo Kentra</p>
+        `;
+        break;
+
+      // === NUEVOS EMAILS ===
+      
+      case 'welcome_paid':
+        subject = '🎉 ¡Bienvenido a Kentra! Tu suscripción está activa';
+        htmlContent = `
+          <h1>¡Bienvenido a Kentra! 🎉</h1>
+          <p>Hola ${userName},</p>
+          <p>¡Felicidades! Tu suscripción al plan <strong>${metadata.planName}</strong> está activa.</p>
+          
+          <h2>📦 Tu plan incluye:</h2>
+          <ul>
+            <li>✅ Hasta <strong>${metadata.maxProperties}</strong> propiedades activas</li>
+            <li>✅ <strong>${metadata.featuredPerMonth}</strong> propiedades destacadas por mes</li>
+            <li>✅ Perfil profesional verificado</li>
+            <li>✅ Leads directos a tu WhatsApp</li>
+            <li>✅ Estadísticas de rendimiento</li>
+          </ul>
+          
+          <p><strong>💳 Próxima renovación:</strong> ${metadata.nextBillingDate}</p>
+          
+          <p><a href="https://kentra.com.mx/panel-agente?tab=form" style="background-color: #7C3AED; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 16px;">Publicar mi primera propiedad</a></p>
+          
+          <p>Si tienes alguna pregunta, estamos aquí para ayudarte.</p>
+          <p>¡Mucho éxito! 🚀<br>Equipo Kentra</p>
+        `;
+        break;
+
+      case 'upgrade_confirmed':
+        subject = '🚀 ¡Upgrade exitoso! Tu nuevo plan está activo - Kentra';
+        htmlContent = `
+          <h1>¡Tu plan ha sido mejorado! 🚀</h1>
+          <p>Hola ${userName},</p>
+          <p>Tu upgrade se ha procesado exitosamente.</p>
+          
+          <p><strong>Plan anterior:</strong> ${metadata.previousPlan}</p>
+          <p><strong>Nuevo plan:</strong> ${metadata.newPlan}</p>
+          <p><strong>Efectivo desde:</strong> ${metadata.effectiveDate}</p>
+          
+          <h2>🎁 Ahora tienes acceso a:</h2>
+          <ul>
+            <li>✅ Hasta <strong>${metadata.newMaxProperties}</strong> propiedades activas</li>
+            <li>✅ <strong>${metadata.newFeaturedLimit}</strong> propiedades destacadas por mes</li>
+            ${metadata.additionalFeatures ? `<li>✅ ${metadata.additionalFeatures}</li>` : ''}
+          </ul>
+          
+          <p><a href="https://kentra.com.mx/panel-agente" style="background-color: #7C3AED; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 16px;">Ir a mi panel</a></p>
+          
+          <p>Gracias por confiar en Kentra.</p>
+          <p>Equipo Kentra</p>
+        `;
+        break;
+
+      case 'trial_expiring':
+        subject = '⏰ Tu prueba gratuita expira en ${metadata.daysRemaining} días - Kentra';
+        htmlContent = `
+          <h1>Tu prueba gratuita está por terminar ⏰</h1>
+          <p>Hola ${userName},</p>
+          <p>Tu período de prueba gratuito expira en <strong>${metadata.daysRemaining} días</strong> (${metadata.expiryDate}).</p>
+          
+          <h2>⚠️ ¿Qué pasará cuando expire?</h2>
+          <ul>
+            <li>Tus propiedades serán pausadas automáticamente</li>
+            <li>Ya no aparecerán en las búsquedas</li>
+            <li>Dejarás de recibir leads</li>
+          </ul>
+          
+          <h2>🎯 Elige un plan ahora y no pierdas impulso:</h2>
+          <ul>
+            <li><strong>Plan Start ($249/mes):</strong> Hasta 4 propiedades</li>
+            <li><strong>Plan Pro ($599/mes):</strong> Hasta 12 propiedades + 2 destacadas/mes</li>
+            <li><strong>Plan Elite ($999/mes):</strong> Hasta 30 propiedades + 6 destacadas/mes</li>
+          </ul>
+          
+          <p><a href="https://kentra.com.mx/pricing-agente" style="background-color: #7C3AED; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 16px;">Ver Planes y Precios</a></p>
+          
+          <p>Si tienes alguna pregunta, estamos aquí para ayudarte.</p>
+          <p>Saludos,<br>Equipo Kentra</p>
         `;
         break;
 
