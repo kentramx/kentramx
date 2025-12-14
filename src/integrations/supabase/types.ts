@@ -2410,7 +2410,21 @@ export type Database = {
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       expire_old_invitations: { Args: never; Returns: undefined }
-      generate_filters_hash: { Args: { p_filters: Json }; Returns: string }
+      generate_filters_hash:
+        | { Args: { p_filters: Json }; Returns: string }
+        | {
+            Args: {
+              p_bathrooms?: number
+              p_bedrooms?: number
+              p_listing_type?: string
+              p_municipality?: string
+              p_price_max?: number
+              p_price_min?: number
+              p_property_type?: string
+              p_state?: string
+            }
+            Returns: string
+          }
       generate_property_code: { Args: never; Returns: string }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
@@ -2536,25 +2550,44 @@ export type Database = {
           property_id: string
         }[]
       }
-      get_map_data: {
-        Args: {
-          p_bathrooms?: number
-          p_bedrooms?: number
-          p_colonia?: string
-          p_east: number
-          p_listing_type?: string
-          p_municipality?: string
-          p_north: number
-          p_price_max?: number
-          p_price_min?: number
-          p_property_type?: string
-          p_south: number
-          p_state?: string
-          p_west: number
-          p_zoom: number
-        }
-        Returns: Json
-      }
+      get_map_data:
+        | {
+            Args: {
+              p_bathrooms?: number
+              p_bedrooms?: number
+              p_east: number
+              p_listing_type?: string
+              p_municipality?: string
+              p_north: number
+              p_price_max?: number
+              p_price_min?: number
+              p_property_type?: string
+              p_south: number
+              p_state?: string
+              p_west: number
+              p_zoom?: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_bathrooms?: number
+              p_bedrooms?: number
+              p_colonia?: string
+              p_east: number
+              p_listing_type?: string
+              p_municipality?: string
+              p_north: number
+              p_price_max?: number
+              p_price_min?: number
+              p_property_type?: string
+              p_south: number
+              p_state?: string
+              p_west: number
+              p_zoom: number
+            }
+            Returns: Json
+          }
       get_marketing_metrics: {
         Args: { end_date?: string; start_date?: string }
         Returns: Json
@@ -2672,10 +2705,12 @@ export type Database = {
         Args: { p_conversation_id: string; p_user_id: string }
         Returns: undefined
       }
-      normalize_location: {
-        Args: { input_text: string; location_type?: string }
-        Returns: string
-      }
+      normalize_location:
+        | { Args: { input_text: string }; Returns: string }
+        | {
+            Args: { input_text: string; location_type?: string }
+            Returns: string
+          }
       normalize_state_name: { Args: { input_state: string }; Returns: string }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
