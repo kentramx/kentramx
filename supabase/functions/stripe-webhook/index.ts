@@ -480,6 +480,13 @@ Deno.serve(async (req) => {
         const subscription = event.data.object as Stripe.Subscription;
         console.log('Subscription deleted:', subscription.id);
 
+        // Obtener datos de la suscripción para el email
+        const { data: existingSub } = await supabaseClient
+          .from('user_subscriptions')
+          .select('user_id, subscription_plans(display_name)')
+          .eq('stripe_subscription_id', subscription.id)
+          .single();
+
         // Mark subscription as canceled
         const { error: cancelError } = await supabaseClient
           .from('user_subscriptions')
@@ -492,8 +499,64 @@ Deno.serve(async (req) => {
           console.error('Error canceling subscription:', cancelError);
         } else {
           console.log('Subscription canceled successfully');
+          
+          // Enviar email de confirmación de cancelación
+          if (existingSub && existingSub.user_id) {
+            try {
+              await supabaseClient.functions.invoke('send-subscription-notification', {
+                body: {
+                  userId: existingSub.user_id,
+                  type: 'subscription_canceled',
+                  metadata: {
+                    planName: (existingSub.subscription_plans as any)?.display_name || 'Tu plan',
+                    endDate: new Date().toLocaleDateString('es-MX', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    }),
+                  },
+                },
+              });
+              console.log('Cancellation confirmation email sent');
+            } catch (emailError) {
+              console.error('Error sending cancellation email:', emailError);
+            }
+          }
         }
 
+        break;
+      }
+
+      case 'customer.subscription.created': {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log(`📦 SUBSCRIPTION CREATED: ${subscription.id}`);
+        
+        // Buscar usuario por customer ID
+        const { data: existingUser } = await supabaseClient
+          .from('user_subscriptions')
+          .select('id, user_id')
+          .eq('stripe_customer_id', subscription.customer)
+          .maybeSingle();
+
+        // Si ya existe la suscripción (creada por checkout.session.completed), solo actualizar
+        if (existingUser) {
+          await supabaseClient
+            .from('user_subscriptions')
+            .update({
+              stripe_subscription_id: subscription.id,
+              status: subscription.status,
+              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              cancel_at_period_end: subscription.cancel_at_period_end,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('stripe_customer_id', subscription.customer);
+          
+          console.log(`Updated existing subscription for customer ${subscription.customer}`);
+        } else {
+          console.log(`No existing user found for customer ${subscription.customer}, will be handled by checkout.session.completed`);
+        }
+        
         break;
       }
 
