@@ -84,6 +84,44 @@ const extractColoniaFromComponents = (
   return colonia;
 };
 
+// Normalización de nombres de Google Places → Base de datos mexicana
+const STATE_NAME_MAP: Record<string, string> = {
+  'Mexico City': 'Ciudad de México',
+  'CDMX': 'Ciudad de México',
+  'Distrito Federal': 'Ciudad de México',
+  'Federal District': 'Ciudad de México',
+  'State of Mexico': 'Estado de México',
+  'México State': 'Estado de México',
+  'Veracruz de Ignacio de la Llave': 'Veracruz',
+  'Coahuila de Zaragoza': 'Coahuila',
+  'Michoacán de Ocampo': 'Michoacán',
+};
+
+// Lista de todos los estados mexicanos para validación
+const MEXICAN_STATES = new Set([
+  'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche',
+  'Chiapas', 'Chihuahua', 'Ciudad de México', 'Coahuila', 'Colima',
+  'Durango', 'Estado de México', 'Guanajuato', 'Guerrero', 'Hidalgo',
+  'Jalisco', 'Michoacán', 'Morelos', 'Nayarit', 'Nuevo León', 'Oaxaca',
+  'Puebla', 'Querétaro', 'Quintana Roo', 'San Luis Potosí', 'Sinaloa',
+  'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán', 'Zacatecas'
+]);
+
+const normalizeStateName = (name: string): string => {
+  return STATE_NAME_MAP[name] || name;
+};
+
+// Detectar si es CDMX para manejo especial de municipio
+const isCDMX = (rawState: string): boolean => {
+  return ['Mexico City', 'CDMX', 'Ciudad de México', 'Distrito Federal'].includes(rawState);
+};
+
+// Validar que un valor NO sea un estado (para evitar asignarlo como colonia)
+const isStateName = (name: string): boolean => {
+  const normalized = normalizeStateName(name);
+  return MEXICAN_STATES.has(normalized) || MEXICAN_STATES.has(name);
+};
+
 const PlaceAutocomplete = ({
   onPlaceSelect,
   onInputChange,
@@ -178,10 +216,18 @@ const PlaceAutocomplete = ({
         }
 
         // DESPUÉS del loop: Asignar con prioridad correcta
-        const state = adminLevel1;
-        
-        // Municipio: administrative_area_level_2 > locality
-        const municipality = adminLevel2 || locality || '';
+        // Normalizar estado (Google Places → DB)
+        const state = normalizeStateName(adminLevel1);
+
+        // Municipio: manejo especial para CDMX
+        let municipality = '';
+        if (isCDMX(adminLevel1)) {
+          // En CDMX: solo usar adminLevel2 (alcaldía), NO locality (que es "Mexico City")
+          municipality = adminLevel2 || '';
+        } else {
+          // Resto de México: adminLevel2 > locality
+          municipality = adminLevel2 || locality || '';
+        }
         
         // Colonia: sublocality_level_1 > sublocality > neighborhood > fallback
         let colonia = sublocalityLevel1 || sublocality || neighborhood || '';
@@ -193,6 +239,12 @@ const PlaceAutocomplete = ({
         
         // Evitar duplicar municipio en colonia
         if (colonia && colonia === municipality) {
+          colonia = '';
+        }
+
+        // ⚠️ VALIDACIÓN: Evitar que estados se asignen como colonia
+        if (colonia && isStateName(colonia)) {
+          console.warn(`[PlaceAutocomplete] Ignorando colonia "${colonia}" porque es un nombre de estado`);
           colonia = '';
         }
 
@@ -300,12 +352,26 @@ const PlaceAutocomplete = ({
             }
 
             // Asignar con prioridad correcta
-            const state = adminLevel1;
-            const municipality = adminLevel2 || locality || '';
+            // Normalizar estado (Google Places → DB)
+            const state = normalizeStateName(adminLevel1);
+
+            // Municipio: manejo especial para CDMX
+            let municipality = '';
+            if (isCDMX(adminLevel1)) {
+              municipality = adminLevel2 || '';
+            } else {
+              municipality = adminLevel2 || locality || '';
+            }
+
             let colonia = sublocalityLevel1 || sublocality || neighborhood || '';
 
             if (!colonia) {
               colonia = extractColoniaFromComponents(addressComponents, place.formatted_address);
+            }
+
+            // Evitar que estados se asignen como colonia
+            if (colonia && isStateName(colonia)) {
+              colonia = '';
             }
 
             const location = {
