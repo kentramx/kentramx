@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Home, Heart, User, PlusCircle, LogOut, Search, Building, GitCompare, Settings, DollarSign } from "lucide-react";
 import { MessageBadge } from "./MessageBadge";
 import { MobileMenu } from "./MobileMenu";
+import { PublishPropertyButton } from "./subscription/PublishPropertyButton";
 import { usePropertyCompare } from "@/hooks/usePropertyCompare";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { AdminRealtimeNotifications } from "./AdminRealtimeNotifications";
@@ -160,14 +161,7 @@ const Navbar = () => {
           {/* Right Navigation - Desktop */}
           <div className="hidden md:flex items-center gap-3 justify-end">
             <RoleImpersonationSelector />
-            <Button
-              size="sm" 
-              className="shadow-sm"
-              onClick={handlePublicarClick}
-            >
-              <Building className="h-4 w-4 mr-2" />
-              Publicar Propiedad
-            </Button>
+            <PublishPropertyButton size="sm" className="shadow-sm" />
             {user ? (
               <>
                 <PlanBadge />
