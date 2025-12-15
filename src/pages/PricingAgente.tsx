@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { startSubscriptionCheckout, getCurrentSubscription } from '@/utils/stripeCheckout';
-import { supabase } from '@/integrations/supabase/client';
+import { usePricingPlans, getPlanPropertyLimit, getPlanFeaturedLimit, getMonthlyEquivalent } from '@/hooks/usePricingPlans';
 import Navbar from '@/components/Navbar';
 import { CouponInput } from '@/components/CouponInput';
 import { SEOHead } from '@/components/SEOHead';
@@ -11,7 +11,59 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Check, Gift, Rocket, Zap, Crown, ArrowRight, Loader2 } from 'lucide-react';
+
+const getIconForSlug = (slug: string) => {
+  switch (slug) {
+    case 'trial': return Gift;
+    case 'start': return Rocket;
+    case 'pro': return Zap;
+    case 'elite': return Crown;
+    default: return Rocket;
+  }
+};
+
+const buildFeaturesArray = (plan: any): string[] => {
+  const features: string[] = [];
+  const propLimit = getPlanPropertyLimit(plan);
+  const featuredLimit = getPlanFeaturedLimit(plan);
+  
+  // Property limit
+  if (propLimit === -1) {
+    features.push('Propiedades ilimitadas');
+  } else if (propLimit > 0) {
+    features.push(`Hasta ${propLimit} propiedad${propLimit > 1 ? 'es' : ''} activa${propLimit > 1 ? 's' : ''}`);
+  }
+  
+  // Featured limit
+  if (featuredLimit === -1) {
+    features.push('Destacadas ilimitadas');
+  } else if (featuredLimit > 0) {
+    features.push(`${featuredLimit} propiedad${featuredLimit > 1 ? 'es' : ''} destacada${featuredLimit > 1 ? 's' : ''} al mes`);
+  }
+  
+  // Other features based on plan features object
+  if (plan.features.priority_support) {
+    features.push('Soporte prioritario');
+  } else {
+    features.push('Soporte por email');
+  }
+  
+  if (plan.features.analytics) {
+    features.push('Analíticas avanzadas');
+  } else {
+    features.push('Estadísticas básicas');
+  }
+  
+  if (plan.features.autopublicacion) features.push('Autopublicación a redes');
+  if (plan.features.reportes_avanzados) features.push('Reportes avanzados');
+  if (plan.features.branding) features.push('Branding personalizado');
+  if (plan.features.ia_copys) features.push('Copys automáticos con IA');
+  if (plan.features.asesor_dedicado) features.push('Asesor dedicado');
+  
+  return features;
+};
 
 const PricingAgente = () => {
   const { user } = useAuth();
@@ -20,6 +72,8 @@ const PricingAgente = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [couponDiscount, setCouponDiscount] = useState<{type: 'percent' | 'fixed', value: number} | null>(null);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+
+  const { data: dbPlans, isLoading: plansLoading } = usePricingPlans('agent');
 
   const getDiscountedPrice = (basePrice: number) => {
     if (!appliedCoupon || !couponDiscount) {
@@ -82,84 +136,56 @@ const PricingAgente = () => {
     }
   };
 
-  const plans = [
-    {
-      name: 'Agente Trial',
-      slug: 'trial',
-      isFree: true,
-      monthlyPrice: 0,
-      annualPrice: 0,
-      features: [
-        '1 propiedad activa',
-        'Gratis por 14 días',
-        'Visibilidad limitada',
-        'Requiere verificación (email + teléfono)',
-        'Sin destacados ni visibilidad prioritaria',
-        'Recibe leads directo a WhatsApp',
-        'Perfil profesional básico',
-        'Al finalizar 14 días, la propiedad se oculta hasta contratar un plan',
-      ],
-      buttonText: 'Probar gratis',
-      icon: Gift,
-      popular: false,
-    },
-    {
-      name: 'Agente Start',
-      slug: 'start',
-      monthlyPrice: 249,
-      annualPrice: 2480,
-      annualMonthlyEquivalent: 206.67,
-      features: [
-        'Hasta 4 propiedades activas',
-        'Leads directos a WhatsApp',
-        'Perfil profesional con catálogo compartible',
-        'Estadísticas básicas',
-        'Sello "Agente verificado" (tras KYC)',
-        'Soporte por email',
-      ],
-      buttonText: 'Comenzar con Start',
-      icon: Rocket,
-      popular: false,
-    },
-    {
-      name: 'Agente Pro',
-      slug: 'pro',
-      monthlyPrice: 599,
-      annualPrice: 5966,
-      annualMonthlyEquivalent: 497.17,
-      features: [
-        'Hasta 12 propiedades activas',
-        '2 propiedades destacadas al mes',
-        'Visibilidad prioritaria en listados',
-        'Perfil personalizado con branding',
-        'Copys automáticos con IA',
-        'Reporte semanal de leads',
-        'Chat de soporte prioritario',
-      ],
-      buttonText: 'Continuar con Pro',
-      icon: Zap,
-      popular: true,
-    },
-    {
-      name: 'Agente Elite',
-      slug: 'elite',
-      monthlyPrice: 999,
-      annualPrice: 9950,
-      annualMonthlyEquivalent: 829.17,
-      features: [
-        'Hasta 30 propiedades activas',
-        '6 destacadas al mes',
-        'Máxima visibilidad y posición preferente',
-        'Branding premium y diseño personalizado',
-        'Copys IA + analítica avanzada',
-        'Programación de publicaciones',
-        'Asesor dedicado',
-      ],
-      buttonText: 'Actualizar a Elite',
-      icon: Crown,
-      popular: false,
-    },
-  ];
+  // Map database plans to component format
+  const plans = dbPlans?.map(plan => {
+    const slug = plan.name.replace('agente_', '');
+    const isFree = plan.price_monthly === 0;
+    
+    return {
+      name: plan.display_name,
+      slug,
+      icon: getIconForSlug(slug),
+      monthlyPrice: plan.price_monthly,
+      annualPrice: plan.price_yearly || plan.price_monthly * 10,
+      annualMonthlyEquivalent: plan.price_yearly ? getMonthlyEquivalent(plan.price_yearly) : plan.price_monthly,
+      isFree,
+      popular: slug === 'pro',
+      buttonText: isFree ? 'Probar gratis' : slug === 'start' ? 'Comenzar con Start' : slug === 'pro' ? 'Continuar con Pro' : 'Actualizar a Elite',
+      features: buildFeaturesArray(plan),
+    };
+  }) || [];
+
+  // Loading skeleton
+  if (plansLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <Skeleton className="h-10 w-64 mx-auto mb-4" />
+            <Skeleton className="h-6 w-96 mx-auto" />
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+            {[1, 2, 3, 4].map(i => (
+              <Card key={i}>
+                <CardHeader className="text-center">
+                  <Skeleton className="h-12 w-12 rounded-full mx-auto mb-4" />
+                  <Skeleton className="h-6 w-24 mx-auto mb-2" />
+                  <Skeleton className="h-10 w-32 mx-auto" />
+                </CardHeader>
+                <CardContent>
+                  {[1, 2, 3, 4, 5, 6].map(j => (
+                    <Skeleton key={j} className="h-4 w-full mb-3" />
+                  ))}
+                  <Skeleton className="h-10 w-full mt-4" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const upsells = [
     {
