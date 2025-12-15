@@ -23,7 +23,7 @@ import { EmailVerificationRequired } from '@/components/EmailVerificationRequire
 import { QuickUpsells } from '@/components/QuickUpsells';
 import { AgentUpsells } from '@/components/AgentUpsells';
 import { SubscriptionStatusBadge } from '@/components/SubscriptionStatusBadge';
-// Removed - upsells feature removed in v2.0
+import { SubscriptionWidget } from '@/components/subscription/SubscriptionWidget';
 
 const AgentDashboard = () => {
   const { user, loading: authLoading, isEmailVerified } = useAuth();
@@ -545,9 +545,12 @@ const AgentDashboard = () => {
           </Alert>
         )}
 
-        {/* Plan Status Card */}
-        <div className="mb-6">
-          <PlanStatusCard subscriptionInfo={subscriptionInfo} userRole={userRole} />
+        {/* Subscription Widget + Plan Status Card */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
+          <SubscriptionWidget />
+          <div className="md:col-span-1 lg:col-span-2">
+            <PlanStatusCard subscriptionInfo={subscriptionInfo} userRole={userRole} />
+          </div>
         </div>
 
         {/* Plan Metrics Cards */}

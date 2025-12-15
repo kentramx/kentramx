@@ -6,10 +6,11 @@ import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Loader2, ArrowRight, Calendar, CreditCard } from 'lucide-react';
+import { CheckCircle2, Loader2, ArrowRight, Calendar, CreditCard, Plus, Settings, Home, Sparkles, Rocket } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useTracking } from '@/hooks/useTracking';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 
 interface SubscriptionDetails {
   planName: string;
@@ -28,6 +29,7 @@ const PaymentSuccess = () => {
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState<SubscriptionDetails | null>(null);
   const { trackEvent } = useTracking();
+  const { refetch: refetchSubscription } = useSubscription();
 
   useEffect(() => {
     const payment = searchParams.get('payment');
@@ -43,6 +45,9 @@ const PaymentSuccess = () => {
       return;
     }
 
+    // Refetch subscription context
+    refetchSubscription();
+
     // Si es compra de upsell, redirigir directamente al dashboard después de un momento
     if (type === 'upsell') {
       setTimeout(() => {
@@ -51,7 +56,7 @@ const PaymentSuccess = () => {
     } else {
       fetchSubscription();
     }
-  }, [user, searchParams, navigate]);
+  }, [user, searchParams, navigate, refetchSubscription]);
 
   const fetchSubscription = async () => {
     if (!user) return;
@@ -179,27 +184,72 @@ const PaymentSuccess = () => {
     );
   }
 
+  const nextSteps = [
+    {
+      icon: Plus,
+      title: 'Publica tu primera propiedad',
+      description: 'Comienza a atraer clientes potenciales',
+      action: handlePublishProperty,
+      primary: true,
+    },
+    {
+      icon: Settings,
+      title: 'Completa tu perfil',
+      description: 'Un perfil completo genera más confianza',
+      action: () => navigate('/perfil'),
+      primary: false,
+    },
+    {
+      icon: Home,
+      title: 'Ir al Dashboard',
+      description: 'Ve el resumen de tu cuenta',
+      action: handleGoToDashboard,
+      primary: false,
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <Navbar />
 
       <main className="container mx-auto px-4 py-16">
         <div className="max-w-3xl mx-auto">
-          {/* Success Message */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-6">
-              <CheckCircle2 className="h-12 w-12 text-green-600" />
+          {/* Success Animation */}
+          <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-100 mb-6 animate-in zoom-in duration-300">
+              <CheckCircle2 className="h-14 w-14 text-green-600" />
             </div>
-            <h1 className="text-4xl font-bold text-foreground mb-4">
-              ¡Pago exitoso!
-            </h1>
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Sparkles className="h-5 w-5 text-yellow-500" />
+              <h1 className="text-4xl font-bold text-foreground">
+                ¡Bienvenido a Kentra!
+              </h1>
+              <Sparkles className="h-5 w-5 text-yellow-500" />
+            </div>
             <p className="text-xl text-muted-foreground">
               Tu suscripción ha sido activada correctamente
             </p>
           </div>
 
+          {/* Plan Info Card */}
+          {subscription?.planDisplayName && (
+            <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 mb-6 animate-in fade-in slide-in-from-left duration-500 delay-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold">{subscription.planDisplayName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {subscription.billingCycle === 'yearly' ? 'Plan Anual' : 'Plan Mensual'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Subscription Details Card */}
-          <Card className="mb-8">
+          <Card className="mb-8 border-2 border-green-200 shadow-lg animate-in fade-in slide-in-from-bottom duration-500 delay-300">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -302,28 +352,36 @@ const PaymentSuccess = () => {
             </CardContent>
           </Card>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              onClick={handlePublishProperty}
-              className="gap-2"
-            >
-              Publicar mi primera propiedad
-              <ArrowRight className="h-5 w-5" />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={handleGoToDashboard}
-            >
-              Ver mi panel
-            </Button>
+          {/* Next Steps */}
+          <div className="space-y-3 mb-8 animate-in fade-in slide-in-from-bottom duration-500 delay-500">
+            <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Rocket className="h-4 w-4" />
+              Próximos pasos
+            </p>
+            
+            {nextSteps.map((step, index) => (
+              <Button
+                key={step.title}
+                variant={step.primary ? 'default' : 'outline'}
+                className="w-full justify-start h-auto py-4 animate-in fade-in slide-in-from-bottom duration-300"
+                style={{ animationDelay: `${600 + index * 100}ms` }}
+                onClick={step.action}
+              >
+                <step.icon className={`h-5 w-5 mr-3 ${step.primary ? '' : 'text-muted-foreground'}`} />
+                <div className="text-left flex-1">
+                  <p className="font-medium">{step.title}</p>
+                  <p className={`text-xs ${step.primary ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                    {step.description}
+                  </p>
+                </div>
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            ))}
           </div>
 
-            <p className="text-xs text-center text-muted-foreground mt-4">
-              Recibirás un correo de confirmación con los detalles de tu suscripción.
-            </p>
+          <p className="text-xs text-center text-muted-foreground">
+            Recibirás un correo de confirmación con los detalles de tu suscripción.
+          </p>
         </div>
       </main>
     </div>
