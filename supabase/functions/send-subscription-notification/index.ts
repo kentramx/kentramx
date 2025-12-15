@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.79.0';
 import { Resend } from 'https://esm.sh/resend@2.0.0';
+import { createLogger } from '../_shared/logger.ts';
+import { withRetry, isRetryableEmailError } from '../_shared/retry.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +15,10 @@ interface NotificationRequest {
 }
 
 Deno.serve(async (req) => {
+  const logger = createLogger('send-subscription-notification');
+  let requestUserId = '';
+  let requestType = '';
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -45,6 +51,8 @@ Deno.serve(async (req) => {
     );
 
     const { userId, type, metadata = {} }: NotificationRequest = await req.json();
+    requestUserId = userId;
+    requestType = type;
 
     // Validate userId format (UUID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -428,21 +436,28 @@ Deno.serve(async (req) => {
         });
     }
 
-    const emailResponse = await resend.emails.send({
-      from: 'Kentra <noreply@updates.kentra.com.mx>',
-      to: [userEmail],
-      subject,
-      html: htmlContent,
-    });
+    const emailResponse = await withRetry(
+      () => resend.emails.send({
+        from: 'Kentra <noreply@updates.kentra.com.mx>',
+        to: [userEmail],
+        subject,
+        html: htmlContent,
+      }),
+      {
+        maxAttempts: 3,
+        retryOn: isRetryableEmailError,
+        onRetry: (attempt, error) => logger.warn(`Email retry ${attempt}`, { userId, type, error: error.message }),
+      }
+    );
 
-    console.log('Notification sent:', { type, userId, emailResponse });
+    logger.info('Notification sent', { type, userId, emailId: emailResponse?.data?.id });
 
     return new Response(
       JSON.stringify({ success: true, emailResponse }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error sending notification:', error);
+    logger.error('Error sending notification', { userId: requestUserId, type: requestType }, error as Error);
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
