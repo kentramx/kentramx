@@ -1622,8 +1622,8 @@ const convertSliderValueToPrice = (value: number, listingType: string): number =
               </div>
             )}
 
-            {/* Estado vacío - sin resultados (solo cuando viewport está listo y no hay carga) */}
-            {!searchError && !isWaitingForViewport && !loading && listProperties.length === 0 && (
+            {/* Estado vacío - sin resultados (solo cuando viewport está listo y no hay carga ni fetching) */}
+            {!searchError && !isWaitingForViewport && !loading && !isFetching && listProperties.length === 0 && (
               <div className="flex flex-col items-center justify-center p-12 space-y-4 text-center min-h-[400px]">
                 <div className="rounded-full bg-muted p-6">
                   <Search className="h-12 w-12 text-muted-foreground" />
