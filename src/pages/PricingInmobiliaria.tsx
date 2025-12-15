@@ -28,6 +28,23 @@ const PricingInmobiliaria = () => {
   const growPlan = dbPlans?.find(p => p.name === 'inmobiliaria_grow');
   const proPlan = dbPlans?.find(p => p.name === 'inmobiliaria_pro');
 
+  // Helper to get features from DB or fallback
+  const getFeatureList = (plan: any): string[] => {
+    if (plan?.features?.feature_list && Array.isArray(plan.features.feature_list)) {
+      return plan.features.feature_list.map((f: any) => f.text);
+    }
+    // Fallback
+    const features: string[] = [];
+    const limits = plan?.features?.limits || plan?.features || {};
+    const caps = plan?.features?.capabilities || plan?.features || {};
+    if (limits.max_properties) features.push(`Hasta ${limits.max_properties} propiedades activas`);
+    if (limits.max_agents) features.push(`Hasta ${limits.max_agents} agentes en tu equipo`);
+    if (limits.featured_per_month) features.push(`${limits.featured_per_month} propiedades destacadas al mes`);
+    if (caps.priority_support) features.push('Soporte prioritario');
+    if (caps.analytics) features.push('Analíticas avanzadas');
+    return features;
+  };
+
   const getDiscountedPrice = (basePrice: number) => {
     if (!appliedCoupon || !couponDiscount) {
       return { original: null, final: basePrice, savings: 0 };
@@ -237,55 +254,21 @@ const PricingInmobiliaria = () => {
                       <div className="text-muted-foreground">
                         MXN / {billingPeriod === 'monthly' ? 'mes' : 'año'}
                       </div>
-                      {billingPeriod === 'annual' && (
+                      {billingPeriod === 'annual' && startPlan?.price_yearly && (
                         <div className="text-sm text-muted-foreground mt-1">
-                          Equivale a $1,665/mes
+                          Equivale a ${Math.round(startPlan.price_yearly / 12).toLocaleString('es-MX')}/mes
                         </div>
                       )}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Hasta 100 propiedades activas</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Hasta 5 agentes incluidos</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Dashboard multiagente</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Perfiles individuales por agente</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Asignación de propiedades al equipo</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Estadísticas por propiedad y por agente</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Página corporativa personalizada</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Visibilidad estándar en resultados</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>5 propiedades destacadas al mes</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Soporte por email</span>
-                      </div>
+                      {getFeatureList(startPlan).map((feature, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                          <span>{feature}</span>
+                        </div>
+                      ))}
                     </div>
                     <Button 
                       className="w-full" 
@@ -313,10 +296,12 @@ const PricingInmobiliaria = () => {
                 : (growPlan?.price_yearly || 44990);
               const { original, final, savings } = getDiscountedPrice(basePrice);
               return (
-                <Card className="border-primary relative">
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    Más elegido
-                  </Badge>
+                <Card className={`relative ${growPlan?.features?.display?.highlight ? 'border-primary shadow-lg' : ''}`}>
+                  {growPlan?.features?.display?.badge && (
+                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      {growPlan.features.display.badge === 'popular' ? 'Más elegido' : growPlan.features.display.badge}
+                    </Badge>
+                  )}
                   <CardHeader>
                     <CardTitle>Inmobiliaria Grow</CardTitle>
                     <div className="mt-4">
@@ -336,55 +321,21 @@ const PricingInmobiliaria = () => {
                       <div className="text-muted-foreground">
                         MXN / {billingPeriod === 'monthly' ? 'mes' : 'año'}
                       </div>
-                      {billingPeriod === 'annual' && (
+                      {billingPeriod === 'annual' && growPlan?.price_yearly && (
                         <div className="text-sm text-muted-foreground mt-1">
-                          Equivale a $3,749/mes
+                          Equivale a ${Math.round(growPlan.price_yearly / 12).toLocaleString('es-MX')}/mes
                         </div>
                       )}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Hasta 250 propiedades activas</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Hasta 10 agentes incluidos</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Dashboard multiagente y administración avanzada</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Perfiles y catálogo individual por agente</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Asignación de propiedades y control de inventario</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Estadísticas por agente y rendimiento del equipo</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Página corporativa personalizada</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Visibilidad alta en listados y búsquedas</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>15 propiedades destacadas al mes</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Soporte por email</span>
-                      </div>
+                      {getFeatureList(growPlan).map((feature, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                          <span>{feature}</span>
+                        </div>
+                      ))}
                     </div>
                     <Button 
                       className="w-full" 
@@ -432,51 +383,21 @@ const PricingInmobiliaria = () => {
                       <div className="text-muted-foreground">
                         MXN / {billingPeriod === 'monthly' ? 'mes' : 'año'}
                       </div>
-                      {billingPeriod === 'annual' && (
+                      {billingPeriod === 'annual' && proPlan?.price_yearly && (
                         <div className="text-sm text-muted-foreground mt-1">
-                          Equivale a $7,499/mes
+                          Equivale a ${Math.round(proPlan.price_yearly / 12).toLocaleString('es-MX')}/mes
                         </div>
                       )}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Hasta 500 propiedades activas</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Hasta 20 agentes incluidos</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Dashboard completo con control de equipo</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Asignación avanzada de propiedades y rendimiento</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Perfiles públicos por agente con catálogo</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Página corporativa premium con tu branding</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Máxima visibilidad y prioridad en resultados</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>40 propiedades destacadas al mes</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span>Soporte por email</span>
-                      </div>
+                      {getFeatureList(proPlan).map((feature, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                          <span>{feature}</span>
+                        </div>
+                      ))}
                     </div>
                     <Button 
                       className="w-full" 
