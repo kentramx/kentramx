@@ -1,6 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.79.0';
 // @deno-types="https://esm.sh/stripe@11.16.0/types/index.d.ts"
 import Stripe from 'https://esm.sh/stripe@11.16.0?target=deno';
+import { createLogger } from '../_shared/logger.ts';
+import { withRetry, isRetryableStripeError } from '../_shared/retry.ts';
+import { withCircuitBreaker } from '../_shared/circuitBreaker.ts';
 
 // Rate limiting utilities inlined
 interface RateLimitEntry {
@@ -89,6 +92,9 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
+  const logger = createLogger('create-checkout-session');
+  const startTime = Date.now();
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -288,9 +294,19 @@ Deno.serve(async (req) => {
         sessionParams.discounts = [{ coupon: validatedCoupon.stripe_coupon_id }];
       }
 
-      const session = await stripe.checkout.sessions.create(sessionParams);
+      const session = await withCircuitBreaker(
+        'stripe-checkout',
+        () => withRetry(
+          () => stripe.checkout.sessions.create(sessionParams),
+          {
+            maxAttempts: 3,
+            retryOn: isRetryableStripeError,
+            onRetry: (attempt, error) => logger.warn(`Stripe retry ${attempt}`, { error: error.message }),
+          }
+        )
+      ) as Stripe.Checkout.Session;
 
-      console.log('Upsell checkout session created:', session.id);
+      logger.info('Upsell checkout session created', { sessionId: session.id, userId: user.id, duration: Date.now() - startTime });
 
       return new Response(
         JSON.stringify({ 
@@ -420,9 +436,25 @@ Deno.serve(async (req) => {
       sessionParams.discounts = [{ coupon: validatedCoupon.stripe_coupon_id }];
     }
 
-    const session = await stripe.checkout.sessions.create(sessionParams);
+    const session = await withCircuitBreaker(
+      'stripe-checkout',
+      () => withRetry(
+        () => stripe.checkout.sessions.create(sessionParams),
+        {
+          maxAttempts: 3,
+          retryOn: isRetryableStripeError,
+          onRetry: (attempt, error) => logger.warn(`Stripe retry ${attempt}`, { error: error.message }),
+        }
+      )
+    ) as Stripe.Checkout.Session;
 
-    console.log('Checkout session created:', session.id);
+    logger.info('Checkout session created', { 
+      sessionId: session.id, 
+      userId: user.id, 
+      planSlug: plan.name,
+      billingCycle,
+      duration: Date.now() - startTime,
+    });
 
     return new Response(
       JSON.stringify({ 
@@ -432,7 +464,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    logger.error('Error creating checkout session', {}, error as Error);
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',

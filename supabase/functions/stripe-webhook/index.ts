@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.79.0';
 // @deno-types="https://esm.sh/stripe@11.16.0/types/index.d.ts"
 import Stripe from 'https://esm.sh/stripe@11.16.0?target=deno';
+import { createLogger } from '../_shared/logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +9,9 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
+  const logger = createLogger('stripe-webhook');
+  const startTime = Date.now();
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -22,7 +26,7 @@ Deno.serve(async (req) => {
     const body = await req.text();
 
     if (!signature) {
-      console.error('Missing stripe-signature header');
+      logger.warn('Missing stripe-signature header');
       return new Response(
         JSON.stringify({ error: 'Missing signature' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -39,14 +43,14 @@ Deno.serve(async (req) => {
       );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      console.error('Webhook signature verification failed:', errorMessage);
+      logger.error('Webhook signature verification failed', { error: errorMessage });
       return new Response(
         JSON.stringify({ error: 'Invalid signature' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Webhook event received:', event.type);
+    logger.info('Webhook event received', { stripeEventId: event.id, action: event.type });
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -655,12 +659,14 @@ Deno.serve(async (req) => {
         console.log('Unhandled event type:', event.type);
     }
 
+    logger.info('Webhook processed successfully', { stripeEventId: event.id, duration: Date.now() - startTime });
+
     return new Response(
       JSON.stringify({ received: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    logger.error('Error processing webhook', {}, error as Error);
     return new Response(
       JSON.stringify({ 
         error: 'Webhook processing error', 

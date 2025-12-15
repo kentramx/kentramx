@@ -1,6 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.79.0';
 // @deno-types="https://esm.sh/stripe@11.16.0/types/index.d.ts"
 import Stripe from 'https://esm.sh/stripe@11.16.0?target=deno';
+import { createLogger } from '../_shared/logger.ts';
+import { withRetry, isRetryableStripeError } from '../_shared/retry.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +10,9 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
+  const logger = createLogger('change-subscription-plan');
+  const startTime = Date.now();
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -455,9 +460,13 @@ Deno.serve(async (req) => {
       console.log('🔄 Reactivating subscription - removing pending cancellation');
     }
 
-    const updatedSubscription = await stripe.subscriptions.update(
-      currentSub.stripe_subscription_id,
-      updateParams
+    const updatedSubscription = await withRetry(
+      () => stripe.subscriptions.update(currentSub.stripe_subscription_id, updateParams),
+      {
+        maxAttempts: 3,
+        retryOn: isRetryableStripeError,
+        onRetry: (attempt, error) => logger.warn(`Stripe subscription update retry ${attempt}`, { error: error.message }),
+      }
     );
 
     // Update database
@@ -508,7 +517,7 @@ Deno.serve(async (req) => {
       console.error('Error logging subscription change:', logError);
     }
 
-    console.log('Subscription updated successfully');
+    logger.info('Subscription updated successfully', { userId: user.id, newPlanId, billingCycle, changeType, duration: Date.now() - startTime });
 
     // If downgrade, handle property limits
     if (changeType === 'downgrade') {
@@ -618,7 +627,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error changing subscription plan:', error);
+    logger.error('Error changing subscription plan', {}, error as Error);
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
