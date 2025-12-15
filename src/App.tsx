@@ -7,10 +7,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useTracking } from "@/hooks/useTracking";
 import { monitoring } from "@/lib/monitoring";
 import { initSentry } from "@/lib/sentry";
+import { GlobalSubscriptionBanner } from "@/components/subscription/GlobalSubscriptionBanner";
 
 // Inicializar Sentry al cargar la app
 initSentry();
@@ -79,6 +81,7 @@ const AppContent = () => {
 
   return (
     <>
+      <GlobalSubscriptionBanner />
       <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/propiedad/:id" element={<PropertyDetail />} />
@@ -132,7 +135,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <AppContent />
+            <SubscriptionProvider>
+              <AppContent />
+            </SubscriptionProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
