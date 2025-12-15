@@ -35,6 +35,7 @@ import { SocialLinks } from "./SocialLinks";
 import { RoleImpersonationSelector } from "./RoleImpersonationSelector";
 import { ImpersonationBanner } from "./ImpersonationBanner";
 import { useRoleImpersonation } from '@/hooks/useRoleImpersonation';
+import { PlanBadge } from "./subscription/PlanBadge";
 const Navbar = () => {
   const { user, signOut, isEmailVerified } = useAuth();
   const [searchParams] = useSearchParams();
@@ -169,6 +170,7 @@ const Navbar = () => {
             </Button>
             {user ? (
               <>
+                <PlanBadge />
                 <MessageBadge />
                 {isAdmin && (
                   <AdminRealtimeNotifications userId={user.id} isAdmin={isAdmin} />
