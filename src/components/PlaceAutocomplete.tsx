@@ -97,6 +97,74 @@ const STATE_NAME_MAP: Record<string, string> = {
   'Michoacán de Ocampo': 'Michoacán',
 };
 
+// Abreviaciones de estados mexicanos (Google Places a veces las devuelve)
+const STATE_ABBREVIATIONS: Record<string, string> = {
+  'Qro.': 'Querétaro',
+  'Qro': 'Querétaro',
+  'Gto.': 'Guanajuato',
+  'Gto': 'Guanajuato',
+  'Jal.': 'Jalisco',
+  'Jal': 'Jalisco',
+  'N.L.': 'Nuevo León',
+  'NL': 'Nuevo León',
+  'Mich.': 'Michoacán',
+  'Mich': 'Michoacán',
+  'Chih.': 'Chihuahua',
+  'Chih': 'Chihuahua',
+  'B.C.': 'Baja California',
+  'BC': 'Baja California',
+  'B.C.S.': 'Baja California Sur',
+  'BCS': 'Baja California Sur',
+  'S.L.P.': 'San Luis Potosí',
+  'SLP': 'San Luis Potosí',
+  'Q.Roo': 'Quintana Roo',
+  'Q. Roo': 'Quintana Roo',
+  'Tamps.': 'Tamaulipas',
+  'Tamps': 'Tamaulipas',
+  'Coah.': 'Coahuila',
+  'Coah': 'Coahuila',
+  'Ags.': 'Aguascalientes',
+  'Ags': 'Aguascalientes',
+  'Dgo.': 'Durango',
+  'Dgo': 'Durango',
+  'Nay.': 'Nayarit',
+  'Nay': 'Nayarit',
+  'Pue.': 'Puebla',
+  'Pue': 'Puebla',
+  'Ver.': 'Veracruz',
+  'Ver': 'Veracruz',
+  'Yuc.': 'Yucatán',
+  'Yuc': 'Yucatán',
+  'Zac.': 'Zacatecas',
+  'Zac': 'Zacatecas',
+  'Tab.': 'Tabasco',
+  'Tab': 'Tabasco',
+  'Oax.': 'Oaxaca',
+  'Oax': 'Oaxaca',
+  'Hgo.': 'Hidalgo',
+  'Hgo': 'Hidalgo',
+  'Mor.': 'Morelos',
+  'Mor': 'Morelos',
+  'Tlax.': 'Tlaxcala',
+  'Tlax': 'Tlaxcala',
+  'Camp.': 'Campeche',
+  'Camp': 'Campeche',
+  'Chis.': 'Chiapas',
+  'Chis': 'Chiapas',
+  'Col.': 'Colima',
+  'Col': 'Colima',
+  'Gro.': 'Guerrero',
+  'Gro': 'Guerrero',
+  'Sin.': 'Sinaloa',
+  'Sin': 'Sinaloa',
+  'Son.': 'Sonora',
+  'Son': 'Sonora',
+  'Edomex': 'Estado de México',
+  'Edo. Méx.': 'Estado de México',
+  'EdoMex': 'Estado de México',
+  'Méx.': 'Estado de México',
+};
+
 // Lista de todos los estados mexicanos para validación
 const MEXICAN_STATES = new Set([
   'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche',
@@ -118,8 +186,16 @@ const isCDMX = (rawState: string): boolean => {
 
 // Validar que un valor NO sea un estado (para evitar asignarlo como colonia)
 const isStateName = (name: string): boolean => {
+  // Verificar si es nombre completo
   const normalized = normalizeStateName(name);
-  return MEXICAN_STATES.has(normalized) || MEXICAN_STATES.has(name);
+  if (MEXICAN_STATES.has(normalized) || MEXICAN_STATES.has(name)) {
+    return true;
+  }
+  // Verificar si es abreviación de estado
+  if (STATE_ABBREVIATIONS[name]) {
+    return true;
+  }
+  return false;
 };
 
 const PlaceAutocomplete = ({
