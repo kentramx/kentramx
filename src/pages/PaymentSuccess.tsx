@@ -106,6 +106,8 @@ const PaymentSuccess = () => {
     // Determinar a qué dashboard redirigir según el plan
     if (subscription?.planName.includes('inmobiliaria')) {
       navigate('/panel-inmobiliaria?tab=inventory');
+    } else if (subscription?.planName.includes('desarrolladora')) {
+      navigate('/panel-desarrolladora?tab=projects');
     } else {
       navigate('/panel-agente?tab=form');
     }
@@ -115,9 +117,20 @@ const PaymentSuccess = () => {
     // Determinar a qué dashboard redirigir según el plan
     if (subscription?.planName.includes('inmobiliaria')) {
       navigate('/panel-inmobiliaria');
+    } else if (subscription?.planName.includes('desarrolladora')) {
+      navigate('/panel-desarrolladora');
     } else {
       navigate('/panel-agente');
     }
+  };
+
+  const getServicesRoute = () => {
+    if (subscription?.planName.includes('inmobiliaria')) {
+      return '/panel-inmobiliaria?tab=subscription';
+    } else if (subscription?.planName.includes('desarrolladora')) {
+      return '/panel-desarrolladora?tab=subscription';
+    }
+    return '/panel-agente?tab=subscription';
   };
 
   if (loading) {
@@ -155,7 +168,7 @@ const PaymentSuccess = () => {
               <p className="text-xl text-muted-foreground mb-8">
                 Tu servicio adicional ha sido activado correctamente
               </p>
-              <Button size="lg" onClick={() => navigate('/panel-agente?tab=subscription')}>
+              <Button size="lg" onClick={() => navigate(getServicesRoute())}>
                 Ver Mis Servicios
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>

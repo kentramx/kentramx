@@ -92,12 +92,11 @@ const DeveloperDashboard = () => {
       }
 
       // Verificar rol de desarrolladora
-      // Note: 'developer' role may need to be added to app_role enum in database
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user?.id)
-        .eq('role', 'developer' as any)
+        .eq('role', 'developer')
         .single();
 
       if (roleError || !roleData) {

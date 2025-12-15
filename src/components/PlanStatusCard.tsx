@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { getPricingRoute } from '@/utils/getPricingRoute';
 interface PlanStatusCardProps {
   subscriptionInfo: {
     plan_name: string;
@@ -34,6 +35,8 @@ export const PlanStatusCard = ({
   userRole
 }: PlanStatusCardProps) => {
   const navigate = useNavigate();
+  const pricingRoute = getPricingRoute(userRole);
+  
   if (!subscriptionInfo) {
     return <Card className="border-destructive bg-destructive/5">
         <CardHeader>
@@ -44,9 +47,9 @@ export const PlanStatusCard = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground">
-            Necesitas una suscripción activa para publicar propiedades como agente.
+            Necesitas una suscripción activa para publicar propiedades.
           </p>
-          <Button onClick={() => navigate(userRole === 'agency' ? '/pricing-inmobiliaria' : '/pricing-agente')} className="w-full">
+          <Button onClick={() => navigate(pricingRoute)} className="w-full">
             Ver Planes Disponibles
           </Button>
         </CardContent>
@@ -191,8 +194,8 @@ export const PlanStatusCard = ({
           <AlertDescription>
             Estás cerca del límite de propiedades de tu plan ({subscriptionInfo.properties_used} de {subscriptionInfo.properties_limit}).
             {' '}
-            <Button variant="link" className="p-0 h-auto font-semibold text-destructive-foreground underline" onClick={() => navigate(userRole === 'agency' ? '/pricing-inmobiliaria' : '/pricing-agente')}>
-              Mejora a {subscriptionInfo.plan_name === 'basico' ? 'Pro' : 'Elite'} para más propiedades
+            <Button variant="link" className="p-0 h-auto font-semibold text-destructive-foreground underline" onClick={() => navigate(pricingRoute)}>
+              Mejora tu plan para más propiedades
             </Button>
           </AlertDescription>
         </Alert>}

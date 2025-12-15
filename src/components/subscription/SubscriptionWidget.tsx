@@ -15,6 +15,7 @@ import {
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { cn } from '@/lib/utils';
 import { getPricingRoute } from '@/utils/getPricingRoute';
+import { getSubscriptionPanelRoute } from '@/utils/getPanelRoute';
 
 interface SubscriptionWidgetProps {
   userRole?: string | null;
@@ -49,6 +50,7 @@ export function SubscriptionWidget({ userRole }: SubscriptionWidgetProps = {}) {
   }
 
   const pricingRoute = getPricingRoute(userRole, subscription?.plan?.name);
+  const subscriptionPanelRoute = getSubscriptionPanelRoute(userRole, subscription?.plan?.name);
 
   if (!hasSubscription) {
     return (
@@ -165,7 +167,7 @@ export function SubscriptionWidget({ userRole }: SubscriptionWidgetProps = {}) {
         {/* Actions */}
         <div className="flex gap-2">
           <Button asChild variant="outline" size="sm" className="flex-1">
-            <Link to="/panel-agente?tab=subscription">
+            <Link to={subscriptionPanelRoute}>
               <Settings className="h-3 w-3 mr-1" />
               Administrar
             </Link>

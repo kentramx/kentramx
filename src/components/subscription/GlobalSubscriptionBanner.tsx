@@ -6,7 +6,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { getPricingRoute } from '@/utils/getPricingRoute';
-
+import { getSubscriptionPanelRoute } from '@/utils/getPanelRoute';
 type BannerType = 'payment_failed' | 'trial_expiring' | 'subscription_expiring' | 'suspended' | 'at_limit' | 'near_limit';
 
 interface BannerConfig {
@@ -46,6 +46,7 @@ export function GlobalSubscriptionBanner() {
   if (!user || isLoading || !hasSubscription) return null;
 
   const pricingRoute = getPricingRoute(null, subscription?.plan?.name);
+  const subscriptionPanelRoute = getSubscriptionPanelRoute(null, subscription?.plan?.name);
 
   const getBanners = (): BannerConfig[] => {
     const banners: BannerConfig[] = [];
@@ -57,7 +58,7 @@ export function GlobalSubscriptionBanner() {
         icon: AlertTriangle,
         title: 'Cuenta Suspendida',
         message: 'Tu cuenta ha sido suspendida por falta de pago. Actualiza tu método de pago para reactivar.',
-        action: { label: 'Reactivar Cuenta', href: '/panel-agente?tab=subscription' },
+        action: { label: 'Reactivar Cuenta', href: subscriptionPanelRoute },
         variant: 'destructive',
         dismissable: false,
         priority: 1,
@@ -71,7 +72,7 @@ export function GlobalSubscriptionBanner() {
         icon: CreditCard,
         title: 'Pago Fallido',
         message: 'Hubo un problema con tu último pago. Actualiza tu método de pago para evitar la suspensión.',
-        action: { label: 'Actualizar Pago', href: '/panel-agente?tab=subscription' },
+        action: { label: 'Actualizar Pago', href: subscriptionPanelRoute },
         variant: 'destructive',
         dismissable: false,
         priority: 2,
@@ -102,7 +103,7 @@ export function GlobalSubscriptionBanner() {
         icon: AlertCircle,
         title: `Tu suscripción se cancela en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}`,
         message: 'Reactiva tu suscripción para mantener acceso a todas las funciones.',
-        action: { label: 'Reactivar', href: '/panel-agente?tab=subscription' },
+        action: { label: 'Reactivar', href: subscriptionPanelRoute },
         variant: 'warning',
         dismissable: true,
         priority: 4,
@@ -116,7 +117,7 @@ export function GlobalSubscriptionBanner() {
         icon: Zap,
         title: 'Límite de Propiedades Alcanzado',
         message: `Has usado ${limits.currentProperties}/${limits.maxProperties} propiedades. Actualiza tu plan para publicar más.`,
-        action: { label: 'Actualizar Plan', href: '/panel-agente?tab=subscription' },
+        action: { label: 'Actualizar Plan', href: subscriptionPanelRoute },
         variant: 'info',
         dismissable: true,
         priority: 5,
@@ -130,7 +131,7 @@ export function GlobalSubscriptionBanner() {
         icon: AlertCircle,
         title: `${limits.remainingProperties} propiedades restantes`,
         message: `Has usado ${limits.currentProperties}/${limits.maxProperties} propiedades de tu plan.`,
-        action: { label: 'Ver Opciones', href: '/panel-agente?tab=subscription' },
+        action: { label: 'Ver Opciones', href: subscriptionPanelRoute },
         variant: 'info',
         dismissable: true,
         priority: 6,

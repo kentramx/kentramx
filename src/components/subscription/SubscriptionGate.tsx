@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Lock, Zap, ArrowRight } from 'lucide-react';
 import { getPricingRoute } from '@/utils/getPricingRoute';
+import { getSubscriptionPanelRoute, getPanelRoute } from '@/utils/getPanelRoute';
 
 interface SubscriptionGateProps {
   children: ReactNode;
@@ -28,6 +29,8 @@ export function SubscriptionGate({
   const { canCreate, reason } = useCanCreateProperty();
 
   const pricingRoute = getPricingRoute(userRole, subscription?.plan?.name);
+  const subscriptionPanelRoute = getSubscriptionPanelRoute(userRole, subscription?.plan?.name);
+  const panelRoute = getPanelRoute(userRole, subscription?.plan?.name);
 
   // Loading state
   if (isLoading) {
@@ -90,7 +93,7 @@ export function SubscriptionGate({
           <CardContent>
             <Button 
               variant="destructive" 
-              onClick={() => navigate('/panel-agente?tab=subscription')} 
+              onClick={() => navigate(subscriptionPanelRoute)} 
               className="w-full"
             >
               Reactivar Cuenta
@@ -142,11 +145,11 @@ export function SubscriptionGate({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button onClick={() => navigate('/panel-agente?tab=subscription')} className="w-full gap-2">
+            <Button onClick={() => navigate(subscriptionPanelRoute)} className="w-full gap-2">
               <Zap className="h-4 w-4" />
               Actualizar Plan
             </Button>
-            <Button variant="outline" onClick={() => navigate('/panel-agente')} className="w-full">
+            <Button variant="outline" onClick={() => navigate(panelRoute)} className="w-full">
               Administrar Propiedades
             </Button>
           </CardContent>
