@@ -3488,6 +3488,7 @@ export type Database = {
         | "admin"
         | "super_admin"
         | "moderator"
+        | "developer"
       invitation_status: "pending" | "accepted" | "rejected" | "expired"
       moderation_action:
         | "approved"
@@ -3653,6 +3654,7 @@ export const Constants = {
         "admin",
         "super_admin",
         "moderator",
+        "developer",
       ],
       invitation_status: ["pending", "accepted", "rejected", "expired"],
       moderation_action: [

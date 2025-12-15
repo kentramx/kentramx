@@ -51,7 +51,7 @@ const Publicar = () => {
       title: 'Soy Desarrolladora',
       description: 'Promociono proyectos completos (torres, fraccionamientos).',
       path: '/pricing-desarrolladora',
-      role: 'agency',
+      role: 'developer',
     },
   ];
 

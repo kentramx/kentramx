@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { TrendingUp, Package, Zap, ArrowRight } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { getPricingRoute } from '@/utils/getPricingRoute';
+import { getSubscriptionPanelRoute, getPanelRoute } from '@/utils/getPanelRoute';
 
 interface PropertyLimitModalProps {
   open: boolean;
@@ -24,10 +25,12 @@ export function PropertyLimitModal({ open, onOpenChange, userRole }: PropertyLim
   const { subscription, limits } = useSubscription();
   
   const pricingRoute = getPricingRoute(userRole, subscription?.plan?.name);
+  const subscriptionPanelRoute = getSubscriptionPanelRoute(userRole, subscription?.plan?.name);
+  const panelRoute = getPanelRoute(userRole, subscription?.plan?.name);
 
   const handleUpgrade = () => {
     onOpenChange(false);
-    navigate('/panel-agente?tab=subscription');
+    navigate(subscriptionPanelRoute);
   };
 
   const handleViewPricing = () => {
@@ -101,7 +104,7 @@ export function PropertyLimitModal({ open, onOpenChange, userRole }: PropertyLim
                 className="justify-start h-auto py-3"
                 onClick={() => {
                   onOpenChange(false);
-                  navigate('/panel-agente');
+                  navigate(panelRoute);
                 }}
               >
                 <Package className="h-5 w-5 mr-3 text-blue-600" />
