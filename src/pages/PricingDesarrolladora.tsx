@@ -29,6 +29,24 @@ const PricingDesarrolladora = () => {
   const growPlan = dbPlans?.find(p => p.name === 'desarrolladora_grow');
   const proPlan = dbPlans?.find(p => p.name === 'desarrolladora_pro');
 
+  // Helper to get features from DB or fallback
+  const getFeatureList = (plan: any): string[] => {
+    if (plan?.features?.feature_list && Array.isArray(plan.features.feature_list)) {
+      return plan.features.feature_list.map((f: any) => f.text);
+    }
+    // Fallback
+    const features: string[] = [];
+    const limits = plan?.features?.limits || plan?.features || {};
+    const caps = plan?.features?.capabilities || plan?.features || {};
+    if (limits.max_projects) {
+      features.push(limits.max_projects === 1 ? '1 proyecto activo' : `Hasta ${limits.max_projects} proyectos activos`);
+    }
+    if (limits.featured_per_month) features.push(`${limits.featured_per_month} propiedades destacadas al mes`);
+    if (caps.priority_support) features.push('Soporte prioritario');
+    if (caps.analytics) features.push('Analíticas avanzadas');
+    return features;
+  };
+
   const getDiscountedPrice = (basePrice: number) => {
     if (!appliedCoupon || !couponDiscount) {
       return { original: null, final: basePrice, savings: 0 };
@@ -233,9 +251,9 @@ const PricingDesarrolladora = () => {
                         ${final.toLocaleString('es-MX')}
                       </span>
                       <span className="text-muted-foreground"> MXN</span>
-                      {billingCycle === 'annual' && (
+                      {billingCycle === 'annual' && startPlan?.price_yearly && (
                         <span className="block text-sm mt-1">
-                          equivale a $4,992/mes
+                          equivale a ${Math.round(startPlan.price_yearly / 12).toLocaleString('es-MX')}/mes
                         </span>
                       )}
                       <span className="block text-sm mt-1">
@@ -245,34 +263,12 @@ const PricingDesarrolladora = () => {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">1 proyecto activo</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Micrositio del desarrollo (galería, mapa, contacto)</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Leads directos a WhatsApp</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Dashboard con métricas de vistas y contactos</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Página corporativa con logotipo y descripción</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Visibilidad estándar en listados</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Soporte por email</span>
-                      </li>
+                      {getFeatureList(startPlan).map((feature, index) => (
+                        <li key={index} className="flex gap-2">
+                          <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                          <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
                     </ul>
                   </CardContent>
                   <CardFooter>
@@ -303,8 +299,12 @@ const PricingDesarrolladora = () => {
                 : (growPlan?.price_yearly || 129000);
               const { original, final, savings } = getDiscountedPrice(basePrice);
               return (
-                <Card className="border-primary shadow-lg relative">
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Más elegido</Badge>
+                <Card className={`relative ${growPlan?.features?.display?.highlight ? 'border-primary shadow-lg' : ''}`}>
+                  {growPlan?.features?.display?.badge && (
+                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      {growPlan.features.display.badge === 'popular' ? 'Más elegido' : growPlan.features.display.badge}
+                    </Badge>
+                  )}
                   <CardHeader>
                     <CardTitle>Desarrolladora Grow</CardTitle>
                     <CardDescription>
@@ -322,9 +322,9 @@ const PricingDesarrolladora = () => {
                         ${final.toLocaleString('es-MX')}
                       </span>
                       <span className="text-muted-foreground"> MXN</span>
-                      {billingCycle === 'annual' && (
+                      {billingCycle === 'annual' && growPlan?.price_yearly && (
                         <span className="block text-sm mt-1">
-                          equivale a $10,750/mes
+                          equivale a ${Math.round(growPlan.price_yearly / 12).toLocaleString('es-MX')}/mes
                         </span>
                       )}
                       <span className="block text-sm mt-1">
@@ -334,42 +334,12 @@ const PricingDesarrolladora = () => {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Hasta 3 proyectos activos</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Micrositio para cada desarrollo con galería multimedia</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Estadísticas completas por proyecto y contacto</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Dashboard de administración de leads y unidades</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Página corporativa con banner y branding</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Visibilidad alta en resultados y portada</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Publicación destacada mensual incluida</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Reporte de rendimiento mensual</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Soporte por chat prioritario</span>
-                      </li>
+                      {getFeatureList(growPlan).map((feature, index) => (
+                        <li key={index} className="flex gap-2">
+                          <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                          <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
                     </ul>
                   </CardContent>
                   <CardFooter>
@@ -417,9 +387,9 @@ const PricingDesarrolladora = () => {
                         ${final.toLocaleString('es-MX')}
                       </span>
                       <span className="text-muted-foreground"> MXN</span>
-                      {billingCycle === 'annual' && (
+                      {billingCycle === 'annual' && proPlan?.price_yearly && (
                         <span className="block text-sm mt-1">
-                          equivale a $20,750/mes
+                          equivale a ${Math.round(proPlan.price_yearly / 12).toLocaleString('es-MX')}/mes
                         </span>
                       )}
                       <span className="block text-sm mt-1">
@@ -429,34 +399,12 @@ const PricingDesarrolladora = () => {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Hasta 6 proyectos activos</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Micrositios personalizados con branding completo</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Estadísticas avanzadas y reporte de rendimiento mensual</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Inclusión mensual en portada y newsletter nacional</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Dashboard con métricas de origen de leads</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Máxima visibilidad y posicionamiento de marca</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">Asesor comercial dedicado</span>
-                      </li>
+                      {getFeatureList(proPlan).map((feature, index) => (
+                        <li key={index} className="flex gap-2">
+                          <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                          <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
                     </ul>
                   </CardContent>
                   <CardFooter>

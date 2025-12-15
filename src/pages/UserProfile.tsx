@@ -685,6 +685,14 @@ const UserProfile = () => {
                                   <Plus className="w-4 h-4 mr-2" />
                                   Gestión de Upsells
                                 </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate("/admin/plans")}
+                                >
+                                  <DollarSign className="w-4 h-4 mr-2" />
+                                  Gestión de Planes
+                                </Button>
                               </>
                             )}
                           </div>
