@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { startSubscriptionCheckout, getCurrentSubscription } from '@/utils/stripeCheckout';
+import { usePricingPlans, getPlanPropertyLimit, getPlanFeaturedLimit, getPlanMaxAgents, getMonthlyEquivalent } from '@/hooks/usePricingPlans';
 import Navbar from '@/components/Navbar';
 import { CouponInput } from '@/components/CouponInput';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Check, Loader2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
@@ -18,6 +20,13 @@ const PricingInmobiliaria = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [couponDiscount, setCouponDiscount] = useState<{type: 'percent' | 'fixed', value: number} | null>(null);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+
+  const { data: dbPlans, isLoading: plansLoading } = usePricingPlans('agency');
+
+  // Find plans by name
+  const startPlan = dbPlans?.find(p => p.name === 'inmobiliaria_start');
+  const growPlan = dbPlans?.find(p => p.name === 'inmobiliaria_grow');
+  const proPlan = dbPlans?.find(p => p.name === 'inmobiliaria_pro');
 
   const getDiscountedPrice = (basePrice: number) => {
     if (!appliedCoupon || !couponDiscount) {
@@ -79,6 +88,37 @@ const PricingInmobiliaria = () => {
       setProcessingPlan(null);
     }
   };
+
+  // Loading skeleton
+  if (plansLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <Skeleton className="h-10 w-64 mx-auto mb-4" />
+            <Skeleton className="h-6 w-96 mx-auto" />
+          </div>
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {[1, 2, 3].map(i => (
+              <Card key={i}>
+                <CardHeader className="text-center">
+                  <Skeleton className="h-6 w-32 mx-auto mb-2" />
+                  <Skeleton className="h-10 w-40 mx-auto" />
+                </CardHeader>
+                <CardContent>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map(j => (
+                    <Skeleton key={j} className="h-4 w-full mb-3" />
+                  ))}
+                  <Skeleton className="h-10 w-full mt-4" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -172,7 +212,9 @@ const PricingInmobiliaria = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {/* Plan Start */}
             {(() => {
-              const basePrice = billingPeriod === 'monthly' ? 1999 : 19990;
+              const basePrice = billingPeriod === 'monthly' 
+                ? (startPlan?.price_monthly || 1999) 
+                : (startPlan?.price_yearly || 19990);
               const { original, final, savings } = getDiscountedPrice(basePrice);
               return (
                 <Card>
@@ -266,7 +308,9 @@ const PricingInmobiliaria = () => {
 
             {/* Plan Grow */}
             {(() => {
-              const basePrice = billingPeriod === 'monthly' ? 4499 : 44990;
+              const basePrice = billingPeriod === 'monthly' 
+                ? (growPlan?.price_monthly || 4499) 
+                : (growPlan?.price_yearly || 44990);
               const { original, final, savings } = getDiscountedPrice(basePrice);
               return (
                 <Card className="border-primary relative">
@@ -363,7 +407,9 @@ const PricingInmobiliaria = () => {
 
             {/* Plan Pro */}
             {(() => {
-              const basePrice = billingPeriod === 'monthly' ? 8999 : 89990;
+              const basePrice = billingPeriod === 'monthly' 
+                ? (proPlan?.price_monthly || 8999) 
+                : (proPlan?.price_yearly || 89990);
               const { original, final, savings } = getDiscountedPrice(basePrice);
               return (
                 <Card>
