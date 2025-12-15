@@ -36,7 +36,6 @@ export function GoogleMapBase({
 }: GoogleMapBaseProps) {
   const mapRef = useRef<google.maps.Map | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
-  const hasInitialized = useRef(false);
 
   // Cargar API de Google Maps
   const { isLoaded, loadError } = useJsApiLoader({
@@ -55,7 +54,6 @@ export function GoogleMapBase({
   // Callback cuando el mapa está listo
   const handleMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
-    hasInitialized.current = true;
     onMapReady?.(map);
     
     // Emitir viewport inicial
@@ -160,8 +158,8 @@ export function GoogleMapBase({
     <GoogleMap
       mapContainerStyle={{ width: '100%', height }}
       mapContainerClassName={className}
-      center={hasInitialized.current ? undefined : initialCenter}
-      zoom={hasInitialized.current ? undefined : initialZoom}
+      center={initialCenter}
+      zoom={initialZoom}
       onLoad={handleMapLoad}
       onIdle={handleIdle}
       options={mapOptions}
