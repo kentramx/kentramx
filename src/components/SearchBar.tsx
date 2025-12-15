@@ -39,7 +39,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         <Button
           onClick={onSearch}
           size="lg"
-          className="shrink-0 rounded-full bg-secondary px-5 hover:bg-secondary/90"
+          className="shrink-0 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-6 text-white font-semibold shadow-lg shadow-amber-500/30 hover:from-amber-600 hover:to-amber-700 hover:shadow-xl hover:shadow-amber-500/40 transition-all duration-300"
         >
           <Search className="mr-2 h-5 w-5" />
           Buscar
