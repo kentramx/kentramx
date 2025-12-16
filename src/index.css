@@ -156,3 +156,24 @@ gmp-place-autocomplete {
 .animate-shake {
   animation: shake 0.5s ease-in-out;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE MAP UX - Prevenir zoom accidental de página
+   ═══════════════════════════════════════════════════════════ */
+
+/* Prevenir gestos de página dentro del mapa */
+[data-map-container] {
+  touch-action: none;
+}
+
+/* Permitir scroll normal en la lista de propiedades */
+.search-results-list {
+  touch-action: pan-y;
+}
+
+/* Estilos para fullscreen del mapa */
+[data-map-container]:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  background: hsl(var(--background));
+}

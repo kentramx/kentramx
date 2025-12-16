@@ -1522,7 +1522,14 @@ const getCurrentPriceRangeLabel = (precioMin: string, precioMax: string, listing
           </div>
 
           {/* Mapa a la izquierda - 50% width en desktop, condicional en móvil */}
-          <div className={`relative ${mobileView === 'map' ? 'block' : 'hidden'} lg:block lg:w-1/2 lg:h-full`} style={{ height: 'calc(100vh - 200px)' }}>
+          <div 
+            className={`relative ${mobileView === 'map' ? 'block' : 'hidden'} lg:block lg:w-1/2 lg:h-full`} 
+            style={{ 
+              height: mobileView === 'map' 
+                ? 'calc(100vh - 120px)'  // Más espacio para el mapa en móvil
+                : 'calc(100vh - 200px)' 
+            }}
+          >
             {/* ✅ Mapa con filtros unificados y manejo de errores */}
             {mapError ? (
               <div className="flex h-full items-center justify-center p-8">
