@@ -5,6 +5,7 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMapData } from '@/hooks/useMapData';
+import { usePropertiesInfinite } from '@/hooks/usePropertiesInfinite';
 import { PlaceAutocomplete } from '@/components/PlaceAutocomplete';
 import type { PropertySummary } from '@/types/property';
 import Navbar from '@/components/Navbar';
@@ -231,11 +232,11 @@ const getCurrentPriceRangeLabel = (precioMin: string, precioMax: string, listing
   });
   const [hoveredPropertyId, setHoveredPropertyId] = useState<string | null>(null);
 
-  // ✅ FUENTE ÚNICA DE DATOS: useMapData alimenta MAPA y LISTA
+  // ✅ useMapData solo para el MAPA (clusters y markers)
   const {
     data: mapData,
-    isLoading: loading,
-    isFetching,
+    isLoading: mapLoading,
+    isFetching: mapIsFetching,
     isPending: isViewportPending, // Viewport esperando debounce
     isIdle: mapIsIdle, // Query deshabilitado (esperando viewport válido)
     error: mapError,
@@ -245,62 +246,64 @@ const getCurrentPriceRangeLabel = (precioMin: string, precioMax: string, listing
     enabled: !!mapViewport,
   });
 
-  // Extraer datos de la fuente única
-  const properties = mapData?.properties || [];
+  // Extraer datos del mapa (solo para clusters y markers del mapa)
+  const mapProperties = mapData?.properties || [];
   const clusters = mapData?.clusters || [];
-  const totalCount = mapData?.total_in_viewport || 0;
   const isClustered = mapData?.is_clustered || false;
   const searchError = mapError;
 
-  // Variables para compatibilidad con código existente
-  const hasNextPage = false; // Ya no hay paginación infinita - todo viene del viewport
-  const fetchNextPage = () => {}; // No-op
-  const hasTooManyResults = isClustered;
+  // ✅ LISTA INDEPENDIENTE: Usar usePropertiesInfinite para la lista (NO depende del zoom)
+  const listFilters = useMemo(() => ({
+    estado: filters.estado || undefined,
+    municipio: filters.municipio || undefined,
+    colonia: filters.colonia || undefined,
+    tipo: filters.tipo || undefined,
+    listingType: filters.listingType || undefined,
+    precioMin: filters.precioMin ? Number(filters.precioMin) : undefined,
+    precioMax: filters.precioMax ? Number(filters.precioMax) : undefined,
+    recamaras: filters.recamaras || undefined,
+    banos: filters.banos || undefined,
+    orden: filters.orden || undefined,
+    // ✅ NO pasamos bounds - la lista muestra TODAS las propiedades filtradas
+  }), [filters]);
+
+  const {
+    properties: listPropertiesRaw,
+    totalCount,
+    isLoading: listLoading,
+    isFetching: listFetching,
+    fetchNextPage,
+    hasNextPage,
+  } = usePropertiesInfinite(listFilters);
+
+  // Alias para compatibilidad con código existente
+  const properties = listPropertiesRaw;
+  const hasTooManyResults = false; // Ya no hay límite de resultados en la lista
   const actualTotal = totalCount;
 
   // Ordenar propiedades según criterio seleccionado
   // PRIORIDAD: Destacadas primero, luego aplicar orden seleccionado
+  // NOTA: El ordenamiento ya se aplica en el backend (usePropertiesInfinite),
+  // pero añadimos ordenamiento de destacadas en frontend
   const sortedProperties = useMemo(() => {
     const sorted = [...properties];
     
     sorted.sort((a, b) => {
-      // 1. Prioridad principal: Destacadas primero
+      // Prioridad principal: Destacadas primero
       const aFeatured = a.is_featured ? 1 : 0;
       const bFeatured = b.is_featured ? 1 : 0;
-      if (aFeatured !== bFeatured) {
-        return bFeatured - aFeatured; // Destacadas primero
-      }
-      
-      // 2. Ordenamiento secundario según criterio seleccionado
-      switch (filters.orden) {
-        case 'price_desc':
-          return b.price - a.price;
-        case 'price_asc':
-          return a.price - b.price;
-        case 'newest': {
-          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-          return dateB - dateA;
-        }
-        case 'oldest': {
-          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-          return dateA - dateB;
-        }
-        case 'bedrooms_desc':
-          return (b.bedrooms || 0) - (a.bedrooms || 0);
-        case 'sqft_desc':
-          return (b.sqft || 0) - (a.sqft || 0);
-        default:
-          return b.price - a.price;
-      }
+      return bFeatured - aFeatured;
     });
     
     return sorted;
-  }, [properties, filters.orden]);
+  }, [properties]);
 
   const filteredProperties = sortedProperties;
   const listProperties = sortedProperties;
+  
+  // Variables de loading para la lista
+  const loading = listLoading;
+  const isFetching = listFetching;
   
   // Estado para guardar coordenadas de la ubicación buscada
   // ✅ Inicializar desde URL inmediatamente para evitar flash
@@ -1559,13 +1562,13 @@ const getCurrentPriceRangeLabel = (precioMin: string, precioMax: string, listing
               </div>
             ) : (
               <SearchMap
-                properties={properties}
+                properties={mapProperties}
                 clusters={clusters}
                 totalCount={totalCount}
                 isClustered={isClustered}
-                isLoading={loading}
+                isLoading={mapLoading}
                 isIdle={mapIsIdle}
-                isFetching={isFetching}
+                isFetching={mapIsFetching}
                 isPending={isViewportPending}
                 initialCenter={searchCoordinates || undefined}
                 initialZoom={searchCoordinates ? 12 : 5}
