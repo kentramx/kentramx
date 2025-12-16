@@ -20,7 +20,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => cache.addAll(PRECACHE_ASSETS))
-      .then(() => self.skipWaiting())
+    // NO skipWaiting() aquí - solo cuando el usuario lo solicite via SKIP_WAITING message
   );
 });
 
