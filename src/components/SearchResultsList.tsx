@@ -12,11 +12,10 @@ import { PropertyStats } from '@/components/PropertyStats';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { HoveredProperty } from '@/types/property';
-import type { PropertyMarker } from '@/types/map';
+import type { HoveredProperty, PropertySummary } from '@/types/property';
 
 interface SearchResultsListProps {
-  properties: PropertyMarker[];
+  properties: PropertySummary[];
   isLoading: boolean;
   listingType: string;
   onPropertyClick: (id: string) => void;
@@ -61,7 +60,7 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = React.memo(
 
     // ✅ Callback memoizado para hover (solo datos esenciales)
     const handlePropertyHover = useCallback(
-      (property: PropertyMarker | null) => {
+      (property: PropertySummary | null) => {
         if (onPropertyHover && property) {
           onPropertyHover({
             id: property.id,
