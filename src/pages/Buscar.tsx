@@ -194,7 +194,28 @@ const getCurrentPriceRangeLabel = (precioMin: string, precioMax: string, listing
   }), [filters]);
 
   // 🗺️ Estado del mapa
-  const [mapViewport, setMapViewport] = useState<MapViewport | null>(null);
+  // ✅ Inicializar viewport desde URL si hay coordenadas para evitar flash
+  const [mapViewport, setMapViewport] = useState<MapViewport | null>(() => {
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    if (lat && lng) {
+      const latNum = parseFloat(lat);
+      const lngNum = parseFloat(lng);
+      const DELTA_LAT = 0.15;
+      const DELTA_LNG = 0.2;
+      return {
+        center: { lat: latNum, lng: lngNum },
+        zoom: 12,
+        bounds: {
+          north: latNum + DELTA_LAT,
+          south: latNum - DELTA_LAT,
+          east: lngNum + DELTA_LNG,
+          west: lngNum - DELTA_LNG,
+        }
+      };
+    }
+    return null;
+  });
   const [hoveredPropertyId, setHoveredPropertyId] = useState<string | null>(null);
 
   // ✅ FUENTE ÚNICA DE DATOS: useMapData alimenta MAPA y LISTA
@@ -269,7 +290,15 @@ const getCurrentPriceRangeLabel = (precioMin: string, precioMax: string, listing
   const listProperties = sortedProperties;
   
   // Estado para guardar coordenadas de la ubicación buscada
-  const [searchCoordinates, setSearchCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  // ✅ Inicializar desde URL inmediatamente para evitar flash
+  const [searchCoordinates, setSearchCoordinates] = useState<{ lat: number; lng: number } | null>(() => {
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    if (lat && lng) {
+      return { lat: parseFloat(lat), lng: parseFloat(lng) };
+    }
+    return null;
+  });
   
   // Sincronizar Sheet desde URL
   useEffect(() => {
