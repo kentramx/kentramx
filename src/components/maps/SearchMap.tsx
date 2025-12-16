@@ -13,8 +13,9 @@ import { GoogleMapBase } from './GoogleMapBase';
 import { PriceMarker } from './PriceMarker';
 import { ClusterMarker } from './ClusterMarker';
 import type { MapViewport, PropertyMarker, PropertyCluster } from '@/types/map';
-import { Loader2, MapPin, ZoomIn } from 'lucide-react';
+import { Loader2, MapPin, ZoomIn, Expand } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface SearchMapProps {
@@ -256,7 +257,7 @@ export function SearchMap({
   }, [visibleCount]);
 
   return (
-    <div className={cn('relative w-full', className)} style={{ height }}>
+    <div data-map-container className={cn('relative w-full', className)} style={{ height }}>
       <GoogleMapBase
         onViewportChange={handleViewportChange}
         onMapReady={handleMapReady}
@@ -326,10 +327,29 @@ export function SearchMap({
       </div>
 
       {/* ═══════════════════════════════════════════════════════════
+          BOTÓN FULLSCREEN - Solo en móvil
+          ═══════════════════════════════════════════════════════════ */}
+      <div className="absolute top-3 right-3 z-10 md:hidden">
+        <Button
+          variant="secondary"
+          size="icon"
+          className="h-11 w-11 bg-background/95 backdrop-blur-sm shadow-lg"
+          onClick={() => {
+            const mapContainer = document.querySelector('[data-map-container]');
+            if (mapContainer?.requestFullscreen) {
+              mapContainer.requestFullscreen();
+            }
+          }}
+        >
+          <Expand className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════
           INDICADOR DE CARGA - Solo en carga inicial (no en navegación)
           ═══════════════════════════════════════════════════════════ */}
       {(isLoading || isIdle || isPending) && !hasLoadedOnce.current && (
-        <div className="absolute top-3 right-3 z-10">
+        <div className="absolute top-3 right-16 z-10 md:right-3">
           <Badge 
             variant="outline" 
             className="bg-background/95 backdrop-blur-sm shadow-sm border-border"

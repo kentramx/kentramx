@@ -166,6 +166,8 @@ export function GoogleMapBase({
     zoomControlOptions: {
       position: window.google?.maps?.ControlPosition?.RIGHT_TOP ?? 3,
     },
+    // 🎯 Gestos cooperativos en móvil - El mapa captura todos los gestos
+    gestureHandling: 'greedy',
     styles: GOOGLE_MAPS_CONFIG.styles as google.maps.MapTypeStyle[],
   };
 
