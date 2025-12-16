@@ -7,8 +7,9 @@ const corsHeaders = {
 };
 
 interface UserActionRequest {
-  action: 'suspend' | 'activate' | 'ban' | 'change-role' | 'delete';
-  userId: string;
+  action: 'suspend' | 'activate' | 'ban' | 'change-role' | 'delete' | 'reset-password' | 'resend-verification' | 'bulk-suspend' | 'bulk-activate' | 'bulk-delete';
+  userId?: string;
+  userIds?: string[];
   reason?: string;
   newRole?: string;
 }
@@ -60,17 +61,116 @@ serve(async (req: Request) => {
 
     // Parse request body
     const request: UserActionRequest = await req.json();
-    const { action, userId, reason, newRole } = request;
+    const { action, userId, userIds, reason, newRole } = request;
 
-    if (!action || !userId) {
-      return new Response(JSON.stringify({ error: 'Missing action or userId' }), {
+    if (!action) {
+      return new Response(JSON.stringify({ error: 'Missing action' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Prevent self-actions
-    if (userId === adminUser.id) {
+    // Handle bulk actions
+    if (action.startsWith('bulk-')) {
+      if (!userIds || userIds.length === 0) {
+        return new Response(JSON.stringify({ error: 'userIds array is required for bulk actions' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Filter out self and super_admins from bulk actions
+      const filteredIds = [];
+      for (const id of userIds) {
+        if (id === adminUser.id) continue;
+        const { data: targetIsSuperAdmin } = await supabaseAdmin.rpc('is_super_admin', { _user_id: id });
+        if (targetIsSuperAdmin) continue;
+        filteredIds.push(id);
+      }
+
+      if (filteredIds.length === 0) {
+        return new Response(JSON.stringify({ error: 'No valid users to perform action on' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      let bulkResult;
+      switch (action) {
+        case 'bulk-suspend': {
+          const { error } = await supabaseAdmin
+            .from('profiles')
+            .update({
+              status: 'suspended',
+              suspended_at: new Date().toISOString(),
+              suspended_reason: reason || 'Bulk suspended by admin',
+              suspended_by: adminUser.id,
+            })
+            .in('id', filteredIds);
+
+          if (error) throw error;
+          bulkResult = { success: true, message: `${filteredIds.length} users suspended`, affected: filteredIds.length };
+          console.log(`[admin-user-action] Bulk suspend: ${filteredIds.length} users by ${adminUser.id}`);
+          break;
+        }
+
+        case 'bulk-activate': {
+          const { error } = await supabaseAdmin
+            .from('profiles')
+            .update({
+              status: 'active',
+              suspended_at: null,
+              suspended_reason: null,
+              suspended_by: null,
+            })
+            .in('id', filteredIds);
+
+          if (error) throw error;
+          bulkResult = { success: true, message: `${filteredIds.length} users activated`, affected: filteredIds.length };
+          console.log(`[admin-user-action] Bulk activate: ${filteredIds.length} users by ${adminUser.id}`);
+          break;
+        }
+
+        case 'bulk-delete': {
+          if (!isSuperAdmin) {
+            return new Response(JSON.stringify({ error: 'Only super admins can delete users' }), {
+              status: 403,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          let deleted = 0;
+          for (const id of filteredIds) {
+            const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
+            if (!error) deleted++;
+          }
+          bulkResult = { success: true, message: `${deleted} users deleted`, affected: deleted };
+          console.log(`[admin-user-action] Bulk delete: ${deleted} users by ${adminUser.id}`);
+          break;
+        }
+
+        default:
+          return new Response(JSON.stringify({ error: `Unknown bulk action: ${action}` }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+      }
+
+      return new Response(JSON.stringify(bulkResult), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Single user actions require userId
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Prevent self-actions (except password reset and verification)
+    if (userId === adminUser.id && !['reset-password', 'resend-verification'].includes(action)) {
       return new Response(JSON.stringify({ error: 'Cannot perform this action on yourself' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -216,6 +316,58 @@ serve(async (req: Request) => {
         if (error) throw error;
         result = { success: true, message: 'User deleted successfully' };
         console.log(`[admin-user-action] User ${userId} deleted by ${adminUser.id}`);
+        break;
+      }
+
+      case 'reset-password': {
+        // Get user email
+        const { data: { user: targetUser }, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
+        
+        if (userError || !targetUser?.email) {
+          return new Response(JSON.stringify({ error: 'User not found or has no email' }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Send password reset email
+        const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(targetUser.email, {
+          redirectTo: `${supabaseUrl.replace('.supabase.co', '')}/reset-password`,
+        });
+
+        if (resetError) throw resetError;
+        result = { success: true, message: `Password reset email sent to ${targetUser.email}` };
+        console.log(`[admin-user-action] Password reset sent to ${targetUser.email} by ${adminUser.id}`);
+        break;
+      }
+
+      case 'resend-verification': {
+        // Get user email
+        const { data: { user: targetUser }, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
+        
+        if (userError || !targetUser?.email) {
+          return new Response(JSON.stringify({ error: 'User not found or has no email' }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (targetUser.email_confirmed_at) {
+          return new Response(JSON.stringify({ error: 'Email is already verified' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Resend verification email using generateLink and then sending via Resend or just update user
+        const { error: resendError } = await supabaseAdmin.auth.resend({
+          type: 'signup',
+          email: targetUser.email,
+        });
+
+        if (resendError) throw resendError;
+        result = { success: true, message: `Verification email resent to ${targetUser.email}` };
+        console.log(`[admin-user-action] Verification email resent to ${targetUser.email} by ${adminUser.id}`);
         break;
       }
 

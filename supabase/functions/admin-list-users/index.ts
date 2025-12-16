@@ -13,6 +13,12 @@ interface ListUsersParams {
   roleFilter?: string;
   statusFilter?: string;
   verifiedFilter?: string;
+  // New filters
+  dateFrom?: string;
+  dateTo?: string;
+  planFilter?: string;
+  minProperties?: number;
+  maxProperties?: number;
 }
 
 serve(async (req: Request) => {
@@ -59,12 +65,24 @@ serve(async (req: Request) => {
 
     // Parse request body
     const params: ListUsersParams = await req.json();
-    const { page = 1, pageSize = 20, search, roleFilter, statusFilter, verifiedFilter } = params;
+    const { 
+      page = 1, 
+      pageSize = 20, 
+      search, 
+      roleFilter, 
+      statusFilter, 
+      verifiedFilter,
+      dateFrom,
+      dateTo,
+      planFilter,
+      minProperties,
+      maxProperties,
+    } = params;
 
     const offset = (page - 1) * pageSize;
 
     // Get all auth users for email lookup (paginated - Supabase max is 1000)
-    const emailMap = new Map<string, string>();
+    const emailMap = new Map<string, { email: string; lastSignIn: string | null; emailConfirmed: boolean }>();
     let authPage = 1;
     let hasMoreAuthUsers = true;
 
@@ -80,7 +98,11 @@ serve(async (req: Request) => {
       }
 
       authUsersPage.users.forEach(u => {
-        if (u.email) emailMap.set(u.id, u.email);
+        emailMap.set(u.id, { 
+          email: u.email || '', 
+          lastSignIn: u.last_sign_in_at || null,
+          emailConfirmed: !!u.email_confirmed_at,
+        });
       });
 
       hasMoreAuthUsers = authUsersPage.users.length === 1000;
@@ -122,8 +144,16 @@ serve(async (req: Request) => {
       query = query.eq('is_verified', false).eq('phone_verified', false);
     }
 
+    // Apply date filters
+    if (dateFrom) {
+      query = query.gte('created_at', dateFrom);
+    }
+    if (dateTo) {
+      query = query.lte('created_at', dateTo + 'T23:59:59.999Z');
+    }
+
     // Get all profiles first (for role filtering and search)
-    const { data: allProfiles, error: profilesError, count: totalCount } = await query.order('created_at', { ascending: false });
+    const { data: allProfiles, error: profilesError } = await query.order('created_at', { ascending: false });
 
     if (profilesError) {
       console.error('Error fetching profiles:', profilesError);
@@ -146,6 +176,61 @@ serve(async (req: Request) => {
       });
     }
 
+    // Get property counts per user
+    const { data: propertyCounts, error: propError } = await supabaseAdmin
+      .from('properties')
+      .select('agent_id')
+      .in('status', ['activa', 'active', 'published', 'pending', 'pendiente', 'rejected']);
+    
+    const propertyCountMap = new Map<string, { total: number; active: number }>();
+    if (!propError && propertyCounts) {
+      propertyCounts.forEach(p => {
+        const current = propertyCountMap.get(p.agent_id) || { total: 0, active: 0 };
+        current.total++;
+        propertyCountMap.set(p.agent_id, current);
+      });
+    }
+
+    // Get active property counts
+    const { data: activeProps } = await supabaseAdmin
+      .from('properties')
+      .select('agent_id')
+      .in('status', ['activa', 'active', 'published']);
+    
+    if (activeProps) {
+      activeProps.forEach(p => {
+        const current = propertyCountMap.get(p.agent_id) || { total: 0, active: 0 };
+        current.active++;
+        propertyCountMap.set(p.agent_id, current);
+      });
+    }
+
+    // Get subscription info per user
+    const { data: subscriptions, error: subError } = await supabaseAdmin
+      .from('user_subscriptions')
+      .select(`
+        user_id,
+        status,
+        billing_cycle,
+        current_period_end,
+        plan_id,
+        subscription_plans(name, display_name)
+      `);
+
+    const subscriptionMap = new Map<string, any>();
+    if (!subError && subscriptions) {
+      subscriptions.forEach((s: any) => {
+        const plan = s.subscription_plans;
+        subscriptionMap.set(s.user_id, {
+          status: s.status,
+          billing_cycle: s.billing_cycle,
+          current_period_end: s.current_period_end,
+          plan_name: plan?.name || null,
+          plan_display_name: plan?.display_name || null,
+        });
+      });
+    }
+
     // Build role map (user can have multiple roles, get highest priority)
     const roleMap = new Map<string, string[]>();
     allRoles?.forEach(r => {
@@ -156,8 +241,10 @@ serve(async (req: Request) => {
 
     // Combine data and apply filters
     let users = (allProfiles || []).map(profile => {
-      const email = emailMap.get(profile.id) || '';
+      const authInfo = emailMap.get(profile.id) || { email: '', lastSignIn: null, emailConfirmed: false };
       const roles = roleMap.get(profile.id) || ['buyer'];
+      const propertyInfo = propertyCountMap.get(profile.id) || { total: 0, active: 0 };
+      const subscription = subscriptionMap.get(profile.id) || null;
       
       // Get primary role (highest priority)
       const rolePriority: Record<string, number> = {
@@ -169,9 +256,14 @@ serve(async (req: Request) => {
 
       return {
         ...profile,
-        email,
+        email: authInfo.email,
+        last_sign_in: authInfo.lastSignIn,
+        email_confirmed: authInfo.emailConfirmed,
         roles,
         primaryRole,
+        property_count: propertyInfo.total,
+        active_property_count: propertyInfo.active,
+        subscription,
       };
     });
 
@@ -189,6 +281,23 @@ serve(async (req: Request) => {
       users = users.filter(u => u.roles.includes(roleFilter));
     }
 
+    // Apply plan filter
+    if (planFilter && planFilter !== 'all') {
+      if (planFilter === 'no_subscription') {
+        users = users.filter(u => !u.subscription);
+      } else {
+        users = users.filter(u => u.subscription?.plan_name === planFilter);
+      }
+    }
+
+    // Apply property count filters
+    if (minProperties !== undefined && minProperties > 0) {
+      users = users.filter(u => u.property_count >= minProperties);
+    }
+    if (maxProperties !== undefined && maxProperties >= 0) {
+      users = users.filter(u => u.property_count <= maxProperties);
+    }
+
     // Calculate metrics
     const metrics = {
       total: users.length,
@@ -197,6 +306,8 @@ serve(async (req: Request) => {
       suspended: users.filter(u => u.status === 'suspended').length,
       verified: users.filter(u => u.is_verified).length,
       phoneVerified: users.filter(u => u.phone_verified).length,
+      withSubscription: users.filter(u => u.subscription).length,
+      withProperties: users.filter(u => u.property_count > 0).length,
     };
 
     // Apply pagination after all filters
