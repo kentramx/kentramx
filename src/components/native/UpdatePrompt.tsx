@@ -9,16 +9,22 @@ export function UpdatePrompt() {
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
+    
+    // Solo mostrar si ya hay un SW controlando (no es primera instalación)
+    if (!navigator.serviceWorker.controller) return;
 
     navigator.serviceWorker.ready.then((registration) => {
       setReg(registration);
       
-      if (registration.waiting) setShow(true);
+      // Delay para evitar aparecer inmediatamente en reload
+      if (registration.waiting) {
+        setTimeout(() => setShow(true), 2000);
+      }
 
       registration.addEventListener('updatefound', () => {
         registration.installing?.addEventListener('statechange', function() {
           if (this.state === 'installed' && navigator.serviceWorker.controller) {
-            setShow(true);
+            setTimeout(() => setShow(true), 2000);
           }
         });
       });
