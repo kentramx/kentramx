@@ -130,248 +130,246 @@ const Navbar = () => {
       <ImpersonationBanner />
       <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-3 h-16 items-center gap-4">
-          {/* Left Navigation - Desktop */}
-          <div className="hidden md:flex items-center gap-1 justify-start">
-            <Button 
-              type="button"
-              variant={isComprarActive ? "default" : "ghost"} 
-              size="sm"
-              className={isComprarActive ? "shadow-sm" : ""}
-              onClick={handleComprarClick}
-            >
-              Comprar
-            </Button>
-            <Button 
-              type="button"
-              variant={isRentarActive ? "default" : "ghost"} 
-              size="sm"
-              className={isRentarActive ? "shadow-sm" : ""}
-              onClick={handleRentarClick}
-            >
-              Rentar
-            </Button>
-          </div>
+          {/* Desktop Navigation */}
+          <div className="hidden md:grid grid-cols-3 h-16 items-center gap-4">
+            {/* Left Navigation - Desktop */}
+            <div className="flex items-center gap-1 justify-start">
+              <Button 
+                type="button"
+                variant={isComprarActive ? "default" : "ghost"} 
+                size="sm"
+                className={isComprarActive ? "shadow-sm" : ""}
+                onClick={handleComprarClick}
+              >
+                Comprar
+              </Button>
+              <Button 
+                type="button"
+                variant={isRentarActive ? "default" : "ghost"} 
+                size="sm"
+                className={isRentarActive ? "shadow-sm" : ""}
+                onClick={handleRentarClick}
+              >
+                Rentar
+              </Button>
+            </div>
 
-          {/* Center Logo - Always visible */}
-          <Link to="/" className="flex items-center justify-center shrink-0">
-            <img src={kentraLogo} alt="Kentra" className="h-10 md:h-12" />
-          </Link>
+            {/* Center Logo - Desktop */}
+            <Link to="/" className="flex items-center justify-center shrink-0">
+              <img src={kentraLogo} alt="Kentra" className="h-12" />
+            </Link>
 
-          {/* Right Navigation - Desktop */}
-          <div className="hidden md:flex items-center gap-3 justify-end">
-            <RoleImpersonationSelector />
-            <PublishPropertyButton size="sm" className="shadow-sm" />
-            {user ? (
-              <>
-                <PlanBadge />
-                <MessageBadge />
-                {isAdmin && (
-                  <AdminRealtimeNotifications userId={user.id} isAdmin={isAdmin} />
-                )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                          {getUserInitials()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>Acciones Rápidas</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <Link to="/agentes">
-                      <DropdownMenuItem className="cursor-pointer">
-                        <Search className="mr-2 h-4 w-4" />
-                        Buscar Inmobiliarias
-                      </DropdownMenuItem>
-                    </Link>
-                    <Link to="/favoritos">
-                      <DropdownMenuItem className="cursor-pointer">
-                        <Heart className="mr-2 h-4 w-4" />
-                        Favoritos
-                      </DropdownMenuItem>
-                    </Link>
-                    <Link to="/comparar">
-                      <DropdownMenuItem className="cursor-pointer">
-                        <GitCompare className="mr-2 h-4 w-4" />
-                        Comparar Propiedades
-                        {compareList.length > 0 && (
-                          <Badge variant="secondary" className="ml-auto">
-                            {compareList.length}
-                          </Badge>
-                        )}
-                      </DropdownMenuItem>
-                    </Link>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {isAdmin && (
-                      <>
-                        <Link to="/admin/dashboard">
-                          <DropdownMenuItem className="cursor-pointer">
-                            <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                            Panel de Moderación
-                          </DropdownMenuItem>
-                        </Link>
-                        {isSuperAdmin && (
-                          <Link to="/admin/financiero">
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                              Panel Financiero
-                            </DropdownMenuItem>
-                          </Link>
-                        )}
-                        {isSuperAdmin && (
-                          <Link to="/admin/system-health">
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                              Salud del Sistema
-                            </DropdownMenuItem>
-                          </Link>
-                        )}
-                        {isSuperAdmin && (
-                          <Link to="/admin/subscriptions">
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                              Gestión de Suscripciones
-                            </DropdownMenuItem>
-                          </Link>
-                        )}
-                        {isSuperAdmin && (
-                          <Link to="/admin/churn">
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                              Churn & Retención
-                            </DropdownMenuItem>
-                          </Link>
-                        )}
-                        {isSuperAdmin && (
-                          <Link to="/admin/geocoding">
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                              Geocodificación Masiva
-                            </DropdownMenuItem>
-                          </Link>
-                        )}
-                        {isSuperAdmin && (
-                          <Link to="/admin/coupons">
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                              Cupones y Descuentos
-                            </DropdownMenuItem>
-                          </Link>
-                        )}
-                        {isSuperAdmin && (
-                          <>
-                            <Link to="/admin/kpis">
-                              <DropdownMenuItem className="cursor-pointer">
-                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                                KPIs de Negocio
-                              </DropdownMenuItem>
-                            </Link>
-                            <Link to="/admin/marketing">
-                              <DropdownMenuItem className="cursor-pointer">
-                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                                Dashboard de Marketing
-                              </DropdownMenuItem>
-                            </Link>
-                          </>
-                        )}
-                        {isSuperAdmin && (
-                          <Link to="/admin/roles">
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                              Gestión de Roles
-                            </DropdownMenuItem>
-                          </Link>
-                        )}
-                        {isSuperAdmin && (
-                          <Link to="/admin/role-audit">
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                              Auditoría de Roles
-                            </DropdownMenuItem>
-                          </Link>
-                        )}
-                        {isSuperAdmin && (
-                          <Link to="/admin/subscription-changes">
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                              Panel de Auditoría
-                            </DropdownMenuItem>
-                          </Link>
-                        )}
-                        {isSuperAdmin && (
-                          <Link to="/admin/notification-settings">
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                              Notificaciones
-                            </DropdownMenuItem>
-                          </Link>
-                        )}
-                        <Link to="/admin/kyc">
-                          <DropdownMenuItem className="cursor-pointer">
-                            <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                            Verificaciones KYC
-                          </DropdownMenuItem>
-                        </Link>
-                        {isSuperAdmin && (
-                          <Link to="/admin/users">
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Users className="mr-2 h-4 w-4" />
-                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
-                              Gestión de Usuarios
-                            </DropdownMenuItem>
-                          </Link>
-                        )}
-                        <DropdownMenuSeparator />
-                      </>
-                    )}
-                    <Link to="/perfil">
-                      <DropdownMenuItem className="cursor-pointer">
-                        <User className="mr-2 h-4 w-4" />
-                        Mi Perfil
-                      </DropdownMenuItem>
-                    </Link>
-                    <Link to="/configuracion">
-                      <DropdownMenuItem className="cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Configuración
-                      </DropdownMenuItem>
-                    </Link>
-                    {(effectiveRole === 'agent' || effectiveRole === 'agency') && (
-                      <Link to={effectiveRole === 'agency' ? '/panel-inmobiliaria' : '/panel-agente'}>
+            {/* Right Navigation - Desktop */}
+            <div className="flex items-center gap-3 justify-end">
+              <RoleImpersonationSelector />
+              <PublishPropertyButton size="sm" className="shadow-sm" />
+              {user ? (
+                <>
+                  <PlanBadge />
+                  <MessageBadge />
+                  {isAdmin && (
+                    <AdminRealtimeNotifications userId={user.id} isAdmin={isAdmin} />
+                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                            {getUserInitials()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel>Acciones Rápidas</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <Link to="/agentes">
                         <DropdownMenuItem className="cursor-pointer">
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          {effectiveRole === 'agency' ? 'Panel de Inmobiliaria' : 'Mis Propiedades'}
+                          <Search className="mr-2 h-4 w-4" />
+                          Buscar Inmobiliarias
                         </DropdownMenuItem>
                       </Link>
-                    )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut} className="cursor-pointer text-destructive">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Cerrar Sesión
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            ) : (
-              <>
+                      <Link to="/favoritos">
+                        <DropdownMenuItem className="cursor-pointer">
+                          <Heart className="mr-2 h-4 w-4" />
+                          Favoritos
+                        </DropdownMenuItem>
+                      </Link>
+                      <Link to="/comparar">
+                        <DropdownMenuItem className="cursor-pointer">
+                          <GitCompare className="mr-2 h-4 w-4" />
+                          Comparar Propiedades
+                          {compareList.length > 0 && (
+                            <Badge variant="secondary" className="ml-auto">
+                              {compareList.length}
+                            </Badge>
+                          )}
+                        </DropdownMenuItem>
+                      </Link>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {isAdmin && (
+                        <>
+                          <Link to="/admin/dashboard">
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                              Panel de Moderación
+                            </DropdownMenuItem>
+                          </Link>
+                          {isSuperAdmin && (
+                            <Link to="/admin/financiero">
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                Panel Financiero
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+                          {isSuperAdmin && (
+                            <Link to="/admin/system-health">
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                Salud del Sistema
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+                          {isSuperAdmin && (
+                            <Link to="/admin/subscriptions">
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                Gestión de Suscripciones
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+                          {isSuperAdmin && (
+                            <Link to="/admin/churn">
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                Churn & Retención
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+                          {isSuperAdmin && (
+                            <Link to="/admin/geocoding">
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                Geocodificación Masiva
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+                          {isSuperAdmin && (
+                            <Link to="/admin/coupons">
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                Cupones y Descuentos
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+                          {isSuperAdmin && (
+                            <>
+                              <Link to="/admin/kpis">
+                                <DropdownMenuItem className="cursor-pointer">
+                                  <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                  KPIs de Negocio
+                                </DropdownMenuItem>
+                              </Link>
+                              <Link to="/admin/marketing">
+                                <DropdownMenuItem className="cursor-pointer">
+                                  <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                  Dashboard de Marketing
+                                </DropdownMenuItem>
+                              </Link>
+                            </>
+                          )}
+                          {isSuperAdmin && (
+                            <Link to="/admin/roles">
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                Gestión de Roles
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+                          {isSuperAdmin && (
+                            <Link to="/admin/role-audit">
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                Auditoría de Roles
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+                          {isSuperAdmin && (
+                            <Link to="/admin/subscription-changes">
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                Panel de Auditoría
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+                          {isSuperAdmin && (
+                            <Link to="/admin/notification-settings">
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                Notificaciones
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+                          <Link to="/admin/kyc">
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                              Verificaciones KYC
+                            </DropdownMenuItem>
+                          </Link>
+                          {isSuperAdmin && (
+                            <Link to="/admin/users">
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Users className="mr-2 h-4 w-4" />
+                                <Badge className="mr-2 bg-purple-600">Admin</Badge>
+                                Gestión de Usuarios
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
+                      <Link to="/perfil">
+                        <DropdownMenuItem className="cursor-pointer">
+                          <User className="mr-2 h-4 w-4" />
+                          Mi Perfil
+                        </DropdownMenuItem>
+                      </Link>
+                      <Link to="/configuracion">
+                        <DropdownMenuItem className="cursor-pointer">
+                          <Settings className="mr-2 h-4 w-4" />
+                          Configuración
+                        </DropdownMenuItem>
+                      </Link>
+                      {(effectiveRole === 'agent' || effectiveRole === 'agency') && (
+                        <Link to={effectiveRole === 'agency' ? '/panel-inmobiliaria' : '/panel-agente'}>
+                          <DropdownMenuItem className="cursor-pointer">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            {effectiveRole === 'agency' ? 'Panel de Inmobiliaria' : 'Mis Propiedades'}
+                          </DropdownMenuItem>
+                        </Link>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={signOut} className="cursor-pointer text-destructive">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Cerrar Sesión
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              ) : (
                 <Link to="/auth">
                   <Button size="sm">Iniciar Sesión</Button>
                 </Link>
-              </>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* Mobile Navigation - Logo centrado con controles a los lados */}
-          <div className="flex md:hidden w-full items-center justify-between">
-            <div className="flex items-center gap-2">
-              <MobileMenu />
-            </div>
+          {/* Mobile Navigation */}
+          <div className="flex md:hidden h-16 items-center justify-between relative">
+            <MobileMenu />
             
             <Link to="/" className="absolute left-1/2 -translate-x-1/2">
               <img src={kentraLogo} alt="Kentra" className="h-9" />
@@ -577,7 +575,6 @@ const Navbar = () => {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Upgrade Dialog for Buyers */}
       <AlertDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
