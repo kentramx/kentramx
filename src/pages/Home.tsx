@@ -124,34 +124,34 @@ const Home = () => {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative flex min-h-[600px] items-center justify-center bg-cover bg-center" style={{
+      <section className="relative flex min-h-[480px] md:min-h-[600px] items-center justify-center bg-cover bg-center py-8 md:py-0" style={{
       backgroundImage: `url(${heroBackground})`
     }}>
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/30" />
         <div className="container relative z-10 mx-auto px-4 text-center text-white">
-          <h1 className="mb-4 text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold font-serif">Encuentra Tu Propiedad Ideal</h1>
-          <p className="mb-8 text-xl md:text-2xl">
+          <h1 className="mb-3 md:mb-4 text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold font-serif">Encuentra Tu Propiedad Ideal</h1>
+          <p className="mb-5 md:mb-8 text-base sm:text-lg md:text-xl lg:text-2xl text-white/90">
             Miles de propiedades en México esperándote
           </p>
 
           {/* Search Bar */}
-          <div className="mx-auto max-w-3xl">
-            <div className="flex flex-col gap-4">
+          <div className="mx-auto max-w-3xl px-1 sm:px-2">
+            <div className="flex flex-col gap-3 md:gap-4">
               {/* Listing Type Selector */}
-              <div className="flex justify-center gap-2">
-                <Button type="button" variant={listingType === "venta" ? "default" : "outline"} size="lg" onClick={() => setListingType("venta")} className={listingType === "venta" ? "" : "bg-white/90 text-foreground hover:bg-white border-white/50"}>
+              <div className="flex justify-center gap-2 md:gap-3">
+                <Button type="button" variant={listingType === "venta" ? "default" : "outline"} onClick={() => setListingType("venta")} className={`h-9 md:h-11 px-4 md:px-6 text-sm md:text-base ${listingType === "venta" ? "" : "bg-white/90 text-foreground hover:bg-white border-white/50"}`}>
                   Venta
                 </Button>
-                <Button type="button" variant={listingType === "renta" ? "default" : "outline"} size="lg" onClick={() => setListingType("renta")} className={listingType === "renta" ? "" : "bg-white/90 text-foreground hover:bg-white border-white/50"}>
+                <Button type="button" variant={listingType === "renta" ? "default" : "outline"} onClick={() => setListingType("renta")} className={`h-9 md:h-11 px-4 md:px-6 text-sm md:text-base ${listingType === "renta" ? "" : "bg-white/90 text-foreground hover:bg-white border-white/50"}`}>
                   Renta
                 </Button>
               </div>
 
               {/* Property Type Selector */}
-              <div className="flex justify-center">
+              <div className="flex justify-center px-2">
                 <Select value={propertyType} onValueChange={setPropertyType}>
-                  <SelectTrigger className="w-full max-w-xs bg-white/95 text-foreground border-white/50">
-                    <SelectValue placeholder="Todos los tipos de propiedad" />
+                  <SelectTrigger className="w-full max-w-[200px] md:max-w-xs h-9 md:h-10 bg-white/95 text-foreground border-white/50 text-sm md:text-base">
+                    <SelectValue placeholder="Tipo de propiedad" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos los tipos</SelectItem>
@@ -170,13 +170,13 @@ const Home = () => {
               {/* Advanced Filters */}
               <Collapsible open={showAdvancedFilters} onOpenChange={setShowAdvancedFilters}>
                 <CollapsibleTrigger asChild>
-                  <Button type="button" variant="outline" className="w-full max-w-xs mx-auto bg-white/95 text-foreground border-white/50 hover:bg-white">
-                    <SlidersHorizontal className="mr-2 h-4 w-4" />
-                    Filtros Avanzados
+                  <Button type="button" variant="ghost" size="sm" className="mx-auto text-white/80 hover:text-white hover:bg-white/10 h-8 md:h-10 px-3 md:px-4">
+                    <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5 md:h-4 md:w-4" />
+                    <span className="text-xs md:text-sm">Filtros</span>
                   </Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="mt-4">
-                  <div className="bg-white/95 rounded-lg p-4 space-y-4 max-w-3xl mx-auto">
+                <CollapsibleContent className="mt-3 md:mt-4">
+                  <div className="bg-white/95 rounded-lg p-3 md:p-4 space-y-3 md:space-y-4 max-w-3xl mx-auto text-left">
                     {/* Price Range */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
