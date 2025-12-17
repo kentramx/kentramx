@@ -73,19 +73,57 @@ Deno.serve(async (req) => {
 
           expiredCount++;
         } else {
-          // Sync status and cancel_at_period_end
+          // === SINCRONIZACIÓN COMPLETA ===
+          // Extraer billing_cycle del precio actual
+          const priceId = stripeSub.items?.data?.[0]?.price?.id;
+          const priceInterval = stripeSub.items?.data?.[0]?.price?.recurring?.interval;
+          const newBillingCycle = priceInterval === 'year' ? 'yearly' : 'monthly';
+          
+          // Buscar plan_id desde el priceId en la base de datos
+          let newPlanId = sub.plan_id;
+          if (priceId) {
+            const { data: matchingPlan } = await supabaseClient
+              .from('subscription_plans')
+              .select('id')
+              .or(`stripe_price_id_monthly.eq.${priceId},stripe_price_id_yearly.eq.${priceId}`)
+              .maybeSingle();
+            
+            if (matchingPlan) {
+              newPlanId = matchingPlan.id;
+            }
+          }
+          
+          // Calcular nuevos valores de período
+          const newPeriodStart = new Date(stripeSub.current_period_start * 1000).toISOString();
+          const newPeriodEnd = new Date(stripeSub.current_period_end * 1000).toISOString();
+          
+          // Verificar si hay cambios
           const needsUpdate = 
             stripeSub.status !== sub.status || 
-            stripeSub.cancel_at_period_end !== sub.cancel_at_period_end;
+            stripeSub.cancel_at_period_end !== sub.cancel_at_period_end ||
+            newPlanId !== sub.plan_id ||
+            newBillingCycle !== sub.billing_cycle ||
+            newPeriodStart !== sub.current_period_start ||
+            newPeriodEnd !== sub.current_period_end;
 
           if (needsUpdate) {
-            console.log(`Syncing subscription ${sub.id}: status ${sub.status} -> ${stripeSub.status}, cancel_at_period_end ${sub.cancel_at_period_end} -> ${stripeSub.cancel_at_period_end}`);
+            console.log(`Syncing subscription ${sub.id}:`, {
+              status: `${sub.status} -> ${stripeSub.status}`,
+              cancel_at_period_end: `${sub.cancel_at_period_end} -> ${stripeSub.cancel_at_period_end}`,
+              plan_id: `${sub.plan_id} -> ${newPlanId}`,
+              billing_cycle: `${sub.billing_cycle} -> ${newBillingCycle}`,
+              period_end: `${sub.current_period_end} -> ${newPeriodEnd}`,
+            });
             
             await supabaseClient
               .from('user_subscriptions')
               .update({
                 status: stripeSub.status,
                 cancel_at_period_end: stripeSub.cancel_at_period_end,
+                plan_id: newPlanId,
+                billing_cycle: newBillingCycle,
+                current_period_start: newPeriodStart,
+                current_period_end: newPeriodEnd,
                 updated_at: new Date().toISOString(),
               })
               .eq('id', sub.id);
