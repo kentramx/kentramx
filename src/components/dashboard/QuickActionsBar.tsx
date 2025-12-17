@@ -22,6 +22,7 @@ export const QuickActionsBar = ({
 }: QuickActionsBarProps) => {
   const navigate = useNavigate();
 
+  // Orden optimizado: CTA principal → Alta frecuencia → Analítica → Monetización → Admin
   const actions = [
     {
       id: 'new',
@@ -33,13 +34,13 @@ export const QuickActionsBar = ({
       className: 'bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white shadow-lg shadow-primary/25',
     },
     {
-      id: 'featured',
-      label: 'Destacar Propiedad',
-      shortLabel: 'Destacar',
-      icon: Star,
-      onClick: onViewServices,
-      badge: null,
-      className: 'bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 border border-amber-500/30',
+      id: 'messages',
+      label: 'Mensajes',
+      shortLabel: 'Mensajes',
+      icon: MessageCircle,
+      onClick: () => navigate('/mensajes'),
+      badge: unreadMessages > 0 ? unreadMessages : null,
+      className: 'bg-green-500/10 text-green-700 hover:bg-green-500/20 border border-green-500/30',
     },
     {
       id: 'analytics',
@@ -51,13 +52,13 @@ export const QuickActionsBar = ({
       className: 'bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 border border-blue-500/30',
     },
     {
-      id: 'messages',
-      label: 'Mensajes',
-      shortLabel: 'Mensajes',
-      icon: MessageCircle,
-      onClick: () => navigate('/mensajes'),
-      badge: unreadMessages > 0 ? unreadMessages : null,
-      className: 'bg-green-500/10 text-green-700 hover:bg-green-500/20 border border-green-500/30',
+      id: 'services',
+      label: 'Servicios',
+      shortLabel: 'Servicios',
+      icon: Star,
+      onClick: onViewServices,
+      badge: null,
+      className: 'bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 border border-amber-500/30',
     },
     {
       id: 'subscription',
