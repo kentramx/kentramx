@@ -345,11 +345,19 @@ const AgentDashboard = () => {
   };
 
   const handleNewProperty = async () => {
-    if (!user) return;
+    // Usar effectiveAgentId para que funcione en modo impersonación
+    if (!effectiveAgentId) {
+      toast({
+        title: 'Error',
+        description: 'No se pudo identificar al usuario',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       const { data: validation, error } = await supabase.rpc('can_create_property', {
-        user_uuid: user.id,
+        user_uuid: effectiveAgentId,
       });
 
       if (error) throw error;
@@ -386,6 +394,11 @@ const AgentDashboard = () => {
 
       setEditingProperty(null);
       setActiveTab('form');
+      
+      // Scroll automático al formulario para feedback visual
+      setTimeout(() => {
+        document.getElementById('dashboard-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     } catch (error) {
       console.error('Error validating property creation:', error);
       toast({
