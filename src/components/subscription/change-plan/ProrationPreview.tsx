@@ -1,19 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Receipt, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
-import { ProrationPreviewData, ChangeType, SubscriptionPlan, BillingCycle } from './types';
-
-interface ProrationPreviewProps {
-  preview: ProrationPreviewData | null;
-  loading: boolean;
-  error: string | null;
-  changeType: ChangeType;
-  plans: SubscriptionPlan[];
-  currentPlanId: string;
-  selectedPlanId: string | null;
-  billingCycle: BillingCycle;
-}
+import { Receipt, TrendingUp, TrendingDown, AlertCircle, Calendar, CreditCard } from 'lucide-react';
+import { ProrationPreviewProps } from './types';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export function ProrationPreview({
   preview,
@@ -24,6 +15,7 @@ export function ProrationPreview({
   currentPlanId,
   selectedPlanId,
   billingCycle,
+  currentPeriodEnd,
 }: ProrationPreviewProps) {
   if (loading) {
     return (
@@ -61,18 +53,31 @@ export function ProrationPreview({
   
   if (!currentPlan || !selectedPlan) return null;
 
-  const getPrice = (plan: SubscriptionPlan) => {
+  const getPrice = (plan: typeof currentPlan) => {
     return billingCycle === 'yearly' 
       ? (plan.price_yearly || plan.price_monthly * 12)
       : plan.price_monthly;
   };
 
-  const currentPrice = getPrice(currentPlan);
   const newPrice = getPrice(selectedPlan);
-  const difference = newPrice - currentPrice;
+  const billingCycleLabel = billingCycle === 'yearly' ? 'Anual' : 'Mensual';
+  
+  // Format currency values from cents to MXN
+  const formatCurrency = (cents: number) => {
+    return `$${(cents / 100).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "d 'de' MMMM, yyyy", { locale: es });
+    } catch {
+      return dateString;
+    }
+  };
 
   return (
-    <Card className="mt-4">
+    <Card className="mt-4 border-primary/20">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm flex items-center gap-2">
           {changeType === 'upgrade' ? (
@@ -93,39 +98,79 @@ export function ProrationPreview({
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between text-muted-foreground">
-            <span>Plan actual ({currentPlan.display_name})</span>
-            <span>${currentPrice.toLocaleString('es-MX')}</span>
-          </div>
-          <div className="flex justify-between text-muted-foreground">
-            <span>Nuevo plan ({selectedPlan.display_name})</span>
-            <span>${newPrice.toLocaleString('es-MX')}</span>
+      <CardContent className="space-y-4">
+        {/* Plan transition */}
+        <div className="flex items-center justify-between text-sm bg-muted/50 rounded-lg p-3">
+          <div className="text-muted-foreground">
+            <span className="font-medium text-foreground">{currentPlan.display_name}</span>
+            <span className="mx-2">→</span>
+            <span className="font-medium text-primary">{selectedPlan.display_name}</span>
           </div>
         </div>
 
-        <div className="border-t pt-3">
-          <div className="flex justify-between items-center">
-            <span className="font-medium">
-              {changeType === 'upgrade' ? 'Diferencia a pagar:' : 'Ajuste:'}
-            </span>
-            <span className={`text-xl font-bold ${difference > 0 ? 'text-primary' : 'text-green-600'}`}>
-              {difference > 0 ? '+' : ''}${difference.toLocaleString('es-MX')} MXN
-            </span>
-          </div>
+        {/* Billing cycle */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <CreditCard className="w-4 h-4" />
+          <span>Ciclo de facturación: <span className="font-medium text-foreground">{billingCycleLabel}</span></span>
         </div>
 
+        {/* Proration breakdown for upgrades */}
+        {changeType === 'upgrade' && (preview.current_plan_credit > 0 || preview.new_plan_price > 0) && (
+          <div className="border-t border-b py-3 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Desglose del prorrateo</p>
+            {preview.current_plan_credit > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Crédito plan actual (días restantes)</span>
+                <span className="text-green-600 font-medium">-{formatCurrency(preview.current_plan_credit)}</span>
+              </div>
+            )}
+            {preview.new_plan_price > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Cargo nuevo plan (prorrateado)</span>
+                <span className="font-medium">+{formatCurrency(preview.new_plan_price)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Immediate charge */}
+        <div className="flex justify-between items-center pt-2">
+          <span className="font-medium">
+            {changeType === 'upgrade' ? 'Cargo inmediato:' : 'Ajuste:'}
+          </span>
+          <span className={`text-xl font-bold ${preview.immediate_charge > 0 ? 'text-primary' : 'text-green-600'}`}>
+            {preview.immediate_charge > 0 ? '' : '-'}{formatCurrency(Math.abs(preview.immediate_charge))} MXN
+          </span>
+        </div>
+
+        {/* Next renewal date */}
+        {currentPeriodEnd && (
+          <div className="flex items-center gap-2 text-sm bg-muted/30 rounded-lg p-3">
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+            <span className="text-muted-foreground">
+              Próxima renovación: <span className="font-medium text-foreground">{formatDate(currentPeriodEnd)}</span>
+            </span>
+          </div>
+        )}
+
+        {/* Info messages */}
         {changeType === 'upgrade' && preview.immediate_charge > 0 && (
           <p className="text-xs text-muted-foreground">
-            Se cobrará ${(preview.immediate_charge / 100).toLocaleString('es-MX')} MXN de forma prorrateada a tu método de pago actual.
+            Se cobrará {formatCurrency(preview.immediate_charge)} MXN a tu método de pago actual.
+            A partir de la renovación pagarás ${newPrice.toLocaleString('es-MX')}/{billingCycle === 'yearly' ? 'año' : 'mes'}.
           </p>
         )}
 
         {changeType === 'downgrade' && (
           <p className="text-xs text-muted-foreground">
             El cambio se aplicará al final de tu período de facturación actual.
-            {preview.credit_amount > 0 && ` Recibirás un crédito de $${(preview.credit_amount / 100).toLocaleString('es-MX')} MXN.`}
+            {preview.credit_amount > 0 && ` Recibirás un crédito de ${formatCurrency(preview.credit_amount)} MXN.`}
+          </p>
+        )}
+
+        {changeType === 'cycle_change' && (
+          <p className="text-xs text-muted-foreground">
+            Tu nuevo ciclo de facturación {billingCycleLabel.toLowerCase()} se aplicará en la próxima renovación.
           </p>
         )}
       </CardContent>

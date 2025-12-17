@@ -40,6 +40,18 @@ export interface ProrationPreviewData {
   immediate_charge: number;
 }
 
+export interface ProrationPreviewProps {
+  preview: ProrationPreviewData | null;
+  loading: boolean;
+  error: string | null;
+  changeType: ChangeType;
+  plans: SubscriptionPlan[];
+  currentPlanId: string;
+  selectedPlanId: string | null;
+  billingCycle: BillingCycle;
+  currentPeriodEnd?: string | null;
+}
+
 export interface CooldownInfo {
   isInCooldown: boolean;
   lastChangeDate: string | null;
