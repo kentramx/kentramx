@@ -61,8 +61,10 @@ import AdminUsers from "./pages/AdminUsers";
 import UnirseEquipo from "./pages/UnirseEquipo";
 import Privacidad from "./pages/Privacidad";
 import Terminos from "./pages/Terminos";
+import Ayuda from "./pages/Ayuda";
 import { Footer } from "@/components/Footer";
 import BottomNav from "@/components/BottomNav";
+import { SupportChatButton } from "@/components/SupportChatButton";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -134,11 +136,13 @@ const AppContent = () => {
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/privacidad" element={<Privacidad />} />
               <Route path="/terminos" element={<Terminos />} />
+              <Route path="/ayuda" element={<Ayuda />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Footer />
             <BottomNav />
+            <SupportChatButton />
     </>
   );
 };
