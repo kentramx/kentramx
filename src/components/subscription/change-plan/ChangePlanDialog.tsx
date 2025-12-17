@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -8,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { getPricingRoute } from '@/utils/getPricingRoute';
 
 import { BillingCycleToggle } from './BillingCycleToggle';
 import { CooldownWarning } from './CooldownWarning';
@@ -44,6 +46,8 @@ export function ChangePlanDialog({
   userId,
   onSuccess,
 }: ChangePlanDialogProps) {
+  const navigate = useNavigate();
+  
   // State
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
@@ -259,6 +263,15 @@ export function ChangePlanDialog({
       });
 
       if (error) throw error;
+      
+      // Handle trial users without Stripe subscription
+      if (data?.error === 'TRIAL_NO_STRIPE') {
+        toast.info('Para activar este plan, serás redirigido a la página de checkout');
+        onOpenChange(false);
+        navigate(getPricingRoute(userRole, currentPlanName));
+        return;
+      }
+      
       if (data?.error) throw new Error(data.error);
 
       toast.success(
