@@ -560,7 +560,7 @@ const AgentDashboard = () => {
         {/* Compact Header - Properties First Layout with Premium Look */}
         <CompactDashboardHeader
           profileName={profile?.name || 'Agente'}
-          planName={subscriptionInfo?.plan_name}
+          planName={subscriptionInfo?.name}
           planDisplayName={subscriptionInfo?.display_name}
           activePropertiesCount={activePropertiesCount}
           totalViews={totalViewsData}
@@ -568,7 +568,7 @@ const AgentDashboard = () => {
           onNewProperty={handleNewProperty}
           subscriptionInfo={{
             status: subscriptionInfo?.status,
-            planName: subscriptionInfo?.plan_name,
+            planName: subscriptionInfo?.name,
             currentPeriodEnd: subscriptionInfo?.current_period_end,
             maxProperties: subscriptionInfo?.max_properties || 5,
             featuredPerMonth: subscriptionInfo?.featured_per_month || 1,
