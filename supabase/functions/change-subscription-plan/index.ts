@@ -145,6 +145,24 @@ Deno.serve(withSentry(async (req) => {
       });
     }
 
+    // Check if user has a Stripe subscription (Trial users don't have one)
+    if (!currentSub.stripe_subscription_id) {
+      console.log('Trial user without Stripe subscription - redirecting to checkout', {
+        userId: user.id,
+        currentPlan: currentSub.subscription_plans?.name,
+      });
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'TRIAL_NO_STRIPE',
+          message: 'Para activar un plan de pago, por favor selecciona el plan en la página de precios.',
+          requiresCheckout: true,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get new plan details
     const { data: newPlan, error: planError } = await supabaseClient
       .from('subscription_plans')
