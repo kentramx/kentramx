@@ -44,15 +44,17 @@ export const startSubscriptionCheckout = async (
       return { success: false, error: 'Usuario no autenticado' };
     }
 
-    // Verificar si ya tiene suscripción activa
+    // Verificar si ya tiene suscripción REAL (con Stripe)
     const { data: activeSub } = await supabase
       .from('user_subscriptions')
-      .select('id, status')
+      .select('id, status, stripe_subscription_id')
       .eq('user_id', user.id)
       .in('status', ['active', 'trialing', 'past_due'])
       .maybeSingle();
 
-    if (activeSub) {
+    // Solo bloquear si tiene suscripción CON Stripe
+    // Los usuarios Trial SIN Stripe pueden proceder a checkout
+    if (activeSub && activeSub.stripe_subscription_id) {
       return {
         success: false,
         error: 'Ya tienes una suscripción activa. Usa la opción de cambio de plan.',
@@ -178,6 +180,7 @@ export const getCurrentSubscription = async () => {
       .from('user_subscriptions')
       .select(`
         *,
+        stripe_subscription_id,
         subscription_plans (
           name,
           display_name,

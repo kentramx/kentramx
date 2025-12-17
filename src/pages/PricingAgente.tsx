@@ -107,9 +107,11 @@ const PricingAgente = () => {
 
     setProcessingPlan(planSlug);
     try {
-      // Verificar si ya tiene suscripción
+      // Verificar si ya tiene suscripción CON Stripe
       const { subscription } = await getCurrentSubscription();
-      if (subscription) {
+      // Solo bloquear si tiene suscripción con stripe_subscription_id
+      // Usuarios Trial (sin Stripe) pueden continuar a checkout
+      if (subscription && subscription.stripe_subscription_id) {
         toast.error('Ya tienes una suscripción activa. Ve a tu dashboard para gestionarla.');
         navigate('/panel-agente');
         return;
