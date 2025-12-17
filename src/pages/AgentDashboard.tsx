@@ -458,13 +458,20 @@ const AgentDashboard = () => {
     return null;
   }
 
-  // Tab configuration with icons and badges
+  // Tab configuration with icons and badges - Orden optimizado por flujo de usuario
   const tabs = [
     { 
       value: 'list', 
       label: 'Propiedades', 
       icon: Home,
       badge: propertyCounts.total > 0 ? propertyCounts.total : null,
+    },
+    { 
+      value: 'form', 
+      label: editingProperty ? 'Editar' : 'Nueva',
+      icon: FileEdit,
+      badge: null,
+      disabled: !emailVerified && !editingProperty,
     },
     { 
       value: 'analytics', 
@@ -490,13 +497,6 @@ const AgentDashboard = () => {
       label: 'Suscripción', 
       icon: CreditCard,
       badge: null,
-    },
-    { 
-      value: 'form', 
-      label: editingProperty ? 'Editar' : 'Nueva',
-      icon: FileEdit,
-      badge: null,
-      disabled: !emailVerified && !editingProperty,
     },
   ];
 
