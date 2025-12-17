@@ -35,9 +35,11 @@ const AgentDashboard = () => {
   const emailVerified = isEmailVerified();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(
-    searchParams.get('tab') === 'form' ? 'form' : 'list'
-  );
+  const [activeTab, setActiveTab] = useState(() => {
+    const tabParam = searchParams.get('tab');
+    const validTabs = ['list', 'analytics', 'reminders', 'services', 'subscription', 'form'];
+    return tabParam && validTabs.includes(tabParam) ? tabParam : 'list';
+  });
   const [editingProperty, setEditingProperty] = useState<any>(null);
   const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>('');
