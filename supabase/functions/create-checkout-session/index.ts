@@ -134,7 +134,10 @@ Deno.serve(withSentry(async (req) => {
       });
     }
 
-    const { planId, billingCycle, successUrl, cancelUrl, upsells = [], upsellOnly = false, couponCode } = await req.json();
+    const body = await req.json();
+    const { planSlug, billingCycle, successUrl, cancelUrl, upsells = [], upsellOnly = false, couponCode } = body;
+    // Soporte para planSlug (nuevo) o planId (legacy)
+    const planIdentifier = planSlug || body.planId;
 
     // Supabase Admin client para validar cupones
     const supabaseAdmin = createClient(
@@ -175,7 +178,7 @@ Deno.serve(withSentry(async (req) => {
 
     console.log('Creating checkout session for:', {
       userId: user.id,
-      planId,
+      planIdentifier,
       billingCycle,
       upsellOnly,
     });
@@ -318,11 +321,11 @@ Deno.serve(withSentry(async (req) => {
       );
     }
 
-    // Get plan details (flujo normal con plan)
+    // Get plan details (flujo normal con plan) - buscar por name (slug)
     const { data: plan, error: planError } = await supabaseClient
       .from('subscription_plans')
       .select('*')
-      .eq('id', planId)
+      .eq('name', planIdentifier)
       .single();
 
     if (planError || !plan) {
@@ -425,7 +428,7 @@ Deno.serve(withSentry(async (req) => {
       ...(mode === 'subscription' ? {
         subscription_data: {
           metadata: {
-            plan_id: planId,
+            plan_id: plan.id,
             user_id: user.id,
           },
         },
