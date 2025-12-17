@@ -6,7 +6,7 @@ export const Footer = () => {
   return (
     <footer className="bg-muted/30 border-t border-border mt-16">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* Kentra Info */}
           <div>
             <img src={kentraLogo} alt="Kentra" className="h-8 mb-4" />
@@ -73,10 +73,23 @@ export const Footer = () => {
             </ul>
           </div>
 
-          {/* Legal */}
+          {/* Soporte */}
           <div>
-            <h4 className="font-semibold mb-4">Legal</h4>
+            <h4 className="font-semibold mb-4">Soporte</h4>
             <ul className="space-y-2 text-sm">
+              <li>
+                <Link to="/ayuda" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Centro de Ayuda
+                </Link>
+              </li>
+              <li>
+                <a 
+                  href="mailto:soporte@kentra.com.mx" 
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  soporte@kentra.com.mx
+                </a>
+              </li>
               <li>
                 <Link to="/privacidad" className="text-muted-foreground hover:text-foreground transition-colors">
                   Política de Privacidad
