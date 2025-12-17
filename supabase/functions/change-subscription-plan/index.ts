@@ -462,14 +462,35 @@ Deno.serve(withSentry(async (req) => {
         isDowngrade,
       });
 
+      // Extract real proration breakdown from Stripe invoice lines
+      const invoiceLines = upcomingInvoice.lines?.data || [];
+      let stripeCredit = 0;  // Sum of negative lines (credit for unused time)
+      let stripeCharge = 0;  // Sum of positive lines (charge for new plan)
+
+      invoiceLines.forEach((line: any) => {
+        if (line.amount < 0) {
+          stripeCredit += Math.abs(line.amount); // Convert to positive for display
+        } else {
+          stripeCharge += line.amount;
+        }
+      });
+
+      console.log('Stripe invoice lines breakdown:', {
+        linesCount: invoiceLines.length,
+        stripeCredit,
+        stripeCharge,
+        amountDue: upcomingInvoice.amount_due,
+        mathCheck: stripeCharge - stripeCredit === upcomingInvoice.amount_due,
+      });
+
       // Return preview with structure matching ProrationPreviewData interface
       return new Response(
         JSON.stringify({ 
           preview: {
             immediate_charge: upcomingInvoice.amount_due, // In cents (frontend divides by 100)
             currency: upcomingInvoice.currency.toUpperCase(),
-            current_plan_credit: Math.round(creditForRemaining * 100), // Convert to cents
-            new_plan_price: Math.round(proportionalNewCost * 100), // Convert to cents
+            current_plan_credit: stripeCredit, // Real credit from Stripe lines
+            new_plan_price: stripeCharge, // Real charge from Stripe lines
             proration_date: new Date().toISOString(),
           },
           isUpgrade,
