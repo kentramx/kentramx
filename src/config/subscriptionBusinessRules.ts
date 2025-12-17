@@ -55,6 +55,12 @@ export interface FeaturedLimitValidation {
 // ============================================================================
 
 /**
+ * Duración del período de prueba en días
+ * CENTRALIZADO: Usar esta constante en todos los lugares que manejen trials
+ */
+export const TRIAL_DURATION_DAYS = 14;
+
+/**
  * Límite para usuarios sin suscripción (role: buyer)
  */
 export const FREE_USER_LISTING_LIMIT = 1;

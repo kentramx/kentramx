@@ -104,16 +104,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Crear suscripción trial
+    // Crear suscripción trial - CRÍTICO: status debe ser 'trialing' no 'active'
+    const TRIAL_DURATION_DAYS = 14; // Centralizado
     const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 14);
+    trialEndDate.setDate(trialEndDate.getDate() + TRIAL_DURATION_DAYS);
 
     const { data: newSubscription, error: subError } = await supabaseClient
       .from('user_subscriptions')
       .insert({
         user_id: user.id,
         plan_id: trialPlan.id,
-        status: 'active',
+        status: 'trialing', // CORREGIDO: Era 'active', debe ser 'trialing'
         billing_cycle: 'monthly',
         current_period_start: new Date().toISOString(),
         current_period_end: trialEndDate.toISOString(),
@@ -178,7 +179,7 @@ Deno.serve(async (req) => {
           userId: user.id,
           type: 'trial_started',
           metadata: {
-            trialDays: 14,
+            trialDays: TRIAL_DURATION_DAYS,
             expiryDate: trialEndDate.toLocaleDateString('es-MX', {
               year: 'numeric',
               month: 'long',
@@ -199,7 +200,7 @@ Deno.serve(async (req) => {
         success: true,
         subscription: newSubscription,
         expiryDate: trialEndDate.toISOString(),
-        daysRemaining: 14,
+        daysRemaining: TRIAL_DURATION_DAYS,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
