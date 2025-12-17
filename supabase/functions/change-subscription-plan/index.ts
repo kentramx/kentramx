@@ -247,6 +247,24 @@ Deno.serve(withSentry(async (req) => {
 
     console.log('🔍 Retrieved subscription with status:', stripeSubscription.status);
 
+    // 🔄 Derive stripeCustomerId - use DB value or fallback to Stripe subscription's customer
+    const stripeCustomerId = currentSub.stripe_customer_id || stripeSubscription.customer as string;
+    
+    // Sync stripe_customer_id if it was missing in the database
+    if (!currentSub.stripe_customer_id && stripeSubscription.customer) {
+      console.log('🔄 Syncing missing stripe_customer_id to database...');
+      const { error: syncError } = await supabaseClient
+        .from('user_subscriptions')
+        .update({ stripe_customer_id: stripeSubscription.customer })
+        .eq('id', currentSub.id);
+      
+      if (syncError) {
+        console.error('⚠️ Failed to sync stripe_customer_id:', syncError);
+      } else {
+        console.log('✅ stripe_customer_id synced:', stripeSubscription.customer);
+      }
+    }
+
     // 🚨 CRITICAL: Validate subscription status IMMEDIATELY
     // Cannot change plans for canceled or expired subscriptions
     if (stripeSubscription.status === 'canceled' || stripeSubscription.status === 'incomplete_expired') {
@@ -367,7 +385,7 @@ Deno.serve(withSentry(async (req) => {
       });
 
       const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
-        customer: currentSub.stripe_customer_id,
+        customer: stripeCustomerId,
         subscription: currentSub.stripe_subscription_id,
         subscription_items: [{
           id: stripeSubscription.items.data[0].id,
