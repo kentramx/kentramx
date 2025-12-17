@@ -55,6 +55,7 @@ export function ChangePlanDialog({
   const [preview, setPreview] = useState<ProrationPreviewData | null>(null);
   const [userRole, setUserRole] = useState<UserRole>('buyer');
   const [hasPendingCancellation, setHasPendingCancellation] = useState(false);
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
   const [cooldownInfo, setCooldownInfo] = useState<CooldownInfo>({
     isInCooldown: false,
     lastChangeDate: null,
@@ -114,14 +115,15 @@ export function ChangePlanDialog({
           setUserRole(roleData.role as UserRole);
         }
 
-        // Check for pending cancellation
+        // Check for pending cancellation and get current period end
         const { data: subData } = await supabase
           .from('user_subscriptions')
-          .select('cancel_at_period_end')
+          .select('cancel_at_period_end, current_period_end')
           .eq('user_id', userId)
           .maybeSingle();
         
         setHasPendingCancellation(subData?.cancel_at_period_end || false);
+        setCurrentPeriodEnd(subData?.current_period_end || null);
 
         // Check cooldown
         const { data: changeData } = await supabase
@@ -372,6 +374,7 @@ export function ChangePlanDialog({
             currentPlanId={currentPlanId}
             selectedPlanId={selectedPlanId}
             billingCycle={billingCycle}
+            currentPeriodEnd={currentPeriodEnd}
           />
 
           {/* Confirm Button */}
