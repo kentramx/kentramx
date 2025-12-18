@@ -23,10 +23,10 @@ import {
 } from 'lucide-react';
 import { FeaturePropertyDialog } from './FeaturePropertyDialog';
 import { PropertyCardAgent } from './PropertyCardAgent';
+import { PropertyDetailSheet } from './PropertyDetailSheet';
 import { EmptyStatePublish } from './EmptyStatePublish';
 import { useMonitoring } from '@/lib/monitoring';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
 import {
   Table,
   TableBody,
@@ -67,7 +67,6 @@ interface AgentPropertyListProps {
 const AgentPropertyList = ({ onEdit, subscriptionInfo, agentId, onCreateProperty }: AgentPropertyListProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [featuredProperties, setFeaturedProperties] = useState<Set<string>>(new Set());
@@ -79,6 +78,10 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo, agentId, onCreateProperty
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // Property detail sheet state
+  const [viewPropertyId, setViewPropertyId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   // Fetch properties con React Query
   const effectiveAgentId = agentId || user?.id;
@@ -465,7 +468,10 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo, agentId, onCreateProperty
               }}
               isFeatured={featuredProperties.has(property.id)}
               subscriptionInfo={subscriptionInfo}
-              onView={() => navigate(`/propiedad/${property.id}`)}
+              onView={() => {
+                setViewPropertyId(property.id);
+                setSheetOpen(true);
+              }}
               onEdit={() => onEdit(property)}
               onDelete={() => setDeleteId(property.id)}
               onToggleFeatured={() => handleToggleFeatured(property)}
@@ -576,7 +582,10 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo, agentId, onCreateProperty
                       <div className="flex justify-end gap-1">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/propiedad/${property.id}`)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                              setViewPropertyId(property.id);
+                              setSheetOpen(true);
+                            }}>
                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                             </Button>
                           </TooltipTrigger>
@@ -647,6 +656,12 @@ const AgentPropertyList = ({ onEdit, subscriptionInfo, agentId, onCreateProperty
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PropertyDetailSheet
+        propertyId={viewPropertyId}
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+      />
     </>
   );
 };
