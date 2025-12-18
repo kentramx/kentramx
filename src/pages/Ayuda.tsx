@@ -48,11 +48,11 @@ const faqCategories: FAQCategory[] = [
     faqs: [
       {
         question: "¿Cómo busco propiedades en Kentra?",
-        answer: "Puedes buscar propiedades desde nuestra página principal o en la sección 'Buscar'. Usa los filtros por ubicación, tipo de propiedad, precio, número de recámaras y más para encontrar exactamente lo que necesitas."
+        answer: "Puedes buscar propiedades desde nuestra página principal o en la sección 'Buscar'. Usa el mapa interactivo estilo Zillow con clusters y zoom, o los filtros por ubicación, tipo de propiedad, precio, recámaras y más."
       },
       {
         question: "¿Necesito crear una cuenta para ver propiedades?",
-        answer: "No, puedes explorar todas las propiedades sin cuenta. Sin embargo, para guardar favoritos, contactar agentes por mensaje directo o recibir alertas de nuevas propiedades, necesitarás crear una cuenta gratuita."
+        answer: "No, puedes explorar todas las propiedades sin cuenta. Sin embargo, para guardar favoritos, contactar agentes por mensaje directo o comparar propiedades, necesitarás crear una cuenta gratuita."
       },
       {
         question: "¿Cómo contacto a un agente sobre una propiedad?",
@@ -60,11 +60,11 @@ const faqCategories: FAQCategory[] = [
       },
       {
         question: "¿Cómo guardo propiedades favoritas?",
-        answer: "Haz clic en el ícono de corazón en cualquier propiedad para guardarla. Puedes ver todas tus propiedades guardadas en la sección 'Favoritos' de tu perfil."
+        answer: "Haz clic en el ícono de corazón en cualquier propiedad para guardarla. Necesitas tener una cuenta para usar esta función. Puedes ver todas tus propiedades guardadas en la sección 'Favoritos'."
       },
       {
         question: "¿Puedo comparar propiedades?",
-        answer: "Sí, puedes seleccionar hasta 4 propiedades para comparar lado a lado. Busca el botón 'Comparar' en las tarjetas de propiedades o en la vista de detalle."
+        answer: "Sí, puedes seleccionar hasta 10 propiedades para comparar lado a lado. Busca el botón 'Comparar' en las tarjetas de propiedades o en la vista de detalle."
       }
     ]
   },
@@ -76,11 +76,11 @@ const faqCategories: FAQCategory[] = [
     faqs: [
       {
         question: "¿Cómo publico mi primera propiedad?",
-        answer: "Regístrate como agente, elige un plan (puedes empezar con el trial gratuito de 14 días), y ve a 'Publicar Propiedad'. Completa el formulario con fotos, descripción y detalles. Tu propiedad será revisada y publicada en minutos."
+        answer: "Regístrate como agente, elige un plan (puedes empezar con el Trial gratuito de 14 días), y ve a 'Publicar Propiedad'. Completa el formulario con fotos, descripción y detalles. Tu propiedad será revisada y publicada rápidamente."
       },
       {
         question: "¿Cuántas propiedades puedo publicar?",
-        answer: "Depende de tu plan. El plan Básico permite 5 propiedades, el Profesional 20 propiedades, y el Premium propiedades ilimitadas. Puedes ver los detalles completos en nuestra página de precios."
+        answer: "Depende de tu plan: Trial (1 propiedad), Start $249/mes (4 propiedades), Pro $599/mes (12 propiedades), Elite $999/mes (30 propiedades). Al pagar anualmente obtienes ~16% de descuento."
       },
       {
         question: "¿Cómo edito o elimino una propiedad?",
@@ -88,11 +88,15 @@ const faqCategories: FAQCategory[] = [
       },
       {
         question: "¿Cómo funciona la verificación de agente?",
-        answer: "Para obtener la insignia de agente verificado, sube tu identificación oficial (INE) y documentos profesionales en la sección de verificación de tu perfil. El proceso toma 24-48 horas hábiles."
+        answer: "Para obtener la insignia de verificado, sube tu INE (frente y reverso), RFC, CURP, fecha de nacimiento y dirección completa en la sección de verificación de tu perfil. El proceso toma 24-48 horas hábiles."
       },
       {
         question: "¿Puedo destacar mis propiedades?",
-        answer: "Sí, según tu plan puedes destacar propiedades para que aparezcan primero en los resultados de búsqueda. Los planes superiores incluyen más destacados mensuales."
+        answer: "Sí, según tu plan puedes destacar propiedades: Pro incluye 2 destacados/mes, Elite incluye 6 destacados/mes. Las propiedades destacadas aparecen primero en los resultados de búsqueda."
+      },
+      {
+        question: "¿Qué es el generador de descripciones con IA?",
+        answer: "Es una herramienta que genera automáticamente descripciones profesionales para tus propiedades. Solo ingresa las características básicas y la IA creará un texto atractivo y optimizado para captar compradores."
       }
     ]
   },
@@ -104,7 +108,7 @@ const faqCategories: FAQCategory[] = [
     faqs: [
       {
         question: "¿Qué métodos de pago aceptan?",
-        answer: "Aceptamos tarjetas de crédito y débito (Visa, Mastercard, American Express). Todos los pagos se procesan de forma segura a través de Stripe."
+        answer: "Aceptamos tarjetas de crédito y débito (Visa, Mastercard, American Express). Todos los pagos se procesan de forma segura a través de Stripe. NO aceptamos efectivo, OXXO, SPEI ni transferencias bancarias."
       },
       {
         question: "¿Cómo cambio mi plan de suscripción?",
@@ -116,7 +120,7 @@ const faqCategories: FAQCategory[] = [
       },
       {
         question: "¿Ofrecen reembolsos?",
-        answer: "Ofrecemos reembolso completo dentro de los primeros 7 días si no has publicado propiedades. Después de este período, puedes cancelar pero no habrá reembolso del período actual."
+        answer: "Los reembolsos se evalúan caso por caso. No hay reembolso automático. Para solicitar un reembolso, contacta a soporte@kentra.com.mx explicando tu situación."
       },
       {
         question: "¿Cómo obtengo mi factura?",
@@ -124,7 +128,7 @@ const faqCategories: FAQCategory[] = [
       },
       {
         question: "¿Hay descuentos por pago anual?",
-        answer: "Sí, al pagar anualmente obtienes 2 meses gratis (16% de descuento). Puedes cambiar de mensual a anual en cualquier momento desde tu panel de suscripción."
+        answer: "Sí, al pagar anualmente obtienes aproximadamente 2 meses gratis (16% de descuento). Puedes cambiar de mensual a anual en cualquier momento desde tu panel de suscripción."
       }
     ]
   },
@@ -167,16 +171,44 @@ const faqCategories: FAQCategory[] = [
         answer: "Selecciona 'Inmobiliaria' al registrarte y completa los datos de tu empresa. Luego podrás invitar a tus agentes para que se unan a tu equipo y gestionar sus propiedades de forma centralizada."
       },
       {
+        question: "¿Cuáles son los planes para inmobiliarias?",
+        answer: "Ofrecemos dos planes: Start ($1,999/mes, 100 propiedades, 5 agentes) y Grow ($4,499/mes, 250 propiedades, 10 agentes). Ambos incluyen panel de equipo y métricas consolidadas."
+      },
+      {
         question: "¿Cómo invito agentes a mi equipo?",
-        answer: "En tu Panel de Inmobiliaria > Equipo > 'Invitar Agente'. Envía invitaciones por email y los agentes podrán unirse a tu organización manteniendo sus propiedades."
+        answer: "En tu Panel de Inmobiliaria > Equipo > 'Invitar Agente'. Envía invitaciones por email y los agentes podrán unirse a tu organización."
       },
       {
         question: "¿Puedo ver estadísticas de mi equipo?",
         answer: "Sí, el panel de inmobiliaria incluye métricas consolidadas de todas las propiedades y agentes de tu equipo: vistas, contactos, propiedades activas y más."
       },
       {
-        question: "¿Qué beneficios tiene el plan Desarrolladora?",
-        answer: "El plan Desarrolladora está diseñado para proyectos inmobiliarios con múltiples unidades. Incluye páginas de proyecto, inventario de unidades, y herramientas específicas para preventa."
+        question: "¿Qué son los planes para Desarrolladoras?",
+        answer: "Los planes Desarrolladora están diseñados para proyectos inmobiliarios con múltiples unidades. Start ($5,990/mes) incluye 1 proyecto y 2 agentes. El plan Pro ofrece proyectos y agentes adicionales."
+      }
+    ]
+  },
+  {
+    id: "verificacion",
+    title: "Verificación KYC",
+    description: "Proceso de verificación de identidad",
+    icon: <Shield className="h-5 w-5" />,
+    faqs: [
+      {
+        question: "¿Por qué debo verificar mi identidad?",
+        answer: "La verificación aumenta la confianza de los compradores en tu perfil. Los agentes verificados tienen una insignia especial y suelen recibir más contactos de clientes potenciales."
+      },
+      {
+        question: "¿Qué documentos necesito para verificarme?",
+        answer: "Necesitas: INE (frente y reverso), RFC, CURP, fecha de nacimiento y dirección completa. Asegúrate de que las fotos o escaneos sean claros y legibles."
+      },
+      {
+        question: "¿Cuánto tarda el proceso de verificación?",
+        answer: "El proceso de revisión toma 24-48 horas hábiles. Te notificaremos por email cuando tu verificación sea aprobada o si necesitamos documentos adicionales."
+      },
+      {
+        question: "Mi verificación fue rechazada, ¿qué hago?",
+        answer: "Revisa el motivo del rechazo en tu panel. Generalmente es por documentos ilegibles o incompletos. Puedes volver a enviar tus documentos corregidos sin límite de intentos."
       }
     ]
   }
