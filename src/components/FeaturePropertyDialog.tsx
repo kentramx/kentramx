@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Star, Calendar, DollarSign, AlertCircle } from 'lucide-react';
+import { Loader2, Star, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useMonitoring } from '@/lib/monitoring';
@@ -31,7 +31,7 @@ interface FeaturePropertyDialogProps {
   } | null;
 }
 
-const FEATURED_COST = 500; // Costo en MXN por 30 días
+const FEATURED_COST = 500; // Costo en MXN por 30 días (solo cuando se agotan slots)
 const FEATURED_DURATION_DAYS = 30;
 
 export const FeaturePropertyDialog = ({
@@ -53,6 +53,9 @@ export const FeaturePropertyDialog = ({
     ? subscriptionInfo.featured_limit - subscriptionInfo.featured_used
     : 0;
 
+  // Si tiene slots disponibles, es gratis. Si no, cobra $500
+  const actualCost = canFeature ? 0 : FEATURED_COST;
+
   const handleFeature = async () => {
     if (!property || !canFeature) return;
 
@@ -64,18 +67,33 @@ export const FeaturePropertyDialog = ({
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + FEATURED_DURATION_DAYS);
 
-      const { error } = await supabase
+      // Insertar la propiedad destacada
+      const { error: insertError } = await supabase
         .from('featured_properties')
         .insert({
           property_id: property.id,
           agent_id: user.id,
           end_date: endDate.toISOString(),
-          cost: FEATURED_COST,
+          cost: actualCost, // $0 si usa slot del plan
           status: 'active',
           featured_type: 'standard',
         });
 
-      if (error) throw error;
+      if (insertError) throw insertError;
+
+      // Incrementar el contador de destacadas usadas en la suscripción
+      const { error: updateError } = await supabase
+        .from('user_subscriptions')
+        .update({ 
+          featured_used_this_month: (subscriptionInfo?.featured_used || 0) + 1 
+        })
+        .eq('user_id', user.id)
+        .in('status', ['active', 'trialing']);
+
+      if (updateError) {
+        console.error('Error updating featured_used_this_month:', updateError);
+        // No lanzar error, la destacada ya se creó
+      }
 
       toast({
         title: '✨ ¡Propiedad destacada!',
@@ -139,15 +157,31 @@ export const FeaturePropertyDialog = ({
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span>Duración: <strong>{FEATURED_DURATION_DAYS} días</strong></span>
             </div>
+            
+            {/* Costo - Condicional según slots disponibles */}
             <div className="flex items-center gap-3 text-sm">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <span>Costo: <strong className="text-primary">
-                {new Intl.NumberFormat('es-MX', {
-                  style: 'currency',
-                  currency: 'MXN',
-                  minimumFractionDigits: 0,
-                }).format(FEATURED_COST)}
-              </strong></span>
+              {canFeature ? (
+                <>
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="flex items-center gap-2">
+                    Costo: 
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                      ✨ Incluido en tu plan
+                    </Badge>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="h-4 w-4 text-amber-500" />
+                  <span>Costo adicional: <strong className="text-primary">
+                    {new Intl.NumberFormat('es-MX', {
+                      style: 'currency',
+                      currency: 'MXN',
+                      minimumFractionDigits: 0,
+                    }).format(FEATURED_COST)}
+                  </strong></span>
+                </>
+              )}
             </div>
           </div>
 
@@ -161,7 +195,7 @@ export const FeaturePropertyDialog = ({
                 </Badge>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold text-primary">
+                <span className={`text-2xl font-bold ${canFeature ? 'text-green-600' : 'text-muted-foreground'}`}>
                   {availableSlots}
                 </span>
                 <span className="text-sm text-muted-foreground">
@@ -219,14 +253,15 @@ export const FeaturePropertyDialog = ({
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Destacando...
               </>
+            ) : canFeature ? (
+              <>
+                <Star className="mr-2 h-4 w-4" />
+                Destacar (incluido)
+              </>
             ) : (
               <>
                 <Star className="mr-2 h-4 w-4" />
-                Destacar por {new Intl.NumberFormat('es-MX', {
-                  style: 'currency',
-                  currency: 'MXN',
-                  minimumFractionDigits: 0,
-                }).format(FEATURED_COST)}
+                Sin slots disponibles
               </>
             )}
           </Button>
