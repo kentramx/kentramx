@@ -439,7 +439,7 @@ const AgentDashboard = () => {
     }
   };
 
-  const handleUpsellPurchase = async (upsellId: string) => {
+  const handleUpsellPurchase = async (upsellId: string, quantity: number = 1) => {
     if (isImpersonating) {
       toast({
         title: 'Acción no disponible',
@@ -463,7 +463,7 @@ const AgentDashboard = () => {
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: {
           upsellOnly: true,
-          upsells: [{ id: upsellId, quantity: 1 }],
+          upsells: [{ id: upsellId, quantity }],
         },
       });
 

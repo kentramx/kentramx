@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRoleImpersonation } from '@/hooks/useRoleImpersonation';
 
 interface AgentUpsellsProps {
-  onPurchase: (upsellId: string) => void;
+  onPurchase: (upsellId: string, quantity: number) => void;
 }
 
 export const AgentUpsells = ({ onPurchase }: AgentUpsellsProps) => {
@@ -29,7 +29,7 @@ export const AgentUpsells = ({ onPurchase }: AgentUpsellsProps) => {
     },
   });
 
-  const handlePurchase = async (upsellId: string) => {
+  const handlePurchase = async (upsellId: string, quantity: number = 1) => {
     if (isImpersonating) {
       toast({
         title: 'Acción no disponible',
@@ -41,7 +41,7 @@ export const AgentUpsells = ({ onPurchase }: AgentUpsellsProps) => {
 
     setPurchasingId(upsellId);
     try {
-      await onPurchase(upsellId);
+      await onPurchase(upsellId, quantity);
     } finally {
       setPurchasingId(null);
     }

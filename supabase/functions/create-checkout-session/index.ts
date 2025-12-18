@@ -270,8 +270,14 @@ Deno.serve(withSentry(async (req) => {
 
       const customerId = activeSub.stripe_customer_id;
 
-      // Obtener IDs de upsells del frontend
+      // Obtener IDs y cantidades de upsells del frontend
       const upsellIds = upsells.map((u: any) => u.id).filter(Boolean);
+      const upsellQuantities: Record<string, number> = {};
+      upsells.forEach((u: any) => {
+        if (u.id) {
+          upsellQuantities[u.id] = Math.max(1, Math.min(u.quantity || 1, 100)); // Entre 1 y 100
+        }
+      });
       
       if (upsellIds.length === 0) {
         return new Response(
@@ -317,10 +323,10 @@ Deno.serve(withSentry(async (req) => {
         }
       }
 
-      // Line items usando datos de la DB (no del cliente - más seguro)
+      // Line items usando datos de la DB (no del cliente - más seguro) con cantidad del frontend
       const lineItems = upsellDetails.map((upsell) => ({
         price: upsell.stripe_price_id,
-        quantity: 1,
+        quantity: upsellQuantities[upsell.id] || 1,
       }));
 
       // Determinar mode según si hay recurrentes (usando datos de la DB)
@@ -342,6 +348,7 @@ Deno.serve(withSentry(async (req) => {
           user_id: user.id,
           upsell_only: 'true',
           upsell_ids: upsellDetails.map((u) => u.id).join(','),
+          upsell_quantities: upsellDetails.map((u) => upsellQuantities[u.id] || 1).join(','),
         },
       };
 

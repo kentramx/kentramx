@@ -1,7 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Star, Zap, Mail, Package } from 'lucide-react';
+import { Plus, Star, Zap, Mail, Package, Minus } from 'lucide-react';
+import { useState } from 'react';
 
 const iconMap = {
   Plus,
@@ -22,13 +23,41 @@ interface UpsellCardProps {
     icon_name: string;
     badge?: string | null;
   };
-  onPurchase: (upsellId: string) => void;
+  onPurchase: (upsellId: string, quantity: number) => void;
   compact?: boolean;
   loading?: boolean;
+  maxQuantity?: number;
 }
 
-export const UpsellCard = ({ upsell, onPurchase, compact = false, loading = false }: UpsellCardProps) => {
+export const UpsellCard = ({ 
+  upsell, 
+  onPurchase, 
+  compact = false, 
+  loading = false,
+  maxQuantity = 10 
+}: UpsellCardProps) => {
   const Icon = iconMap[upsell.icon_name as keyof typeof iconMap] || Plus;
+  
+  // Solo mostrar selector de cantidad para slots y paquetes (recurrentes)
+  const showQuantitySelector = upsell.is_recurring || 
+    upsell.name.toLowerCase().includes('slot') || 
+    upsell.name.toLowerCase().includes('paquete');
+  
+  const [quantity, setQuantity] = useState(1);
+
+  const handleIncrement = () => {
+    if (quantity < maxQuantity) {
+      setQuantity(q => q + 1);
+    }
+  };
+
+  const handleDecrement = () => {
+    if (quantity > 1) {
+      setQuantity(q => q - 1);
+    }
+  };
+
+  const totalPrice = upsell.price * quantity;
   
   return (
     <Card className={`relative overflow-hidden hover:shadow-lg transition-shadow ${compact ? '' : 'h-full'}`}>
@@ -53,26 +82,61 @@ export const UpsellCard = ({ upsell, onPurchase, compact = false, loading = fals
       </CardHeader>
       
       <CardContent className={compact ? 'pt-0' : ''}>
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-foreground">
-                ${upsell.price.toLocaleString('es-MX')}
-              </span>
-              <span className="text-sm text-muted-foreground">MXN</span>
+        <div className="space-y-4">
+          {/* Selector de cantidad */}
+          {showQuantitySelector && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Cantidad:</span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleDecrement}
+                  disabled={quantity <= 1 || loading}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="w-8 text-center font-medium">{quantity}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleIncrement}
+                  disabled={quantity >= maxQuantity || loading}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <Badge variant="outline" className="mt-1">
-              {upsell.is_recurring ? 'Recurrente' : 'Pago único'}
-            </Badge>
+          )}
+
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold text-foreground">
+                  ${totalPrice.toLocaleString('es-MX')}
+                </span>
+                <span className="text-sm text-muted-foreground">MXN</span>
+              </div>
+              {quantity > 1 && (
+                <span className="text-xs text-muted-foreground">
+                  ${upsell.price.toLocaleString('es-MX')} c/u
+                </span>
+              )}
+              <Badge variant="outline" className="mt-1 block w-fit">
+                {upsell.is_recurring ? 'Recurrente' : 'Pago único'}
+              </Badge>
+            </div>
+            
+            <Button 
+              onClick={() => onPurchase(upsell.id, quantity)}
+              disabled={loading}
+              size={compact ? 'sm' : 'default'}
+            >
+              {loading ? 'Procesando...' : 'Comprar'}
+            </Button>
           </div>
-          
-          <Button 
-            onClick={() => onPurchase(upsell.id)}
-            disabled={loading}
-            size={compact ? 'sm' : 'default'}
-          >
-            Comprar
-          </Button>
         </div>
       </CardContent>
     </Card>
