@@ -17,6 +17,39 @@ import { cn } from '@/lib/utils';
 import { useNativeFeatures } from '@/hooks/useNativeFeatures';
 import { toast } from 'sonner';
 
+const copyTextToClipboard = async (text: string): Promise<boolean> => {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // ignore and try legacy fallback
+  }
+
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
+    textarea.style.opacity = '0';
+
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    const ok = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return ok;
+  } catch {
+    return false;
+  }
+};
+
+const buildWhatsAppShareUrl = (text: string) => `https://wa.me/?text=${encodeURIComponent(text)}`;
+
 interface RejectionRecord {
   date: string;
   reasons: string[];
@@ -90,23 +123,39 @@ export const PropertyCardAgent = ({
   };
 
   const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    
+
+    // Si esto aparece, el click SÍ está llegando al handler
+    toast('Preparando para compartir…');
+
     const propertyUrl = `${window.location.origin}/propiedad/${property.id}`;
     const location = property.colonia 
       ? `${property.colonia}, ${property.municipality}` 
       : property.municipality;
     const shareText = `🏠 ${property.title}\n📍 ${location}\n💰 ${formatPrice(property.price)}`;
-    
-    const success = await share({
+    const message = `${shareText}\n${propertyUrl}`;
+
+    // 1) Intentar hoja nativa / Web Share cuando esté disponible
+    const shareSuccess = await share({
       title: property.title,
       text: shareText,
-      url: propertyUrl
+      url: propertyUrl,
     });
-    
-    if (success) {
+
+    if (shareSuccess) {
       toast.success('Listo para compartir');
+      return;
     }
+
+    // 2) Fallback robusto para el preview (iframes suelen bloquear navigator.share/clipboard)
+    const copied = await copyTextToClipboard(message);
+    if (copied) {
+      toast.success('Link copiado');
+      return;
+    }
+
+    toast.error('No se pudo copiar ni abrir el menú de compartir');
   };
 
   const daysLeft = getDaysUntilExpiration(property.expires_at);
@@ -303,11 +352,12 @@ export const PropertyCardAgent = ({
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={onView}>
+          <Button type="button" variant="outline" size="sm" className="flex-1 gap-1" onClick={onView}>
             <Eye className="h-3.5 w-3.5" />
             Ver
           </Button>
           <Button 
+            type="button"
             variant="outline" 
             size="sm" 
             className="flex-1 gap-1" 
@@ -320,12 +370,13 @@ export const PropertyCardAgent = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
+                type="button"
                 variant="ghost" 
                 size="icon" 
-                className="h-8 w-8 text-primary hover:text-primary/80"
+                className="h-11 w-11 text-primary hover:text-primary/80"
                 onClick={handleShare}
               >
-                <Share2 className="h-4 w-4" />
+                <Share2 className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Compartir</TooltipContent>
@@ -333,13 +384,14 @@ export const PropertyCardAgent = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
+                type="button"
                 variant="ghost" 
                 size="icon" 
-                className="h-8 w-8 text-destructive hover:text-destructive"
+                className="h-11 w-11 text-destructive hover:text-destructive"
                 onClick={onDelete}
                 disabled={isPending}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Eliminar</TooltipContent>
