@@ -18,7 +18,6 @@ export const usePropertiesInfinite = (filters: PropertyFilters) => {
       return allPages.length;
     },
     queryFn: async ({ pageParam }: { pageParam: number }) => {
-      console.log('🚀 [List] Buscando con filtros:', filters);
 
       let query = supabase
         .from('properties')
@@ -36,7 +35,6 @@ export const usePropertiesInfinite = (filters: PropertyFilters) => {
         const lng = Number(filters.lng);
         const delta = 0.18; // ~20km aproximadamente
         
-        console.log('📍 [List] Filtrando por coordenadas:', { lat, lng, delta });
         query = query
           .gte('lat', lat - delta)
           .lte('lat', lat + delta)
@@ -44,7 +42,6 @@ export const usePropertiesInfinite = (filters: PropertyFilters) => {
           .lte('lng', lng + delta);
       } else if (filters.bounds) {
         // ✅ MODO MAPA: Si hay bounds, filtramos por coordenadas y IGNORAMOS ubicación de texto
-        console.log('🗺️ [List] Filtrando por bounds del mapa:', filters.bounds);
         query = query
           .gte('lat', filters.bounds.minLat)
           .lte('lat', filters.bounds.maxLat)
@@ -52,8 +49,6 @@ export const usePropertiesInfinite = (filters: PropertyFilters) => {
           .lte('lng', filters.bounds.maxLng);
       } else {
         // ✅ MODO TEXTO: Solo si NO hay coordenadas ni bounds, usamos los filtros de texto
-        console.log('📝 [List] Filtrando por texto:', { estado: filters.estado, municipio: filters.municipio });
-        
         if (filters.estado?.trim()) query = query.ilike('state', `%${filters.estado}%`);
         if (filters.municipio?.trim()) query = query.ilike('municipality', `%${filters.municipio}%`);
         if (filters.colonia?.trim()) {
@@ -125,7 +120,6 @@ export const usePropertiesInfinite = (filters: PropertyFilters) => {
       const { data, error, count } = await query;
       
       if (error) {
-        console.error('❌ Error en lista:', error);
         throw error;
       }
 

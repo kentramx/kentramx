@@ -204,13 +204,11 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("✅ SMS sent via Twilio successfully");
     } else {
       console.warn("⚠️ Twilio not configured - code only saved to database");
-      // In development, return the code (REMOVE IN PRODUCTION)
+      // En producción NO devolver el código - solo indica éxito
       return new Response(
         JSON.stringify({ 
           success: true,
-          message: "Código de verificación generado (Twilio no configurado)",
-          // ONLY FOR DEVELOPMENT:
-          devCode: verificationCode
+          message: "Código de verificación generado. Configura Twilio para enviar SMS.",
         }),
         {
           status: 200,
