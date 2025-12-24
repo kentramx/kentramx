@@ -280,18 +280,6 @@ const PlaceAutocomplete = ({
 
         const addressComponents = place.address_components || [];
         
-        // 🔍 DEBUG: Mostrar TODOS los componentes crudos de Google Places
-        console.log('========== GOOGLE PLACES DEBUG ==========');
-        console.log('Formatted address:', place.formatted_address);
-        console.log('Place name:', place.name);
-        console.log('Total components:', addressComponents.length);
-        console.log('Address components:');
-        addressComponents.forEach((component, index) => {
-          console.log(`  [${index}] ${component.long_name} (${component.short_name})`);
-          console.log(`      Types: ${component.types.join(', ')}`);
-        });
-        console.log('==========================================');
-        
         // Recolectar TODOS los valores primero (sin asignar aún)
         let adminLevel1 = '';      // Estado
         let adminLevel2 = '';      // Municipio/Delegación
@@ -364,17 +352,6 @@ const PlaceAutocomplete = ({
           lat: place.geometry.location.lat(),
           lng: place.geometry.location.lng(),
         };
-
-        // Debug log para verificar el parseo
-        console.log('[PlaceAutocomplete] Componentes raw:', {
-          adminLevel1,
-          adminLevel2,
-          locality,
-          sublocalityLevel1,
-          sublocality,
-          neighborhood,
-        });
-        console.log('[PlaceAutocomplete] Ubicación final:', location);
 
         setInputValue(location.address);
         onPlaceSelect(location);
