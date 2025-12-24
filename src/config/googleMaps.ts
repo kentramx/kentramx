@@ -8,8 +8,8 @@
 // Librerías requeridas - definidas fuera del objeto para evitar problemas de tipo
 export const GOOGLE_MAPS_LIBRARIES: ("places" | "geometry")[] = ["places", "geometry"];
 
-// API Key desde variable de entorno
-const apiKey = "AIzaSyDbrfYnZWrf434__ZEp92Py7O4u5b55Z0Q";
+// API Key desde variable de entorno (NUNCA hardcodear en producción)
+const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
 export const GOOGLE_MAPS_CONFIG = {
   // API Key desde variables de entorno
