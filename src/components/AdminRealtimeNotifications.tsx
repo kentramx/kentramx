@@ -290,7 +290,7 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative" aria-label="Ver notificaciones de administrador">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge 
@@ -312,6 +312,7 @@ export const AdminRealtimeNotifications = ({ userId, isAdmin }: AdminRealtimeNot
             size="icon"
             onClick={() => navigate('/admin/notification-settings')}
             className="h-8 w-8"
+            aria-label="Configuración de notificaciones"
           >
             <Bell className="h-4 w-4" />
           </Button>

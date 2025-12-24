@@ -374,7 +374,7 @@ export function PropertyDetailSheet({ propertyId, open, onClose }: PropertyDetai
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
+                  <Button variant="outline" size="icon" aria-label="Compartir propiedad">
                     <Share2 className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -406,6 +406,7 @@ export function PropertyDetailSheet({ propertyId, open, onClose }: PropertyDetai
                   }
                 }}
                 size="icon"
+                aria-label={propertyId && isInCompare(propertyId) ? "Quitar de comparación" : "Agregar a comparación"}
               >
                 <GitCompare className={`h-4 w-4 ${propertyId && isInCompare(propertyId) ? "fill-current" : ""}`} />
               </Button>
@@ -414,6 +415,7 @@ export function PropertyDetailSheet({ propertyId, open, onClose }: PropertyDetai
                 variant={isFavorite ? "default" : "outline"}
                 onClick={handleToggleFavorite}
                 size="icon"
+                aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
               >
                 <Heart
                   className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`}

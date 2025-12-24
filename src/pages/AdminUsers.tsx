@@ -535,7 +535,7 @@ export default function AdminUsers() {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" disabled={actionLoading}>
+                          <Button variant="ghost" size="icon" disabled={actionLoading} aria-label="Más opciones de usuario">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>

@@ -172,7 +172,7 @@ const Navbar = () => {
                   )}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" aria-label="Menú de usuario">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                             {getUserInitials()}
@@ -395,6 +395,7 @@ const Navbar = () => {
                 size="icon" 
                 variant="default" 
                 className="h-9 w-9 shadow-sm"
+                aria-label="Publicar propiedad"
                 onClick={handlePublicarClick}
               >
                 <Building className="h-5 w-5" />

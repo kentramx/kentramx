@@ -265,7 +265,7 @@ export function FinancialDashboard() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={exportToCSV} variant="outline" size="icon">
+          <Button onClick={exportToCSV} variant="outline" size="icon" aria-label="Exportar datos a CSV">
             <Download className="h-4 w-4" />
           </Button>
         </div>
