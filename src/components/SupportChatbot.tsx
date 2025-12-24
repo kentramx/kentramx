@@ -150,7 +150,7 @@ export const SupportChatbot = ({ isOpen, onClose }: SupportChatbotProps) => {
               size="icon"
               onClick={clearChat}
               className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20"
-              title="Limpiar chat"
+              aria-label="Limpiar historial del chat"
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
@@ -160,6 +160,7 @@ export const SupportChatbot = ({ isOpen, onClose }: SupportChatbotProps) => {
             size="icon"
             onClick={onClose}
             className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20"
+            aria-label="Cerrar chat de soporte"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -256,6 +257,7 @@ export const SupportChatbot = ({ isOpen, onClose }: SupportChatbotProps) => {
             size="icon"
             disabled={!input.trim() || isLoading}
             className="shrink-0"
+            aria-label="Enviar mensaje"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

@@ -334,6 +334,7 @@ export function SearchMap({
           variant="secondary"
           size="icon"
           className="h-11 w-11 bg-background/95 backdrop-blur-sm shadow-lg"
+          aria-label="Ver mapa en pantalla completa"
           onClick={() => {
             const mapContainer = document.querySelector('[data-map-container]');
             if (mapContainer?.requestFullscreen) {

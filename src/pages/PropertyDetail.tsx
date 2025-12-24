@@ -664,7 +664,7 @@ const PropertyDetail = () => {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" aria-label="Compartir propiedad">
                   <Share2 className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -694,6 +694,7 @@ const PropertyDetail = () => {
                 }
               }}
               size="icon"
+              aria-label={isInCompare(id!) ? "Quitar de comparación" : "Agregar a comparación"}
             >
               <GitCompare className={`h-4 w-4 ${isInCompare(id!) ? "fill-current" : ""}`} />
             </Button>
