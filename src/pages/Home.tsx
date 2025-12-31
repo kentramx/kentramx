@@ -130,16 +130,16 @@ const Home = () => {
             Miles de propiedades verificadas en todo México. Compra, vende o renta con tecnología de vanguardia.
           </p>
           
-          {/* TIER S: Glass Search Card */}
-          <div className="opacity-0 max-w-3xl mx-auto mb-12 md:mb-16 animate-scale-in" style={{ animationDelay: '300ms' }}>
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 p-5 md:p-6">
-              {/* Listing Type Toggle */}
-              <div className="inline-flex p-1 bg-white/10 rounded-lg mb-5">
+          {/* TIER S: Glass Search Card - Improved Visibility */}
+          <div className="opacity-0 max-w-3xl mx-auto mb-16 md:mb-20 animate-scale-in" style={{ animationDelay: '300ms' }}>
+            <div className="bg-white/20 backdrop-blur-lg rounded-2xl shadow-2xl shadow-black/20 border border-white/30 p-5 md:p-6">
+              {/* Listing Type Toggle - More prominent */}
+              <div className="inline-flex p-1.5 bg-black/30 rounded-xl mb-5">
                 <Button 
                   type="button" 
                   variant={listingType === "venta" ? "default" : "ghost"} 
                   onClick={() => setListingType("venta")}
-                  className={`px-5 rounded-md ${listingType !== "venta" ? "text-white/70 hover:text-white hover:bg-white/10" : ""}`}
+                  className={`px-6 rounded-lg font-semibold ${listingType !== "venta" ? "text-white/80 hover:text-white hover:bg-white/15" : "bg-white text-gray-900"}`}
                 >
                   Venta
                 </Button>
@@ -147,17 +147,17 @@ const Home = () => {
                   type="button" 
                   variant={listingType === "renta" ? "default" : "ghost"} 
                   onClick={() => setListingType("renta")}
-                  className={`px-5 rounded-md ${listingType !== "renta" ? "text-white/70 hover:text-white hover:bg-white/10" : ""}`}
+                  className={`px-6 rounded-lg font-semibold ${listingType !== "renta" ? "text-white/80 hover:text-white hover:bg-white/15" : "bg-white text-gray-900"}`}
                 >
                   Renta
                 </Button>
               </div>
 
-              {/* Property Type */}
+              {/* Property Type - Glass style with visible text */}
               <div className="flex justify-center mb-4">
                 <Select value={propertyType} onValueChange={setPropertyType}>
-                  <SelectTrigger className="w-full max-w-xs bg-white/15 border-white/20 text-white placeholder:text-white/60">
-                    <SelectValue placeholder="Tipo de propiedad" />
+                  <SelectTrigger className="w-full max-w-xs bg-white/25 border-white/40 text-white [&>span]:text-white">
+                    <SelectValue placeholder="Tipo de propiedad" className="text-white" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos los tipos</SelectItem>
@@ -182,20 +182,20 @@ const Home = () => {
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mb-4">
-                  <div className="bg-white/10 rounded-xl p-4 space-y-4 text-left">
+                  <div className="bg-white/15 rounded-xl p-4 space-y-4 text-left border border-white/20">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="priceMin" className="text-sm font-medium text-white/80">Precio Mínimo</Label>
-                        <Input id="priceMin" type="number" placeholder="$0" value={priceMin} onChange={e => setPriceMin(e.target.value)} className="bg-white/15 border-white/20 text-white placeholder:text-white/60" />
+                        <Label htmlFor="priceMin" className="text-sm font-medium text-white">Precio Mínimo</Label>
+                        <Input id="priceMin" type="number" placeholder="$0" value={priceMin} onChange={e => setPriceMin(e.target.value)} className="bg-white/25 border-white/40 text-white placeholder:text-white/70" />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="priceMax" className="text-sm font-medium text-white/80">Precio Máximo</Label>
-                        <Input id="priceMax" type="number" placeholder="Sin límite" value={priceMax} onChange={e => setPriceMax(e.target.value)} className="bg-white/15 border-white/20 text-white placeholder:text-white/60" />
+                        <Label htmlFor="priceMax" className="text-sm font-medium text-white">Precio Máximo</Label>
+                        <Input id="priceMax" type="number" placeholder="Sin límite" value={priceMax} onChange={e => setPriceMax(e.target.value)} className="bg-white/25 border-white/40 text-white placeholder:text-white/70" />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <Select value={bedrooms} onValueChange={setBedrooms}>
-                        <SelectTrigger className="bg-white/15 border-white/20 text-white"><SelectValue placeholder="Recámaras" /></SelectTrigger>
+                        <SelectTrigger className="bg-white/25 border-white/40 text-white [&>span]:text-white"><SelectValue placeholder="Recámaras" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Cualquiera</SelectItem>
                           <SelectItem value="1">1+</SelectItem>
@@ -205,7 +205,7 @@ const Home = () => {
                         </SelectContent>
                       </Select>
                       <Select value={bathrooms} onValueChange={setBathrooms}>
-                        <SelectTrigger className="bg-white/15 border-white/20 text-white"><SelectValue placeholder="Baños" /></SelectTrigger>
+                        <SelectTrigger className="bg-white/25 border-white/40 text-white [&>span]:text-white"><SelectValue placeholder="Baños" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Cualquiera</SelectItem>
                           <SelectItem value="1">1+</SelectItem>
@@ -214,7 +214,7 @@ const Home = () => {
                         </SelectContent>
                       </Select>
                       <Select value={parking} onValueChange={setParking}>
-                        <SelectTrigger className="bg-white/15 border-white/20 text-white"><SelectValue placeholder="Estacionamiento" /></SelectTrigger>
+                        <SelectTrigger className="bg-white/25 border-white/40 text-white [&>span]:text-white"><SelectValue placeholder="Estacionamiento" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Cualquiera</SelectItem>
                           <SelectItem value="1">1+</SelectItem>

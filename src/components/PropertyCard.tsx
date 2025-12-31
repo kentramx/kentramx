@@ -198,8 +198,9 @@ const PropertyCardComponent = ({
 
   return (
     <Card className={cn(
-      "h-full flex flex-col overflow-hidden rounded-2xl border-border/50 bg-card",
-      "transition-all duration-300 hover:shadow-card-hover",
+      "group h-full flex flex-col overflow-hidden rounded-2xl border-border/50 bg-card",
+      "transition-all duration-300 ease-out",
+      "hover:shadow-xl hover:-translate-y-1 hover:border-primary/20",
       isHovered && 'ring-2 ring-primary shadow-xl scale-[1.02]'
     )}>
       {/* @ts-ignore */}

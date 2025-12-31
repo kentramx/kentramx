@@ -314,28 +314,30 @@ const PricingAgente = () => {
               />
             </div>
             
-            {/* Toggle Mensual/Anual */}
-            <div className="inline-flex items-center gap-4 p-1 rounded-lg bg-muted">
+            {/* Toggle Mensual/Anual - Enhanced */}
+            <div className="inline-flex items-center gap-1 p-1.5 rounded-xl bg-muted/80 border border-border">
               <button
                 onClick={() => setPricingPeriod('monthly')}
-                className={`px-6 py-2 rounded-md transition-all ${
+                className={`px-6 py-2.5 rounded-lg transition-all duration-200 font-medium ${
                   pricingPeriod === 'monthly'
-                    ? 'bg-background text-foreground font-semibold shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-background text-foreground shadow-md'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                 }`}
               >
                 Mensual
               </button>
               <button
                 onClick={() => setPricingPeriod('annual')}
-                className={`px-6 py-2 rounded-md transition-all flex items-center gap-2 ${
+                className={`px-6 py-2.5 rounded-lg transition-all duration-200 font-medium flex items-center gap-2 ${
                   pricingPeriod === 'annual'
-                    ? 'bg-background text-foreground font-semibold shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-background text-foreground shadow-md'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                 }`}
               >
                 Anual
-                <Badge variant="secondary" className="text-xs">-17%</Badge>
+                <Badge className="bg-green-100 text-green-700 border-0 text-xs font-semibold dark:bg-green-900 dark:text-green-100">
+                  Ahorra 17%
+                </Badge>
               </button>
             </div>
           </div>

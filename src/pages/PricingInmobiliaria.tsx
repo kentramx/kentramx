@@ -224,28 +224,30 @@ const PricingInmobiliaria = () => {
               />
             </div>
             
-            {/* Billing Toggle */}
-            <div className="inline-flex items-center gap-2 p-1 bg-muted rounded-lg">
+            {/* Billing Toggle - Enhanced */}
+            <div className="inline-flex items-center gap-1 p-1.5 rounded-xl bg-muted/80 border border-border">
               <button
                 onClick={() => setBillingPeriod('monthly')}
-                className={`px-6 py-2 rounded-md transition-colors ${
+                className={`px-6 py-2.5 rounded-lg transition-all duration-200 font-medium ${
                   billingPeriod === 'monthly' 
-                    ? 'bg-background shadow-sm' 
-                    : 'hover:bg-background/50'
+                    ? 'bg-background text-foreground shadow-md' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                 }`}
               >
                 Mensual
               </button>
               <button
                 onClick={() => setBillingPeriod('annual')}
-                className={`px-6 py-2 rounded-md transition-colors flex items-center gap-2 ${
+                className={`px-6 py-2.5 rounded-lg transition-all duration-200 font-medium flex items-center gap-2 ${
                   billingPeriod === 'annual' 
-                    ? 'bg-background shadow-sm' 
-                    : 'hover:bg-background/50'
+                    ? 'bg-background text-foreground shadow-md' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                 }`}
               >
                 Anual
-                <Badge variant="secondary" className="text-xs">-17%</Badge>
+                <Badge className="bg-green-100 text-green-700 border-0 text-xs font-semibold dark:bg-green-900 dark:text-green-100">
+                  Ahorra 17%
+                </Badge>
               </button>
             </div>
           </div>

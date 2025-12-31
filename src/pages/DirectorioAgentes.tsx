@@ -5,6 +5,8 @@ import AgentSearchBar from "@/components/AgentSearchBar";
 import Navbar from "@/components/Navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 
 interface BadgeData {
@@ -423,30 +425,38 @@ const DirectorioAgentes = () => {
             ))}
           </div>
         ) : paginatedAgents.length === 0 ? (
-          <div className="text-center py-16">
-            <AlertCircle className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-2xl font-semibold mb-2">No se encontraron resultados</h2>
-            <p className="text-muted-foreground mb-6">
-              {filters.state || filters.municipality
-                ? "Intenta ampliar tu búsqueda o explorar otras ubicaciones"
-                : "No hay agentes disponibles en este momento"}
-            </p>
-            {(filters.state || filters.municipality || filters.type !== "all") && (
-              <button
-                onClick={() => setFilters({
-                  state: "",
-                  municipality: "",
-                  type: "all",
-                  minRating: 0,
-                  minProperties: 0,
-                  plan: "all",
-                })}
-                className="text-primary hover:underline"
-              >
-                Ver todos los agentes
-              </button>
-            )}
-          </div>
+          <Card className="border-dashed max-w-lg mx-auto">
+            <CardContent className="p-12 text-center">
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                <svg className="w-12 h-12 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-semibold mb-3">No encontramos agentes</h2>
+              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                {filters.state || filters.municipality
+                  ? `No hay agentes disponibles en ${filters.municipality || filters.state}. Prueba ampliando tu búsqueda.`
+                  : "Estamos creciendo nuestra red de profesionales inmobiliarios verificados."}
+              </p>
+              {(filters.state || filters.municipality || filters.type !== "all") && (
+                <Button
+                  variant="outline"
+                  onClick={() => setFilters({
+                    state: "",
+                    municipality: "",
+                    type: "all",
+                    minRating: 0,
+                    minProperties: 0,
+                    plan: "all",
+                  })}
+                  className="group"
+                >
+                  Ver todos los agentes
+                  <AlertCircle className="ml-2 h-4 w-4 group-hover:rotate-180 transition-transform" />
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
