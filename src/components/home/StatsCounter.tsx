@@ -31,7 +31,6 @@ const StatsCounter = () => {
           reviews: reviewsRes.count || 200,
         });
       } catch (error) {
-        // Fallback values if fetch fails
         setStats({ properties: 150, agents: 50, cities: 10, reviews: 200 });
       }
     };
@@ -65,25 +64,32 @@ const StatsCounter = () => {
   ];
 
   return (
-    <section ref={sectionRef} className="py-16 bg-primary/5">
+    <section ref={sectionRef} className="section-padding bg-primary/5">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
           {statItems.map((stat, index) => (
             <div 
               key={stat.label}
               className="text-center"
               style={{ 
                 opacity: isVisible ? 1 : 0,
-                transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
-                transition: `all 0.6s ease-out ${index * 0.15}s`
+                transform: isVisible ? 'translateY(0)' : 'translateY(24px)',
+                transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${index * 0.15}s`
               }}
             >
-              <stat.icon className="h-10 w-10 mx-auto mb-4 text-primary" />
-              <div className="font-serif text-4xl md:text-5xl font-bold text-primary mb-2">
+              {/* TIER S: Icon with gradient background */}
+              <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary/10 mb-4 md:mb-6">
+                <stat.icon className="h-8 w-8 md:h-10 md:w-10 text-primary" />
+              </div>
+              
+              {/* TIER S: Large bold number */}
+              <div className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-primary mb-2 tracking-tight">
                 {isVisible ? <AnimatedNumber value={stat.value} /> : 0}
                 {stat.suffix}
               </div>
-              <div className="text-muted-foreground font-medium">{stat.label}</div>
+              
+              {/* Label */}
+              <div className="text-muted-foreground font-medium text-sm md:text-base">{stat.label}</div>
             </div>
           ))}
         </div>
