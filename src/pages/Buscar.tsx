@@ -1070,7 +1070,7 @@ const getCurrentPriceRangeLabel = (precioMin: string, precioMax: string, listing
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 z-20"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 z-20"
                     onClick={() => {
                       setFilters(prev => ({
                         ...prev,
@@ -1091,7 +1091,7 @@ const getCurrentPriceRangeLabel = (precioMin: string, precioMax: string, listing
               {/* Botón de Filtros para Móvil */}
               <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="lg:hidden">
+                  <Button variant="outline" size="default" className="lg:hidden">
                     <SlidersHorizontal className="h-4 w-4 mr-2" />
                     Filtros
                     {activeFiltersCount > 0 && ` (${activeFiltersCount})`}

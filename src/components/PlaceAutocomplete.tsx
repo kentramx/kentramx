@@ -26,6 +26,10 @@ interface PlaceAutocompleteProps {
   id?: string;
   unstyled?: boolean;
   showMyLocationButton?: boolean;
+  /** Custom classes for the input element */
+  inputClassName?: string;
+  /** Custom classes for the icon */
+  iconClassName?: string;
 }
 
 declare global {
@@ -240,6 +244,8 @@ const PlaceAutocomplete = ({
   id = 'place-autocomplete',
   unstyled = false,
   showMyLocationButton = false,
+  inputClassName = '',
+  iconClassName = '',
 }: PlaceAutocompleteProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
@@ -522,7 +528,7 @@ const PlaceAutocomplete = ({
       {label && <Label htmlFor={id} className="mb-2 block">{label}</Label>}
       <div className="relative flex gap-2">
         {showIcon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10">
+          <div className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10 ${iconClassName || 'text-muted-foreground'}`}>
             <MapPin className="h-4 w-4" />
           </div>
         )}
@@ -534,7 +540,7 @@ const PlaceAutocomplete = ({
           onChange={handleInputChange}
           placeholder={placeholder}
           disabled={!isLoaded}
-          className={`${baseInputStyles} ${showIcon ? 'pl-10' : ''} flex-1`}
+          className={`${baseInputStyles} ${showIcon ? 'pl-10' : ''} flex-1 ${inputClassName}`}
         />
         {showMyLocationButton && (
           <Button
@@ -544,6 +550,7 @@ const PlaceAutocomplete = ({
             onClick={handleGetMyLocation}
             disabled={isGettingLocation || !isLoaded}
             title="Usar mi ubicación"
+            className="h-11 w-11"
           >
             {isGettingLocation ? (
               <Loader2 className="h-4 w-4 animate-spin" />

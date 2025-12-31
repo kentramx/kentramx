@@ -130,16 +130,16 @@ const Home = () => {
             Miles de propiedades verificadas en todo México. Compra, vende o renta con tecnología de vanguardia.
           </p>
           
-          {/* TIER S: Elevated Search Card */}
+          {/* TIER S: Glass Search Card */}
           <div className="opacity-0 max-w-3xl mx-auto animate-scale-in" style={{ animationDelay: '300ms' }}>
-            <div className="bg-white rounded-2xl shadow-lg border border-border/50 p-5 md:p-6">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 p-5 md:p-6">
               {/* Listing Type Toggle */}
-              <div className="inline-flex p-1 bg-muted rounded-lg mb-5">
+              <div className="inline-flex p-1 bg-white/10 rounded-lg mb-5">
                 <Button 
                   type="button" 
                   variant={listingType === "venta" ? "default" : "ghost"} 
                   onClick={() => setListingType("venta")}
-                  className={`px-5 rounded-md ${listingType !== "venta" ? "text-muted-foreground" : ""}`}
+                  className={`px-5 rounded-md ${listingType !== "venta" ? "text-white/70 hover:text-white hover:bg-white/10" : ""}`}
                 >
                   Venta
                 </Button>
@@ -147,7 +147,7 @@ const Home = () => {
                   type="button" 
                   variant={listingType === "renta" ? "default" : "ghost"} 
                   onClick={() => setListingType("renta")}
-                  className={`px-5 rounded-md ${listingType !== "renta" ? "text-muted-foreground" : ""}`}
+                  className={`px-5 rounded-md ${listingType !== "renta" ? "text-white/70 hover:text-white hover:bg-white/10" : ""}`}
                 >
                   Renta
                 </Button>
@@ -156,7 +156,7 @@ const Home = () => {
               {/* Property Type */}
               <div className="flex justify-center mb-4">
                 <Select value={propertyType} onValueChange={setPropertyType}>
-                  <SelectTrigger className="w-full max-w-xs bg-white text-foreground">
+                  <SelectTrigger className="w-full max-w-xs bg-white/15 border-white/20 text-white placeholder:text-white/60">
                     <SelectValue placeholder="Tipo de propiedad" />
                   </SelectTrigger>
                   <SelectContent>
@@ -176,13 +176,13 @@ const Home = () => {
               {/* Advanced Filters */}
               <Collapsible open={showAdvancedFilters} onOpenChange={setShowAdvancedFilters}>
                 <CollapsibleTrigger asChild>
-                  <Button type="button" variant="ghost" size="sm" className="mx-auto mb-4 text-muted-foreground">
+                  <Button type="button" variant="ghost" size="sm" className="mx-auto mb-4 text-white/70 hover:text-white hover:bg-white/10">
                     <SlidersHorizontal className="mr-1.5 h-4 w-4" />
                     Más filtros
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mb-4">
-                  <div className="bg-muted/50 rounded-xl p-4 space-y-4 text-left">
+                  <div className="bg-white/10 rounded-xl p-4 space-y-4 text-left">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="priceMin" className="text-sm font-medium">Precio Mínimo</Label>
