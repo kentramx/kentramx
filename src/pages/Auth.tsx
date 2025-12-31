@@ -423,8 +423,15 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 pb-24 md:pb-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4 pb-24 md:pb-4 relative overflow-hidden">
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/10" />
+      <div className="absolute inset-0 opacity-30" style={{
+        backgroundImage: `radial-gradient(circle at 25% 25%, hsl(82 42% 32% / 0.1) 0%, transparent 50%),
+                          radial-gradient(circle at 75% 75%, hsl(32 38% 45% / 0.08) 0%, transparent 50%)`
+      }} />
+      
+      <div className="w-full max-w-md relative z-10">
         <div className="mb-8 text-center">
           <Button
             variant="ghost"
@@ -436,12 +443,12 @@ const Auth = () => {
           </Button>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex justify-center mb-4">
-              <img src={kentraLogo} alt="Kentra" className="h-10" />
+        <Card className="shadow-xl border-border/50 backdrop-blur-sm bg-card/95">
+          <CardHeader className="pb-4">
+            <div className="flex justify-center mb-6">
+              <img src={kentraLogo} alt="Kentra" className="h-12" />
             </div>
-            <CardDescription className="text-center">
+            <CardDescription className="text-center text-base">
               {view === 'forgot' && 'Recupera tu contraseña'}
               {view === 'reset' && 'Crea una nueva contraseña'}
               {view === 'verify' && 'Verifica tu correo electrónico'}

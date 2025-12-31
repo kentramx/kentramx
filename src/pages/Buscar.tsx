@@ -1621,15 +1621,29 @@ const getCurrentPriceRangeLabel = (precioMin: string, precioMax: string, listing
               </div>
             )}
 
-            {/* Estado de carga inicial (viewport ya disponible) */}
+            {/* Estado de carga inicial - Tier S Skeletons */}
             {!searchError && !isWaitingForViewport && loading && properties.length === 0 && (
-              <div className="p-6 space-y-4">
-                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">Buscando propiedades...</span>
+              <div className="p-4 md:p-6 space-y-4">
+                {/* Header skeleton */}
+                <div className="flex items-center justify-between mb-2">
+                  <Skeleton className="h-5 w-32 skeleton-shimmer" />
+                  <Skeleton className="h-5 w-20 skeleton-shimmer" />
                 </div>
-                {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-48 w-full" />
+                {/* Property card skeletons */}
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex gap-4 p-4 rounded-xl border border-border/50 bg-card animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
+                    <Skeleton className="h-28 w-36 rounded-xl flex-shrink-0 skeleton-shimmer" />
+                    <div className="flex-1 space-y-3">
+                      <Skeleton className="h-6 w-3/4 skeleton-shimmer" />
+                      <Skeleton className="h-4 w-1/2 skeleton-shimmer" />
+                      <div className="flex gap-4">
+                        <Skeleton className="h-4 w-12 skeleton-shimmer" />
+                        <Skeleton className="h-4 w-12 skeleton-shimmer" />
+                        <Skeleton className="h-4 w-16 skeleton-shimmer" />
+                      </div>
+                      <Skeleton className="h-8 w-28 skeleton-shimmer" />
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -1648,7 +1662,7 @@ const getCurrentPriceRangeLabel = (precioMin: string, precioMax: string, listing
                 {totalCount > 0 ? (
                   // ✅ MODO CLUSTER: Hay propiedades pero zoom muy bajo
                   <>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <h3 className="text-xl font-semibold">
                         {totalCount.toLocaleString()} propiedades en esta zona
                       </h3>
@@ -1657,59 +1671,37 @@ const getCurrentPriceRangeLabel = (precioMin: string, precioMax: string, listing
                       </p>
                     </div>
                     {/* Botón para ir al mapa en móvil */}
-                    <Button onClick={() => setMobileView('map')} className="lg:hidden">
-                      <MapIcon className="h-4 w-4 mr-2" />
+                    <Button onClick={() => setMobileView('map')} className="lg:hidden group">
+                      <MapIcon className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
                       Ver mapa
                     </Button>
                   </>
                 ) : (
-                  // ❌ SIN RESULTADOS: No hay propiedades que coincidan
+                  // ❌ SIN RESULTADOS: Empty state elegante
                   <>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <h3 className="text-xl font-semibold">No encontramos propiedades</h3>
                       <p className="text-muted-foreground max-w-md">
-                        No hay propiedades que coincidan con tus filtros actuales.
+                        Ajusta tus filtros o explora otras zonas para descubrir más opciones.
                       </p>
                     </div>
-                    {/* 🔍 Panel de diagnóstico en modo debug */}
-                    {typeof window !== 'undefined' && (window as any).__KENTRA_MAP_DEBUG__ === true && (
-                      <div className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-xs font-mono text-yellow-900 max-w-2xl">
-                        <div className="font-bold mb-1">🔍 DEBUG INFO:</div>
-                        <div>Zoom: {mapViewport?.zoom?.toFixed(2) || 'N/A'}</div>
-                        <div>Estado: {filters.estado || '(ninguno)'}</div>
-                        <div>Municipio: {filters.municipio || '(ninguno)'}</div>
-                        <div>Colonia: {filters.colonia || '(ninguno)'}</div>
-                        <div>Tipo: {filters.tipo || '(todos)'}</div>
-                        <div>Operación: {filters.listingType}</div>
-                        {mapViewport && (
-                          <div>
-                            Bounds: {mapViewport.bounds.south.toFixed(4)},{mapViewport.bounds.west.toFixed(4)} →{' '}
-                            {mapViewport.bounds.north.toFixed(4)},{mapViewport.bounds.east.toFixed(4)}
-                          </div>
-                        )}
-                        <div>Properties: {properties.length}</div>
-                        <div>Clusters: {clusters.length}</div>
-                        <div>isViewportActive: {isViewportActive ? 'true' : 'false'}</div>
-                        <div>listProperties.length: {listProperties.length}</div>
-                      </div>
-                    )}
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                      <p>Intenta:</p>
-                      <ul className="space-y-1">
-                        <li>• Ampliar el rango de precio</li>
-                        <li>• Cambiar la ubicación</li>
-                        <li>• Ajustar los filtros de recámaras y baños</li>
-                      </ul>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button
+                        onClick={() => {
+                          setFilters(DEFAULT_FILTERS);
+                          setSearchCoordinates(null);
+                        }}
+                        variant="default"
+                        className="group"
+                      >
+                        <Search className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
+                        Limpiar filtros
+                      </Button>
+                      <Button onClick={() => setMobileView('map')} variant="outline" className="lg:hidden group">
+                        <MapIcon className="h-4 w-4 mr-2" />
+                        Explorar mapa
+                      </Button>
                     </div>
-                    <Button
-                      onClick={() => {
-                        setFilters(DEFAULT_FILTERS);
-                        setSearchCoordinates(null);
-                      }}
-                      variant="outline"
-                    >
-                      Limpiar todos los filtros
-                    </Button>
                   </>
                 )}
               </div>

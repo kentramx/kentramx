@@ -222,30 +222,33 @@ const PricingDesarrolladora = () => {
             />
           </div>
           
-          {/* Billing Toggle */}
+          {/* Billing Toggle - Enhanced */}
           <div className="flex justify-center items-center gap-4 mb-12">
-            <Label 
-              className={billingCycle === 'monthly' ? 'font-semibold' : 'text-muted-foreground'}
-            >
-              Mensual
-            </Label>
-            <button
-              onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                billingCycle === 'annual' ? 'bg-primary' : 'bg-muted'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
-                  billingCycle === 'annual' ? 'translate-x-6' : 'translate-x-1'
+            <div className="inline-flex items-center gap-1 p-1.5 rounded-xl bg-muted/80 border border-border">
+              <button
+                onClick={() => setBillingCycle('monthly')}
+                className={`px-6 py-2.5 rounded-lg transition-all duration-200 font-medium ${
+                  billingCycle === 'monthly' 
+                    ? 'bg-background text-foreground shadow-md' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                 }`}
-              />
-            </button>
-            <Label 
-              className={billingCycle === 'annual' ? 'font-semibold' : 'text-muted-foreground'}
-            >
-              Anual <Badge variant="secondary" className="ml-2">-17%</Badge>
-            </Label>
+              >
+                Mensual
+              </button>
+              <button
+                onClick={() => setBillingCycle('annual')}
+                className={`px-6 py-2.5 rounded-lg transition-all duration-200 font-medium flex items-center gap-2 ${
+                  billingCycle === 'annual' 
+                    ? 'bg-background text-foreground shadow-md' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                }`}
+              >
+                Anual
+                <Badge className="bg-green-100 text-green-700 border-0 text-xs font-semibold dark:bg-green-900 dark:text-green-100">
+                  Ahorra 17%
+                </Badge>
+              </button>
+            </div>
           </div>
 
           {/* Plan Cards */}

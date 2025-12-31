@@ -5,6 +5,7 @@ import { DynamicBreadcrumbs } from "@/components/DynamicBreadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import AgentBadges from "@/components/AgentBadges";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -298,15 +299,23 @@ const Leaderboard = () => {
                 </Card>
               ))
             ) : sortedBySales.length === 0 ? (
-              <Card>
+              <Card className="border-dashed">
                 <CardContent className="p-12 text-center">
-                  <Trophy className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No hay datos disponibles</h3>
-                  <p className="text-muted-foreground">
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Trophy className="h-10 w-10 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3">¡El podio te espera!</h3>
+                  <p className="text-muted-foreground max-w-sm mx-auto mb-6">
                     {selectedState !== "all" 
-                      ? "No hay agentes en este estado aún"
-                      : "No hay agentes registrados"}
+                      ? `Aún no hay agentes destacados en ${selectedState}. Sé el primero en aparecer aquí.`
+                      : "Pronto verás a los mejores agentes de México compitiendo por el primer lugar."}
                   </p>
+                  <Link to="/directorio-agentes">
+                    <Button variant="outline" className="group">
+                      Explorar agentes
+                      <TrendingUp className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             ) : (
@@ -331,13 +340,21 @@ const Leaderboard = () => {
                 </Card>
               ))
             ) : sortedByRating.length === 0 ? (
-              <Card>
+              <Card className="border-dashed">
                 <CardContent className="p-12 text-center">
-                  <Star className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No hay datos disponibles</h3>
-                  <p className="text-muted-foreground">
-                    No hay agentes con al menos 5 reviews en este estado
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-amber-500/10 flex items-center justify-center">
+                    <Star className="h-10 w-10 text-amber-500" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3">Se necesitan más reviews</h3>
+                  <p className="text-muted-foreground max-w-sm mx-auto mb-6">
+                    Los agentes mejor calificados aparecerán aquí cuando tengan al menos 5 reviews de clientes satisfechos.
                   </p>
+                  <Link to="/directorio-agentes">
+                    <Button variant="outline" className="group">
+                      Ver todos los agentes
+                      <TrendingUp className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             ) : (
@@ -362,13 +379,21 @@ const Leaderboard = () => {
                 </Card>
               ))
             ) : sortedByBadges.length === 0 ? (
-              <Card>
+              <Card className="border-dashed">
                 <CardContent className="p-12 text-center">
-                  <Medal className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No hay datos disponibles</h3>
-                  <p className="text-muted-foreground">
-                    No hay agentes con badges en este estado
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-purple-500/10 flex items-center justify-center">
+                    <Medal className="h-10 w-10 text-purple-500" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3">Insignias por ganar</h3>
+                  <p className="text-muted-foreground max-w-sm mx-auto mb-6">
+                    Los agentes con más logros y reconocimientos aparecerán en este ranking. ¡Empieza a vender para ganar tu primera insignia!
                   </p>
+                  <Link to="/directorio-agentes">
+                    <Button variant="outline" className="group">
+                      Conocer agentes
+                      <TrendingUp className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             ) : (
