@@ -1,12 +1,12 @@
 /**
- * PropertyCard OPTIMIZADO con React.memo
+ * PropertyCard TIER S - Diseño refinado con animaciones
  */
 
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, Star, Bed, Bath, Car, Square, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { Heart, Star, Bed, Bath, Car, Square, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import propertyPlaceholder from "@/assets/property-placeholder.jpg";
 import { useTracking } from "@/hooks/useTracking";
@@ -77,15 +77,12 @@ const PropertyCardComponent = ({
   const { trackGA4Event } = useTracking();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // ✅ OPTIMIZACIÓN: Memoizar funciones costosas
   const formatPrice = useCallback((price: number, curr: string = currency) => {
     const formatted = new Intl.NumberFormat("es-MX", {
       style: "currency",
       currency: curr,
       minimumFractionDigits: 0,
     }).format(price);
-    
-    // Agregar código de moneda para USD, mantener limpio para MXN
     return curr === 'USD' ? `${formatted} USD` : formatted;
   }, [currency]);
 
@@ -100,7 +97,7 @@ const PropertyCardComponent = ({
     if (for_sale && for_rent) {
       return (
         <div className="space-y-1">
-          <div className="text-2xl font-bold text-primary">
+          <div className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
             {formatPrice(sale_price || price, currency)}
           </div>
           <div className="text-sm text-muted-foreground">
@@ -110,12 +107,12 @@ const PropertyCardComponent = ({
       );
     }
     if (for_sale) {
-      return <div className="text-2xl font-bold text-primary">{formatPrice(sale_price || price, currency)}</div>;
+      return <div className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">{formatPrice(sale_price || price, currency)}</div>;
     }
     if (for_rent) {
-      return <div className="text-2xl font-bold text-primary">{formatPrice(rent_price || price, currency)}/mes</div>;
+      return <div className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">{formatPrice(rent_price || price, currency)}/mes</div>;
     }
-    return <div className="text-2xl font-bold text-primary">{formatPrice(price, currency)}</div>;
+    return <div className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">{formatPrice(price, currency)}</div>;
   };
 
   const getTypeLabel = useCallback(() => {
@@ -196,66 +193,70 @@ const PropertyCardComponent = ({
 
   const Wrapper = onCardClick ? 'div' : Link;
   const wrapperProps = onCardClick 
-    ? { onClick: handleCardClick, className: cn("group overflow-hidden transition-all hover:shadow-lg cursor-pointer", isHovered && 'ring-2 ring-primary shadow-xl scale-[1.02]') }
-    : { to: `/propiedad/${id}`, onClick: handleCardClick, className: cn("group overflow-hidden transition-all hover:shadow-lg", isHovered && 'ring-2 ring-primary shadow-xl scale-[1.02]') };
+    ? { onClick: handleCardClick, className: "cursor-pointer" }
+    : { to: `/propiedad/${id}`, onClick: handleCardClick };
 
   return (
-    <Card className="h-full flex flex-col overflow-hidden">
+    <Card className={cn(
+      "h-full flex flex-col overflow-hidden rounded-2xl border-border/50 bg-card",
+      "transition-all duration-300 hover:shadow-card-hover",
+      isHovered && 'ring-2 ring-primary shadow-xl scale-[1.02]'
+    )}>
       {/* @ts-ignore */}
       <Wrapper {...wrapperProps}>
-        <div className="relative aspect-[4/3] overflow-hidden">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl">
           <LazyImage
             src={getImageUrl(displayImages[currentImageIndex]?.url || propertyPlaceholder)}
             alt={`${bedrooms} bd, ${bathrooms} ba - ${getTypeLabel()}`}
-            className="h-full w-full transition-transform group-hover:scale-105"
+            className="h-full w-full transition-transform duration-500 group-hover:scale-105"
             blurDataURL={propertyPlaceholder}
           />
           
-          {/* Navegación de imágenes - Solo visible si hay más de 1 imagen */}
+          {/* Image navigation */}
           {displayImages.length > 1 && (
             <>
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label="Imagen anterior"
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity z-10 rounded-full h-8 w-8"
                 onClick={handlePrevImage}
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label="Siguiente imagen"
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity z-10 rounded-full h-8 w-8"
                 onClick={handleNextImage}
               >
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </>
           )}
           
-          {/* Badge de Destacada y Nuevo */}
-          <div className="absolute top-2 left-2 flex flex-wrap gap-2 z-10">
+          {/* Badges */}
+          <div className="absolute top-3 left-3 flex flex-wrap gap-2 z-10">
             {isFeatured && (
-              <Badge variant="default" className="bg-yellow-500 hover:bg-yellow-600">
+              <Badge className="bg-amber-500/90 hover:bg-amber-500 text-white border-0 backdrop-blur-sm">
                 <Star className="w-3 h-3 mr-1 fill-current" />
                 Destacada
               </Badge>
             )}
             {isNew() && (
-              <Badge variant="default" className="bg-green-500 hover:bg-green-600">
+              <Badge className="bg-accent/90 hover:bg-accent text-accent-foreground border-0 backdrop-blur-sm">
                 Nuevo
               </Badge>
             )}
           </div>
           
-          {/* Tipo de operación */}
-          <Badge className="absolute right-3 bottom-3 bg-background/90 text-foreground z-20">
+          {/* Listing type badge */}
+          <Badge className="absolute right-3 bottom-3 bg-background/90 text-foreground backdrop-blur-sm border-0 z-20">
             {getListingBadge()}
           </Badge>
           
-          {/* Indicadores de galería */}
+          {/* Image indicators */}
           {displayImages.length > 1 && (
             <div className="absolute bottom-3 left-3 flex gap-1 z-20">
               {displayImages.slice(0, 5).map((_, idx) => (
@@ -273,19 +274,23 @@ const PropertyCardComponent = ({
             </div>
           )}
           
+          {/* Favorite button */}
           {onToggleFavorite && (
             <Button
               variant="ghost"
               size="icon"
               aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-              className="absolute right-3 top-3 bg-background/80 hover:bg-background z-20"
+              className="absolute right-3 top-3 bg-background/80 hover:bg-background z-20 rounded-full h-9 w-9"
               onClick={(e) => {
                 e.preventDefault();
                 onToggleFavorite();
               }}
             >
               <Heart
-                className={`h-5 w-5 ${isFavorite ? "fill-red-500 text-red-500" : ""}`}
+                className={cn(
+                  "h-5 w-5 transition-colors",
+                  isFavorite ? "fill-red-500 text-red-500" : "text-muted-foreground"
+                )}
               />
             </Button>
           )}
@@ -296,13 +301,13 @@ const PropertyCardComponent = ({
       <CardContent className="flex-1 p-5 space-y-3">
         {/* @ts-ignore */}
         <Wrapper {...wrapperProps}>
-          {/* Precio */}
-          <div className="mb-3">
+          {/* Price - TIER S typography */}
+          <div className="mb-4">
             {getDisplayPrice()}
           </div>
           
-          {/* Características con iconos claros */}
-          <div className="flex items-center gap-4 text-sm mb-3">
+          {/* Features with icons */}
+          <div className="flex items-center gap-4 text-sm mb-4">
             {bedrooms && (
               <div className="flex items-center gap-1.5">
                 <Bed className="h-4 w-4 text-muted-foreground" />
@@ -329,19 +334,19 @@ const PropertyCardComponent = ({
             )}
           </div>
 
-          {/* Título */}
-          <h3 className="font-medium text-base line-clamp-2 mb-2">
+          {/* Title */}
+          <h3 className="font-semibold text-base line-clamp-2 mb-2 text-foreground">
             {title}
           </h3>
 
-          {/* Dirección */}
+          {/* Location */}
           <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
             {municipality}, {state}
           </p>
           
-          {/* Días en el mercado */}
+          {/* Days on market */}
           {createdAt && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground/70">
               {getDaysOnMarket()}
             </p>
           )}
@@ -352,7 +357,6 @@ const PropertyCardComponent = ({
   );
 };
 
-// ✅ OPTIMIZACIÓN: Memoizar componente para evitar re-renders innecesarios
 const arePropsEqual = (
   prevProps: PropertyCardProps,
   nextProps: PropertyCardProps
