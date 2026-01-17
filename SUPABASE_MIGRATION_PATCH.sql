@@ -1,36 +1,46 @@
 -- ============================================
 -- KENTRA - SCRIPT DE PARCHE PARA SUPABASE
 -- Ejecutar DESPUÉS del script principal
+-- DIVIDIDO EN SECCIONES - Ejecutar cada sección por separado si hay errores
 -- ============================================
 
 -- ============================================
--- 1. STORAGE BUCKET FALTANTE: message-images
+-- PARTE 1: STORAGE BUCKET
 -- ============================================
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('message-images', 'message-images', false)
 ON CONFLICT (id) DO NOTHING;
 
--- Políticas para message-images
-CREATE POLICY "Users can upload message images" ON storage.objects
-  FOR INSERT WITH CHECK (
-    bucket_id = 'message-images' AND 
-    auth.uid()::text = (storage.foldername(name))[1]
-  );
+-- Políticas para message-images (ignorar si ya existen)
+DO $$ BEGIN
+  CREATE POLICY "Users can upload message images" ON storage.objects
+    FOR INSERT WITH CHECK (
+      bucket_id = 'message-images' AND 
+      auth.uid()::text = (storage.foldername(name))[1]
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "Users can view message images in conversations" ON storage.objects
-  FOR SELECT USING (
-    bucket_id = 'message-images' AND 
-    auth.role() = 'authenticated'
-  );
+DO $$ BEGIN
+  CREATE POLICY "Users can view message images in conversations" ON storage.objects
+    FOR SELECT USING (
+      bucket_id = 'message-images' AND 
+      auth.role() = 'authenticated'
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "Users can delete own message images" ON storage.objects
-  FOR DELETE USING (
-    bucket_id = 'message-images' AND 
-    auth.uid()::text = (storage.foldername(name))[1]
-  );
+DO $$ BEGIN
+  CREATE POLICY "Users can delete own message images" ON storage.objects
+    FOR DELETE USING (
+      bucket_id = 'message-images' AND 
+      auth.uid()::text = (storage.foldername(name))[1]
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ============================================
--- 2. FUNCIÓN FALTANTE: get_avg_review_time_minutes
+-- PARTE 2: FUNCIÓN get_avg_review_time_minutes
 -- ============================================
 CREATE OR REPLACE FUNCTION public.get_avg_review_time_minutes()
 RETURNS NUMERIC
@@ -56,13 +66,12 @@ END;
 $$;
 
 -- ============================================
--- 3. TABLA FALTANTE: property_views
--- (Necesaria para agent_performance_stats)
+-- PARTE 3: TABLA property_views
 -- ============================================
 CREATE TABLE IF NOT EXISTS public.property_views (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   property_id UUID NOT NULL REFERENCES public.properties(id) ON DELETE CASCADE,
-  user_id UUID,
+  viewer_id UUID,
   session_id TEXT,
   ip_address TEXT,
   user_agent TEXT,
@@ -70,22 +79,25 @@ CREATE TABLE IF NOT EXISTS public.property_views (
   viewed_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Índices para property_views
 CREATE INDEX IF NOT EXISTS idx_property_views_property_id ON public.property_views(property_id);
 CREATE INDEX IF NOT EXISTS idx_property_views_viewed_at ON public.property_views(viewed_at);
-CREATE INDEX IF NOT EXISTS idx_property_views_user_id ON public.property_views(user_id);
 
--- RLS para property_views
 ALTER TABLE public.property_views ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can view property views count" ON public.property_views
-  FOR SELECT USING (true);
+DO $$ BEGIN
+  CREATE POLICY "Anyone can view property views count" ON public.property_views
+    FOR SELECT USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "Authenticated users can insert views" ON public.property_views
-  FOR INSERT WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "Authenticated users can insert views" ON public.property_views
+    FOR INSERT WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ============================================
--- 4. VISTA MATERIALIZADA: agent_performance_stats
+-- PARTE 4: VISTA MATERIALIZADA agent_performance_stats
 -- ============================================
 DROP MATERIALIZED VIEW IF EXISTS public.agent_performance_stats;
 
@@ -108,11 +120,9 @@ LEFT JOIN property_views pv ON pv.property_id = p.id
 LEFT JOIN conversations c ON c.agent_id = p.agent_id
 GROUP BY p.agent_id;
 
--- Índice único para REFRESH CONCURRENTLY
 CREATE UNIQUE INDEX idx_agent_performance_stats_agent_id 
   ON public.agent_performance_stats(agent_id);
 
--- Función para refrescar la vista
 CREATE OR REPLACE FUNCTION public.refresh_agent_performance_stats()
 RETURNS VOID
 LANGUAGE plpgsql
@@ -125,18 +135,16 @@ END;
 $$;
 
 -- ============================================
--- 5. CORREGIR user_subscriptions - Columna metadata
+-- PARTE 5: COLUMNA metadata en user_subscriptions
 -- ============================================
 ALTER TABLE public.user_subscriptions 
   ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT NULL;
 
 -- ============================================
--- 6. CORREGIR user_roles - Renombrar columnas
--- (Solo si existen con nombres incorrectos)
+-- PARTE 6: CORREGIR user_roles
 -- ============================================
 DO $$
 BEGIN
-  -- Verificar si existe assigned_by y renombrar a granted_by
   IF EXISTS (
     SELECT 1 FROM information_schema.columns 
     WHERE table_schema = 'public' 
@@ -146,7 +154,6 @@ BEGIN
     ALTER TABLE public.user_roles RENAME COLUMN assigned_by TO granted_by;
   END IF;
 
-  -- Verificar si existe assigned_at y renombrar a granted_at
   IF EXISTS (
     SELECT 1 FROM information_schema.columns 
     WHERE table_schema = 'public' 
@@ -158,35 +165,8 @@ BEGIN
 END $$;
 
 -- ============================================
--- 7. AGREGAR VALORES FALTANTES A ENUMS
+-- PARTE 7: ÍNDICES DE RENDIMIENTO
 -- ============================================
-
--- property_status: agregar valores faltantes
-DO $$
-BEGIN
-  -- Agregar 'borrador' si no existe
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'borrador' AND enumtypid = 'property_status'::regtype) THEN
-    ALTER TYPE property_status ADD VALUE IF NOT EXISTS 'borrador';
-  END IF;
-  
-  -- Agregar 'expirada' si no existe
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'expirada' AND enumtypid = 'property_status'::regtype) THEN
-    ALTER TYPE property_status ADD VALUE IF NOT EXISTS 'expirada';
-  END IF;
-  
-  -- Agregar 'rechazada' si no existe
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'rechazada' AND enumtypid = 'property_status'::regtype) THEN
-    ALTER TYPE property_status ADD VALUE IF NOT EXISTS 'rechazada';
-  END IF;
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'Error agregando valores a property_status: %', SQLERRM;
-END $$;
-
--- ============================================
--- 8. ÍNDICES DE RENDIMIENTO ADICIONALES
--- ============================================
-
--- Índices compuestos para búsquedas frecuentes
 CREATE INDEX IF NOT EXISTS idx_properties_status_state 
   ON public.properties(status, state);
 
@@ -204,10 +184,8 @@ CREATE INDEX IF NOT EXISTS idx_messages_conversation_created
   ON public.messages(conversation_id, created_at DESC);
 
 -- ============================================
--- 9. FUNCIONES HELPER ADICIONALES
+-- PARTE 8: FUNCIONES HELPER
 -- ============================================
-
--- Función para obtener estadísticas de moderación
 CREATE OR REPLACE FUNCTION public.get_moderation_stats()
 RETURNS TABLE(
   pending_count BIGINT,
@@ -231,7 +209,6 @@ BEGIN
 END;
 $$;
 
--- Función para verificar límites de suscripción
 CREATE OR REPLACE FUNCTION public.check_property_limit(p_user_id UUID)
 RETURNS TABLE(
   can_create BOOLEAN,
@@ -249,7 +226,6 @@ DECLARE
   v_current_count INTEGER;
   v_plan_name TEXT;
 BEGIN
-  -- Obtener plan activo del usuario
   SELECT us.plan_id, sp.name, (sp.features->>'max_properties')::INTEGER
   INTO v_plan_id, v_plan_name, v_max_properties
   FROM user_subscriptions us
@@ -259,13 +235,11 @@ BEGIN
   ORDER BY us.created_at DESC
   LIMIT 1;
 
-  -- Si no tiene plan, usar límites de plan gratuito
   IF v_plan_id IS NULL THEN
     v_max_properties := 1;
     v_plan_name := 'Sin plan';
   END IF;
 
-  -- Contar propiedades activas del usuario
   SELECT COUNT(*)::INTEGER INTO v_current_count
   FROM properties
   WHERE agent_id = p_user_id
@@ -280,10 +254,8 @@ END;
 $$;
 
 -- ============================================
--- 10. TRIGGERS FALTANTES
+-- PARTE 9: TRIGGER updated_at
 -- ============================================
-
--- Trigger para actualizar updated_at en user_subscriptions
 CREATE OR REPLACE FUNCTION public.update_subscription_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -299,36 +271,31 @@ CREATE TRIGGER update_user_subscriptions_updated_at
   EXECUTE FUNCTION public.update_subscription_updated_at();
 
 -- ============================================
--- 11. VERIFICACIÓN FINAL
+-- VERIFICACIÓN FINAL
 -- ============================================
 DO $$
 DECLARE
   missing_components TEXT[] := ARRAY[]::TEXT[];
 BEGIN
-  -- Verificar bucket message-images
   IF NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'message-images') THEN
     missing_components := array_append(missing_components, 'bucket:message-images');
   END IF;
 
-  -- Verificar función get_avg_review_time_minutes
   IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'get_avg_review_time_minutes') THEN
     missing_components := array_append(missing_components, 'function:get_avg_review_time_minutes');
   END IF;
 
-  -- Verificar vista materializada
   IF NOT EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'agent_performance_stats') THEN
     missing_components := array_append(missing_components, 'matview:agent_performance_stats');
   END IF;
 
-  -- Verificar tabla property_views
   IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'property_views') THEN
     missing_components := array_append(missing_components, 'table:property_views');
   END IF;
 
-  -- Resultado
   IF array_length(missing_components, 1) > 0 THEN
-    RAISE WARNING '⚠️ Componentes aún faltantes: %', array_to_string(missing_components, ', ');
+    RAISE WARNING '⚠️ Componentes faltantes: %', array_to_string(missing_components, ', ');
   ELSE
-    RAISE NOTICE '✅ PARCHE APLICADO CORRECTAMENTE - Todos los componentes verificados';
+    RAISE NOTICE '✅ PARCHE APLICADO CORRECTAMENTE';
   END IF;
 END $$;
